@@ -74,4 +74,4 @@ void glVertexPointer (GLint size, GLenum type, GLsizei stride, const void* point
 }
 #endif // __cplusplus
 
-#endif
+#endif /* _GLASS_GL_H */
