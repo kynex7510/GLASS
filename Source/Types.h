@@ -60,23 +60,23 @@
 #define CONTEXT_FLAG_ALPHA DECL_FLAG(14)
 #define CONTEXT_FLAG_BLEND DECL_FLAG(15)
 
-#define ObjectIsBuffer(x) CheckObjectType((x), GLASS_BUFFER_TYPE)
-#define ObjectIsTexture(x) CheckObjectType((x), GLASS_TEXTURE_TYPE)
-#define ObjectIsProgram(x) CheckObjectType((x), GLASS_PROGRAM_TYPE)
-#define ObjectIsShader(x) CheckObjectType((x), GLASS_SHADER_TYPE)
-#define ObjectIsFramebuffer(x) CheckObjectType((x), GLASS_FRAMEBUFFER_TYPE)
-#define ObjectIsRenderbuffer(x) CheckObjectType((x), GLASS_RENDERBUFFER_TYPE)
+#define ObjectIsBuffer(x) GLASS_checkObjectType((x), GLASS_BUFFER_TYPE)
+#define ObjectIsTexture(x) GLASS_checkObjectType((x), GLASS_TEXTURE_TYPE)
+#define ObjectIsProgram(x) GLASS_checkObjectType((x), GLASS_PROGRAM_TYPE)
+#define ObjectIsShader(x) GLASS_checkObjectType((x), GLASS_SHADER_TYPE)
+#define ObjectIsFramebuffer(x) GLASS_checkObjectType((x), GLASS_FRAMEBUFFER_TYPE)
+#define ObjectIsRenderbuffer(x) GLASS_checkObjectType((x), GLASS_RENDERBUFFER_TYPE)
 
 typedef struct {
     u32 type;     // GL type (GLASS_BUFFER_TYPE).
-    u8 *address;  // Data address.
+    u8* address;  // Data address.
     GLenum usage; // Buffer usage type.
     u16 flags;    // Buffer flags.
 } BufferInfo;
 
 typedef struct {
     u32 type;       // GL type (GLASS_RENDERBUFFER_TYPE).
-    u8 *address;    // Data address.
+    u8* address;    // Data address.
     GLsizei width;  // Buffer width.
     GLsizei height; // Buffer height.
     GLenum format;  // Buffer format.
@@ -85,8 +85,8 @@ typedef struct {
 
 typedef struct {
     u32 type;                      // GL type (GLASS_FRAMEBUFFER_TYPE).
-    RenderbufferInfo *colorBuffer; // Bound color buffer.
-    RenderbufferInfo *depthBuffer; // Bound depth (+ stencil) buffer.
+    RenderbufferInfo* colorBuffer; // Bound color buffer.
+    RenderbufferInfo* depthBuffer; // Bound depth (+ stencil) buffer.
     u32 flags;                     // Framebuffer flags.
 } FramebufferInfo;
 
@@ -101,9 +101,9 @@ typedef struct {
 
 typedef struct {
     u32 refc;           // Reference count.
-    u32 *binaryCode;    // Binary code buffer.
+    u32* binaryCode;    // Binary code buffer.
     u32 numOfCodeWords; // Num of instructions.
-    u32 *opDescs;       // Operand descriptors.
+    u32* opDescs;       // Operand descriptors.
     u32 numOfOpDescs;   // Num of operand descriptors.
 } SharedShaderData;
 
@@ -111,11 +111,11 @@ typedef struct {
     u8 ID;           // Uniform ID.
     u8 type;         // Uniform type.
     size_t count;    // Number of elements.
-    char *symbol;    // Pointer to symbol.
+    char* symbol;    // Pointer to symbol.
     union {
         u16 mask;    // Bool, bool array mask.
         u32 value;   // Int value.
-        u32 *values; // int array, float, float array data.
+        u32* values; // int array, float, float array data.
     } data;
     bool dirty; // Uniform dirty.
 } UniformInfo;
@@ -128,21 +128,21 @@ typedef struct {
 
 typedef struct {
     u32 type;                           // GL type (GLASS_SHADER_TYPE).
-    SharedShaderData *sharedData;       // Shared shader data.
+    SharedShaderData* sharedData;       // Shared shader data.
     size_t codeEntrypoint;              // Code entrypoint.
     DVLE_geoShaderMode gsMode;          // Mode for geometry shader.
     u16 outMask;                        // Used output registers mask.
     u16 outTotal;                       // Total number of output registers.
     u32 outSems[7];                     // Output register semantics.
     u32 outClock;                       // Output register clock.
-    char *symbolTable;                  // This shader symbol table.
+    char* symbolTable;                  // This shader symbol table.
     u32 sizeOfSymbolTable;              // Size of symbol table.
     u16 constBoolMask;                  // Constant bool uniform mask.
     u32 constIntData[4];                // Constant int uniform data.
     u16 constIntMask;                   // Constant int uniform mask.
-    ConstFloatInfo *constFloatUniforms; // Constant uniforms.
+    ConstFloatInfo* constFloatUniforms; // Constant uniforms.
     u32 numOfConstFloatUniforms;        // Num of const uniforms.
-    UniformInfo *activeUniforms;        // Active uniforms.
+    UniformInfo* activeUniforms;        // Active uniforms.
     u32 numOfActiveUniforms;            // Num of active uniforms.
     u16 flags;                          // Shader flags.
     u16 refc;                           // Reference count.
@@ -269,7 +269,7 @@ typedef struct {
     GLenum logicOp; // Logic op.
 } CtxCommon;
 
-GLuint GLASS_types_createObject(u32 type);
-bool GLASS_types_checkObjectType(GLuint obj, u32 type);
+GLuint GLASS_createObject(u32 type);
+bool GLASS_checkObjectType(GLuint obj, u32 type);
 
 #endif /* _GLASS_TYPES_H */

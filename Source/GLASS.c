@@ -10,7 +10,7 @@ static INLINE void GLASS_getDisplayBuffer(CtxCommon* ctx, RenderbufferInfo* disp
     displayBuffer->height = height;
 }
 
-static void GLASS_swapBuffersCb(gxCmdQueue_s *queue) {
+static void GLASS_swapBuffersCb(gxCmdQueue_s* queue) {
     CtxCommon* ctx = (CtxCommon*)queue->user;
     gfxScreenSwapBuffers(ctx->settings.targetScreen, ctx->settings.targetScreen == GFX_TOP && ctx->settings.targetSide == GFX_RIGHT);
     gxCmdQueueSetCallback(queue, NULL, NULL);
@@ -20,14 +20,14 @@ glassCtx glassCreateContext(glassVersion version) { return glassCreateContextWit
 
 glassCtx glassCreateContextWithSettings(glassVersion version, const glassCtxSettings* settings) {
     if (version == GLASS_VERSION_1_1) {
-        CtxV1* ctx = (CtxV1*)GLASS_virtualAlloc(sizeof(CtxV1));
+        CtxV1* ctx = GLASS_virtualAlloc(sizeof(CtxV1));
         if (ctx)
             GLASS_context_initV1(ctx, settings);
         return (glassCtx)ctx;
     }
 
     if (version == GLASS_VERSION_2_0) {
-        CtxV2* ctx = (CtxV2*)GLASS_virtualAlloc(sizeof(CtxV2));
+        CtxV2* ctx = GLASS_virtualAlloc(sizeof(CtxV2));
         if (ctx)
             GLASS_context_initV2(ctx, settings);
         return (glassCtx)ctx;
@@ -65,7 +65,7 @@ void glassWriteSettings(glassCtx wrapped, const glassCtxSettings* settings) {
     memcpy(&ctx->settings, settings, sizeof(glassCtxSettings));
 }
 
-void glassBindContext(glassCtx *ctx) { GLASS_context_bind(ctx); }
+void glassBindContext(glassCtx* ctx) { GLASS_context_bind(ctx); }
 
 void glassSwapBuffers(void) {
   RenderbufferInfo displayBuffer;
@@ -81,8 +81,8 @@ void glassSwapBuffers(void) {
     return;
 
   // Get color buffer.
-  FramebufferInfo *fb = (FramebufferInfo *)ctx->framebuffer;
-  RenderbufferInfo *colorBuffer = fb->colorBuffer;
+  FramebufferInfo* fb = (FramebufferInfo*)ctx->framebuffer;
+  RenderbufferInfo* colorBuffer = fb->colorBuffer;
   if (!colorBuffer)
     return;
 
@@ -95,7 +95,7 @@ void glassSwapBuffers(void) {
 
   // Transfer buffer.
   GLASS_gpu_flushQueue(ctx, false);
-  gxCmdQueueSetCallback(&ctx->gxQueue, GLASS_swapBuffersCb, (void *)ctx);
+  gxCmdQueueSetCallback(&ctx->gxQueue, GLASS_swapBuffersCb, (void*)ctx);
   GLASS_gpu_transferBuffer(fb->colorBuffer, &displayBuffer, transferFlags);
   GLASS_gpu_runQueue(ctx, false);
 }

@@ -3,8 +3,8 @@
 
 #define CONTEXT_FLAG_ALL (~(DECL_FLAG(0) - 1))
 
-static CtxCommon *g_Context = NULL;
-static CtxCommon *g_OldCtx = NULL;
+static CtxCommon* g_Context = NULL;
+static CtxCommon* g_OldCtx = NULL;
 
 static void GLASS_context_initCommon(CtxCommon* ctx, const glassCtxSettings* settings) {
     ASSERT(ctx);
@@ -144,7 +144,7 @@ void GLASS_context_cleanupV2(CtxV2* ctx) {
     GLASS_context_cleanupCommon(&ctx->common);
 }
 
-CtxCommon *GLASS_context_getCommon(void) {
+CtxCommon* GLASS_context_getCommon(void) {
     ASSERT(g_Context);
     return g_Context;
 }
@@ -173,11 +173,11 @@ void GLASS_context_bind(void* ctx) {
 
 static void GLASS_context_update(void) {
     ASSERT(g_Context);
-    GLASS_gpu_enableRegs(g_Context);
+    GLASS_gpu_enableCommands(g_Context);
 
     // Handle framebuffer.
     if (g_Context->flags & CONTEXT_FLAG_FRAMEBUFFER) {
-        FramebufferInfo *info = (FramebufferInfo *)g_Context->framebuffer;
+        FramebufferInfo* info = (FramebufferInfo*)g_Context->framebuffer;
 
         // Flush buffers if required.
         if (g_Context->flags & CONTEXT_FLAG_DRAW) {
@@ -216,19 +216,19 @@ static void GLASS_context_update(void) {
 
     // Handle program.
     if (g_Context->flags & CONTEXT_FLAG_PROGRAM) {
-        ProgramInfo *pinfo = (ProgramInfo *)g_Context->currentProgram;
+        ProgramInfo* pinfo = (ProgramInfo*)g_Context->currentProgram;
 
         if (pinfo) {
-            ShaderInfo *vs = NULL;
-            ShaderInfo *gs = NULL;
+            ShaderInfo* vs = NULL;
+            ShaderInfo* gs = NULL;
 
             if (pinfo->flags & PROGRAM_FLAG_UPDATE_VERTEX) {
-                vs = (ShaderInfo *)pinfo->linkedVertex;
+                vs = (ShaderInfo*)pinfo->linkedVertex;
                 pinfo->flags &= ~PROGRAM_FLAG_UPDATE_VERTEX;
             }
 
             if (pinfo->flags & PROGRAM_FLAG_UPDATE_GEOMETRY) {
-                gs = (ShaderInfo *)pinfo->linkedGeometry;
+                gs = (ShaderInfo*)pinfo->linkedGeometry;
                 pinfo->flags &= ~PROGRAM_FLAG_UPDATE_GEOMETRY;
             }
 
@@ -246,9 +246,9 @@ static void GLASS_context_update(void) {
 
     // Handle uniforms.
     if (ObjectIsProgram(g_Context->currentProgram)) {
-        ProgramInfo *pinfo = (ProgramInfo *)g_Context->currentProgram;
-        ShaderInfo *vs = (ShaderInfo *)pinfo->linkedVertex;
-        ShaderInfo *gs = (ShaderInfo *)pinfo->linkedGeometry;
+        ProgramInfo* pinfo = (ProgramInfo*)g_Context->currentProgram;
+        ShaderInfo* vs = (ShaderInfo*)pinfo->linkedVertex;
+        ShaderInfo* gs = (ShaderInfo*)pinfo->linkedGeometry;
 
         if (vs)
             GLASS_gpu_uploadUniforms(vs);
@@ -276,8 +276,8 @@ static void GLASS_context_update(void) {
 
     // Handle depth map.
     if (g_Context->flags & CONTEXT_FLAG_DEPTHMAP) {
-        FramebufferInfo *fb = (FramebufferInfo *)g_Context->framebuffer;
-        RenderbufferInfo *db = fb ? fb->depthBuffer : NULL;
+        FramebufferInfo* fb = (FramebufferInfo*)g_Context->framebuffer;
+        RenderbufferInfo* db = fb ? fb->depthBuffer : NULL;
         GLASS_gpu_setDepthMap(g_Context->polygonOffset, g_Context->depthNear, g_Context->depthFar, g_Context->polygonOffset ? g_Context->polygonUnits : 0.0f, db ? db->format : 0u);
         g_Context->flags &= ~CONTEXT_FLAG_DEPTHMAP;
     }
@@ -334,7 +334,7 @@ static void GLASS_context_update(void) {
         g_Context->flags &= ~CONTEXT_FLAG_BLEND;
     }
 
-    GLASS_gpu_disableRegs(g_Context);
+    GLASS_gpu_disableCommands(g_Context);
 }
 
 void GLASS_context_setError(GLenum error) {

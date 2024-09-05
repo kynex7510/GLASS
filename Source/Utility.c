@@ -49,11 +49,11 @@ void GLASS_utility_abort(void) {
 
 #endif // NDEBUG
 
-void *GLASS_utility_convertPhysToVirt(u32 addr) {
+void* GLASS_utility_convertPhysToVirt(u32 addr) {
 #define CONVERT_REGION(_name)                                              \
     if (addr >= OS_##_name##_PADDR &&                                      \
         addr < (OS_##_name##_PADDR + OS_##_name##_SIZE))                   \
-        return (void *)(addr - (OS_##_name##_PADDR + OS_##_name##_VADDR));
+        return (void*)(addr - (OS_##_name##_PADDR + OS_##_name##_VADDR));
 
     CONVERT_REGION(FCRAM);
     CONVERT_REGION(VRAM);
@@ -517,14 +517,14 @@ GPU_TEVSCALE GLASS_utility_getCombinerScale(GLfloat scale) {
 
 GPU_Primitive_t GLASS_utility_getDrawPrimitive(GLenum mode) {
     switch (mode) {
-    case GL_TRIANGLES:
-        return GPU_TRIANGLES;
-    case GL_TRIANGLE_STRIP:
-        return GPU_TRIANGLE_STRIP;
-    case GL_TRIANGLE_FAN:
-        return GPU_TRIANGLE_FAN;
-    case GL_GEOMETRY_PRIMITIVE_PICA:
-        return GPU_GEOMETRY_PRIM;
+        case GL_TRIANGLES:
+            return GPU_TRIANGLES;
+        case GL_TRIANGLE_STRIP:
+            return GPU_TRIANGLE_STRIP;
+        case GL_TRIANGLE_FAN:
+            return GPU_TRIANGLE_FAN;
+        case GL_GEOMETRY_PRIMITIVE_PICA:
+            return GPU_GEOMETRY_PRIM;
     }
 
     UNREACHABLE("Invalid draw mode!");
@@ -532,10 +532,10 @@ GPU_Primitive_t GLASS_utility_getDrawPrimitive(GLenum mode) {
 
 u32 GLASS_utility_getDrawType(GLenum type) {
     switch (type) {
-    case GL_UNSIGNED_BYTE:
-        return 0;
-    case GL_UNSIGNED_SHORT:
-        return 1;
+        case GL_UNSIGNED_BYTE:
+            return 0;
+        case GL_UNSIGNED_SHORT:
+            return 1;
     }
 
     UNREACHABLE("Invalid draw type!");
@@ -545,7 +545,7 @@ u32 GLASS_utility_makeTransferFlags(bool flipVertical, bool tilted, bool rawCopy
     return GX_TRANSFER_FLIP_VERT(flipVertical) | GX_TRANSFER_OUT_TILED(tilted) | GX_TRANSFER_RAW_COPY(rawCopy) | GX_TRANSFER_IN_FORMAT(inputFormat) | GX_TRANSFER_OUT_FORMAT(outputFormat) | GX_TRANSFER_SCALING(scaling);
 }
 
-void GLASS_utility_packIntVector(const u32 *in, u32 *out) {
+void GLASS_utility_packIntVector(const u32* in, u32* out) {
     ASSERT(in);
     ASSERT(out);
 
@@ -555,7 +555,7 @@ void GLASS_utility_packIntVector(const u32 *in, u32 *out) {
     *out |= (in[3] & 0xFF) << 24;
 }
 
-void GLASS_utility_unpackIntVector(u32 in, u32 *out) {
+void GLASS_utility_unpackIntVector(u32 in, u32* out) {
     ASSERT(out);
 
     out[0] = in & 0xFF;
@@ -564,7 +564,7 @@ void GLASS_utility_unpackIntVector(u32 in, u32 *out) {
     out[3] = (in >> 24) & 0xFF;
 }
 
-void GLASS_utility_packFloatVector(const float *in, u32 *out) {
+void GLASS_utility_packFloatVector(const float* in, u32* out) {
     ASSERT(in);
     ASSERT(out);
 
@@ -577,7 +577,7 @@ void GLASS_utility_packFloatVector(const float *in, u32 *out) {
     out[2] = (cvtY << 24) | cvtX;
 }
 
-void GLASS_utility_unpackFloatVector(const u32 *in, float *out) {
+void GLASS_utility_unpackFloatVector(const u32* in, float*out) {
     ASSERT(in);
     ASSERT(out);
 
@@ -587,7 +587,7 @@ void GLASS_utility_unpackFloatVector(const u32 *in, float *out) {
     out[3] = f24tof32(in[0] >> 8);
 }
 
-bool GLASS_utility_getBoolUniform(const UniformInfo *info, size_t offset) {
+bool GLASS_utility_getBoolUniform(const UniformInfo* info, size_t offset) {
     ASSERT(info);
     ASSERT(info->type == GLASS_UNI_BOOL);
     ASSERT(info->count <= GLASS_NUM_BOOL_UNIFORMS);
@@ -596,21 +596,22 @@ bool GLASS_utility_getBoolUniform(const UniformInfo *info, size_t offset) {
     return (info->data.mask >> offset) & 1;
 }
 
-void GLASS_utility_setBoolUniform(UniformInfo *info, size_t offset, bool enabled) {
+void GLASS_utility_setBoolUniform(UniformInfo* info, size_t offset, bool enabled) {
     ASSERT(info);
     ASSERT(info->type == GLASS_UNI_BOOL);
     ASSERT(info->count <= GLASS_NUM_BOOL_UNIFORMS);
     ASSERT(offset < info->count);
 
-    if (enabled)
+    if (enabled) {
         info->data.mask |= (1 << offset);
-    else
+    } else {
         info->data.mask &= ~(1 << offset);
+    }
 
     info->dirty = true;
 }
 
-void GLASS_utility_getIntUniform(const UniformInfo *info, size_t offset, u32 *out) {
+void GLASS_utility_getIntUniform(const UniformInfo* info, size_t offset, u32* out) {
     ASSERT(info);
     ASSERT(out);
     ASSERT(info->type == GLASS_UNI_INT);
@@ -620,7 +621,7 @@ void GLASS_utility_getIntUniform(const UniformInfo *info, size_t offset, u32 *ou
     *out = (info->count == 1) ? info->data.value : info->data.values[offset];
 }
 
-void GLASS_utility_setIntUniform(UniformInfo *info, size_t offset, u32 vector) {
+void GLASS_utility_setIntUniform(UniformInfo* info, size_t offset, u32 vector) {
     ASSERT(info);
     ASSERT(info->type == GLASS_UNI_INT);
     ASSERT(info->count <= GLASS_NUM_INT_UNIFORMS);
@@ -635,7 +636,7 @@ void GLASS_utility_setIntUniform(UniformInfo *info, size_t offset, u32 vector) {
     info->dirty = true;
 }
 
-void GLASS_utility_getFloatUniform(const UniformInfo *info, size_t offset, u32 *out) {
+void GLASS_utility_getFloatUniform(const UniformInfo* info, size_t offset, u32* out) {
     ASSERT(info);
     ASSERT(out);
     ASSERT(info->type == GLASS_UNI_FLOAT);
@@ -644,7 +645,7 @@ void GLASS_utility_getFloatUniform(const UniformInfo *info, size_t offset, u32 *
     memcpy(out, &info->data.values[3 * offset], sizeof(u32));
 }
 
-void GLASS_utility_setFloatUniform(UniformInfo *info, size_t offset, const u32 *vector) {
+void GLASS_utility_setFloatUniform(UniformInfo* info, size_t offset, const u32*vector) {
     ASSERT(info);
     ASSERT(info->type == GLASS_UNI_FLOAT);
     ASSERT(info->count <= GLASS_NUM_FLOAT_UNIFORMS);

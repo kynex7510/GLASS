@@ -25,7 +25,7 @@ void GLASS_linearFreeDefault(void* p) { linearFree(p); }
 void* GLASS_vramAllocDefault(size_t size, vramAllocPos pos) { return vramAllocAt(size, pos); }
 void GLASS_vramFreeDefault(void* p) { vramFree(p); }
 
-WEAK void *GLASS_virtualAlloc(size_t size) { return GLASS_virtualAllocDefault(size); }
+WEAK void* GLASS_virtualAlloc(size_t size) { return GLASS_virtualAllocDefault(size); }
 WEAK void GLASS_virtualFree(void* p) { GLASS_virtualFreeDefault(p); }
 WEAK void* GLASS_linearAlloc(size_t size) { return GLASS_linearAllocDefault(size); }
 WEAK void GLASS_linearFree(void* p) { GLASS_linearFreeDefault(p); }
