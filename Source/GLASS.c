@@ -82,7 +82,7 @@ void glassSwapBuffers(void) {
   ASSERT(displayBuffer.address);
 
   // Get transfer flags.
-  const u32 transferFlags = MakeTransferFlags(false, false, false, GLASS_utility_getTransferFormat(fb->colorBuffer->format), GLASS_utility_getTransferFormat(displayBuffer.format), ctx->settings.transferScale);
+  const u32 transferFlags = GLASS_utility_makeTransferFlags(false, false, false, GLASS_utility_getTransferFormat(fb->colorBuffer->format), GLASS_utility_getTransferFormat(displayBuffer.format), ctx->settings.transferScale);
 
   // Transfer buffer.
   GLASS_gpu_flushQueue(ctx, false);

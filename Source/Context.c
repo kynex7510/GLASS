@@ -127,6 +127,7 @@ static void GLASS_context_cleanupCommon(CtxCommon* ctx) {
 void GLASS_context_initV1(CtxV1* ctx, glassCtxSettings* settings) {
     ASSERT(ctx);
     GLASS_context_initCommon(&ctx->common, settings);
+    ctx->common.version = GLASS_VERSION_1_1;
 }
 
 void GLASS_context_cleanupV1(CtxV1* ctx) {
