@@ -60,12 +60,12 @@
 #define CONTEXT_FLAG_ALPHA DECL_FLAG(14)
 #define CONTEXT_FLAG_BLEND DECL_FLAG(15)
 
-#define ObjectIsBuffer(x) GLASS_checkObjectType((x), GLASS_BUFFER_TYPE)
-#define ObjectIsTexture(x) GLASS_checkObjectType((x), GLASS_TEXTURE_TYPE)
-#define ObjectIsProgram(x) GLASS_checkObjectType((x), GLASS_PROGRAM_TYPE)
-#define ObjectIsShader(x) GLASS_checkObjectType((x), GLASS_SHADER_TYPE)
-#define ObjectIsFramebuffer(x) GLASS_checkObjectType((x), GLASS_FRAMEBUFFER_TYPE)
-#define ObjectIsRenderbuffer(x) GLASS_checkObjectType((x), GLASS_RENDERBUFFER_TYPE)
+#define OBJ_IS_BUFFER(x) GLASS_checkObjectType((x), GLASS_BUFFER_TYPE)
+#define OBJ_IS_TEXTURE(x) GLASS_checkObjectType((x), GLASS_TEXTURE_TYPE)
+#define OBJ_IS_PROGRAM(x) GLASS_checkObjectType((x), GLASS_PROGRAM_TYPE)
+#define OBJ_IS_SHADER(x) GLASS_checkObjectType((x), GLASS_SHADER_TYPE)
+#define OBJ_IS_FRAMEBUFFER(x) GLASS_checkObjectType((x), GLASS_FRAMEBUFFER_TYPE)
+#define OBJ_IS_RENDERBUFFER(x) GLASS_checkObjectType((x), GLASS_RENDERBUFFER_TYPE)
 
 typedef struct {
     u32 type;     // GL type (GLASS_BUFFER_TYPE).

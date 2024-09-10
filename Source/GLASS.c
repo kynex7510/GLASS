@@ -26,13 +26,6 @@ glassCtx glassCreateContextWithSettings(glassVersion version, const glassCtxSett
         return (glassCtx)ctx;
     }
 
-    if (version == GLASS_VERSION_2_0) {
-        CtxV2* ctx = GLASS_virtualAlloc(sizeof(CtxV2));
-        if (ctx)
-            GLASS_context_initV2(ctx, settings);
-        return (glassCtx)ctx;
-    }
-
     return NULL;
 }
 
@@ -42,8 +35,6 @@ void glassDestroyContext(glassCtx wrapped) {
     
     if (ctx->version == GLASS_VERSION_1_1) {
         GLASS_context_cleanupV1((CtxV1*)ctx);
-    } else if (ctx->version == GLASS_VERSION_2_0) {
-        GLASS_context_cleanupV2((CtxV2*)ctx);
     }
 
     GLASS_virtualFree(ctx);
@@ -77,7 +68,7 @@ void glassSwapBuffers(void) {
   GLASS_gpu_flushAndRunCommands(ctx);
 
   // Framebuffer might not be set.
-  if (!ObjectIsFramebuffer(ctx->framebuffer))
+  if (!OBJ_IS_FRAMEBUFFER(ctx->framebuffer))
     return;
 
   // Get color buffer.

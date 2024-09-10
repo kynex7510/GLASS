@@ -17,7 +17,7 @@ static BufferInfo* GLASS_getBoundBufferInfo(GLenum target) {
             return NULL;
     }
 
-    if (ObjectIsBuffer(buffer))
+    if (OBJ_IS_BUFFER(buffer))
         return (BufferInfo*)buffer;
 
     GLASS_context_setError(GL_INVALID_OPERATION);
@@ -25,7 +25,7 @@ static BufferInfo* GLASS_getBoundBufferInfo(GLenum target) {
 }
 
 void glBindBuffer(GLenum target, GLuint buffer) {
-    if (!ObjectIsBuffer(buffer) && buffer != GLASS_INVALID_OBJECT) {
+    if (!OBJ_IS_BUFFER(buffer) && buffer != GLASS_INVALID_OBJECT) {
         GLASS_context_setError(GL_INVALID_OPERATION);
         return;
     }
@@ -120,7 +120,7 @@ void glDeleteBuffers(GLsizei n, const GLuint* buffers) {
         GLuint name = buffers[i];
 
         // Validate name.
-        if (!ObjectIsBuffer(name))
+        if (!OBJ_IS_BUFFER(name))
             continue;
 
         BufferInfo* info = (BufferInfo*)name;
@@ -150,7 +150,7 @@ void glGenBuffers(GLsizei n, GLuint* buffers) {
 
     for (GLsizei i = 0; i < n; i++) {
         GLuint name = GLASS_createObject(GLASS_BUFFER_TYPE);
-        if (!ObjectIsBuffer(name)) {
+        if (!OBJ_IS_BUFFER(name)) {
             GLASS_context_setError(GL_OUT_OF_MEMORY);
             return;
         }
@@ -181,7 +181,7 @@ void glGetBufferParameteriv(GLenum target, GLenum pname, GLint* data) {
 }
 
 GLboolean glIsBuffer(GLuint buffer) {
-    if (ObjectIsBuffer(buffer)) {
+    if (OBJ_IS_BUFFER(buffer)) {
         const BufferInfo* info = (BufferInfo*)buffer;
         return info->flags & BUFFER_FLAG_BOUND;
     }

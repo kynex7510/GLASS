@@ -134,16 +134,6 @@ void GLASS_context_cleanupV1(CtxV1* ctx) {
     GLASS_context_cleanupCommon(&ctx->common);
 }
 
-void GLASS_context_initV2(CtxV2* ctx, glassCtxSettings* settings) {
-    ASSERT(ctx);
-    GLASS_context_initCommon(&ctx->common, settings);
-}
-
-void GLASS_context_cleanupV2(CtxV2* ctx) {
-    ASSERT(ctx);
-    GLASS_context_cleanupCommon(&ctx->common);
-}
-
 CtxCommon* GLASS_context_getCommon(void) {
     ASSERT(g_Context);
     return g_Context;
@@ -245,7 +235,7 @@ static void GLASS_context_update(void) {
     }
 
     // Handle uniforms.
-    if (ObjectIsProgram(g_Context->currentProgram)) {
+    if (OBJ_IS_PROGRAM(g_Context->currentProgram)) {
         ProgramInfo* pinfo = (ProgramInfo*)g_Context->currentProgram;
         ShaderInfo* vs = (ShaderInfo*)pinfo->linkedVertex;
         ShaderInfo* gs = (ShaderInfo*)pinfo->linkedGeometry;
