@@ -127,9 +127,9 @@ void glDeleteBuffers(GLsizei n, const GLuint* buffers) {
 
         // Unbind if bound.
         if (ctx->arrayBuffer == name) {
-        ctx->arrayBuffer = GLASS_INVALID_OBJECT;
+            ctx->arrayBuffer = GLASS_INVALID_OBJECT;
         } else if (ctx->elementArrayBuffer == name) {
-        ctx->elementArrayBuffer = GLASS_INVALID_OBJECT;
+            ctx->elementArrayBuffer = GLASS_INVALID_OBJECT;
         }
 
         // Delete buffer.
