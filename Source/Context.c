@@ -180,7 +180,7 @@ void GLASS_context_bind(void* ctx) {
     }
 }
 
-static void GLASS_context_update(void) {
+void GLASS_context_update(void) {
     ASSERT(g_Context);
     GLASS_gpu_enableCommands(g_Context);
 

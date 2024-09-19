@@ -6,91 +6,6 @@
 #define GPU_MAX_ENTRIES 0x4000
 #define GX_MAX_ENTRIES 32
 
-static INLINE u16 GLASS_getGXControl(bool start, bool finished, GLenum format) {
-    const u16 fillWidth = GLASS_utility_getPixelSizeForFB(format);
-    return (u16)start | ((u16)finished << 1) | (fillWidth << 8);
-}
-
-static void GLASS_uploadShaderBinary(const ShaderInfo* shader) {
-    if (shader->sharedData) {
-        // Set write offset for code upload.
-        GPUCMD_AddWrite((shader->flags & SHADER_FLAG_GEOMETRY) ? GPUREG_GSH_CODETRANSFER_CONFIG : GPUREG_VSH_CODETRANSFER_CONFIG, 0);
-
-        // Write code.
-        // TODO: check code words limit.
-        GPUCMD_AddWrites((shader->flags & SHADER_FLAG_GEOMETRY) ? GPUREG_GSH_CODETRANSFER_DATA : GPUREG_VSH_CODETRANSFER_DATA,
-                        shader->sharedData->binaryCode,
-                        shader->sharedData->numOfCodeWords < 512 ? shader->sharedData->numOfCodeWords : 512);
-
-        // Finalize code.
-        GPUCMD_AddWrite((shader->flags & SHADER_FLAG_GEOMETRY) ? GPUREG_GSH_CODETRANSFER_END : GPUREG_VSH_CODETRANSFER_END, 1);
-
-        // Set write offset for op descs.
-        GPUCMD_AddWrite((shader->flags & SHADER_FLAG_GEOMETRY) ? GPUREG_GSH_OPDESCS_CONFIG : GPUREG_VSH_OPDESCS_CONFIG, 0);
-
-        // Write op descs.
-        GPUCMD_AddWrites((shader->flags & SHADER_FLAG_GEOMETRY) ? GPUREG_GSH_OPDESCS_DATA : GPUREG_VSH_OPDESCS_DATA,
-                        shader->sharedData->opDescs,
-                        shader->sharedData->numOfOpDescs < 128 ? shader->sharedData->numOfOpDescs : 128);
-    }
-}
-
-static INLINE void GLASS_uploadBoolUniformMask(const ShaderInfo* shader, u16 mask) {
-    const u32 reg = (shader->flags & SHADER_FLAG_GEOMETRY) ? GPUREG_GSH_BOOLUNIFORM : GPUREG_VSH_BOOLUNIFORM;
-    GPUCMD_AddWrite(reg, 0x7FFF0000 | mask);
-}
-
-static INLINE void GLASS_uploadConstIntUniforms(const ShaderInfo* shader) {
-    const u32 reg = (shader->flags & SHADER_FLAG_GEOMETRY) ? GPUREG_GSH_INTUNIFORM_I0 : GPUREG_VSH_INTUNIFORM_I0;
-
-    for (size_t i = 0; i < 4; ++i) {
-        if (!((shader->constIntMask >> i) & 1))
-            continue;
-
-        GPUCMD_AddWrite(reg + i, shader->constIntData[i]);
-    }
-}
-
-static INLINE void GLASS_uploadIntUniform(const ShaderInfo* shader, UniformInfo* info) {
-    const u32 reg = (shader->flags & SHADER_FLAG_GEOMETRY) ? GPUREG_GSH_INTUNIFORM_I0 : GPUREG_VSH_INTUNIFORM_I0;
-
-    if (info->count == 1) {
-        GPUCMD_AddWrite(reg + info->ID, info->data.value);
-    } else {
-        GPUCMD_AddIncrementalWrites(reg + info->ID, info->data.values, info->count);
-    }
-}
-
-static INLINE void GLASS_uploadConstFloatUniforms(const ShaderInfo* shader) {
-    const u32 idReg = (shader->flags & SHADER_FLAG_GEOMETRY) ? GPUREG_GSH_FLOATUNIFORM_CONFIG : GPUREG_VSH_FLOATUNIFORM_CONFIG;
-    const u32 dataReg = (shader->flags & SHADER_FLAG_GEOMETRY) ? GPUREG_GSH_FLOATUNIFORM_DATA : GPUREG_VSH_FLOATUNIFORM_DATA;
-
-    for (size_t i = 0; i < shader->numOfConstFloatUniforms; ++i) {
-        const ConstFloatInfo* uni = &shader->constFloatUniforms[i];
-        GPUCMD_AddWrite(idReg, uni->ID);
-        GPUCMD_AddIncrementalWrites(dataReg, uni->data, 3);
-    }
-}
-
-static INLINE void GLASS_uploadFloatUniform(const ShaderInfo* shader, UniformInfo* info) {
-    const u32 idReg = (shader->flags & SHADER_FLAG_GEOMETRY) ? GPUREG_GSH_FLOATUNIFORM_CONFIG : GPUREG_VSH_FLOATUNIFORM_CONFIG;
-    const u32 dataReg = (shader->flags & SHADER_FLAG_GEOMETRY) ? GPUREG_GSH_FLOATUNIFORM_DATA : GPUREG_VSH_FLOATUNIFORM_DATA;
-
-    // ID is automatically incremented after each write.
-    // TODO: packed values don't work, it seems.
-    GPUCMD_AddWrite(idReg, 0x80000000 | info->ID);
-
-    for (size_t i = 0; i < info->count; ++i) {
-        float components[4];
-        uint32_t* buffer = &info->data.values[i * 3];
-        GLASS_utility_unpackFloatVector(buffer, components);
-        GPUCMD_AddWrites(dataReg, (u32*)components, 4);
-    }
-
-    // for (size_t i = 0; i < info->count; ++i)
-    //  GPUCMD_AddIncrementalWrites(dataReg, &info->data.values[i * 3], 3);
-}
-
 void GLASS_gpu_init(CtxCommon* ctx) {
     ASSERT(ctx);
 
@@ -165,6 +80,11 @@ void GLASS_gpu_flushAndRunCommands(CtxCommon* ctx) {
     // Reset offset.
     ctx->cmdBufferOffset = 0;
     GLASS_gpu_runQueue(ctx, false);
+}
+
+static INLINE u16 GLASS_getGXControl(bool start, bool finished, GLenum format) {
+    const u16 fillWidth = GLASS_utility_getPixelSizeForFB(format);
+    return (u16)start | ((u16)finished << 1) | (fillWidth << 8);
 }
 
 void GLASS_gpu_clearBuffers(RenderbufferInfo* colorBuffer, u32 clearColor, RenderbufferInfo* depthBuffer, u32 clearDepth) {
@@ -279,6 +199,30 @@ void GLASS_gpu_setScissorTest(GPU_SCISSORMODE mode, GLint x, GLint y, GLsizei wi
     GPUCMD_AddWrite(GPUREG_SCISSORTEST_DIM, ((height - y - 1) << 16) | ((width - x - 1) & 0xFFFF));
 }
 
+static void GLASS_uploadShaderBinary(const ShaderInfo* shader) {
+    if (shader->sharedData) {
+        // Set write offset for code upload.
+        GPUCMD_AddWrite((shader->flags & SHADER_FLAG_GEOMETRY) ? GPUREG_GSH_CODETRANSFER_CONFIG : GPUREG_VSH_CODETRANSFER_CONFIG, 0);
+
+        // Write code.
+        // TODO: check code words limit.
+        GPUCMD_AddWrites((shader->flags & SHADER_FLAG_GEOMETRY) ? GPUREG_GSH_CODETRANSFER_DATA : GPUREG_VSH_CODETRANSFER_DATA,
+                        shader->sharedData->binaryCode,
+                        shader->sharedData->numOfCodeWords < 512 ? shader->sharedData->numOfCodeWords : 512);
+
+        // Finalize code.
+        GPUCMD_AddWrite((shader->flags & SHADER_FLAG_GEOMETRY) ? GPUREG_GSH_CODETRANSFER_END : GPUREG_VSH_CODETRANSFER_END, 1);
+
+        // Set write offset for op descs.
+        GPUCMD_AddWrite((shader->flags & SHADER_FLAG_GEOMETRY) ? GPUREG_GSH_OPDESCS_CONFIG : GPUREG_VSH_OPDESCS_CONFIG, 0);
+
+        // Write op descs.
+        GPUCMD_AddWrites((shader->flags & SHADER_FLAG_GEOMETRY) ? GPUREG_GSH_OPDESCS_DATA : GPUREG_VSH_OPDESCS_DATA,
+                        shader->sharedData->opDescs,
+                        shader->sharedData->numOfOpDescs < 128 ? shader->sharedData->numOfOpDescs : 128);
+    }
+}
+
 void GLASS_gpu_bindShaders(const ShaderInfo* vertexShader, const ShaderInfo* geometryShader) {
     // Initialize geometry engine.
     GPUCMD_AddMaskedWrite(GPUREG_GEOSTAGE_CONFIG, 0x03, geometryShader ? 2 : 0);
@@ -350,11 +294,67 @@ void GLASS_gpu_bindShaders(const ShaderInfo* vertexShader, const ShaderInfo* geo
     GPUCMD_AddWrite(GPUREG_GSH_INPUTBUFFER_CONFIG, 0xA0000000);
 }
 
+static INLINE void GLASS_uploadBoolUniformMask(const ShaderInfo* shader, u16 mask) {
+    const u32 reg = (shader->flags & SHADER_FLAG_GEOMETRY) ? GPUREG_GSH_BOOLUNIFORM : GPUREG_VSH_BOOLUNIFORM;
+    GPUCMD_AddWrite(reg, 0x7FFF0000 | mask);
+}
+
+static INLINE void GLASS_uploadConstIntUniforms(const ShaderInfo* shader) {
+    const u32 reg = (shader->flags & SHADER_FLAG_GEOMETRY) ? GPUREG_GSH_INTUNIFORM_I0 : GPUREG_VSH_INTUNIFORM_I0;
+
+    for (size_t i = 0; i < 4; ++i) {
+        if (!((shader->constIntMask >> i) & 1))
+            continue;
+
+        GPUCMD_AddWrite(reg + i, shader->constIntData[i]);
+    }
+}
+
+static INLINE void GLASS_uploadConstFloatUniforms(const ShaderInfo* shader) {
+    const u32 idReg = (shader->flags & SHADER_FLAG_GEOMETRY) ? GPUREG_GSH_FLOATUNIFORM_CONFIG : GPUREG_VSH_FLOATUNIFORM_CONFIG;
+    const u32 dataReg = (shader->flags & SHADER_FLAG_GEOMETRY) ? GPUREG_GSH_FLOATUNIFORM_DATA : GPUREG_VSH_FLOATUNIFORM_DATA;
+
+    for (size_t i = 0; i < shader->numOfConstFloatUniforms; ++i) {
+        const ConstFloatInfo* uni = &shader->constFloatUniforms[i];
+        GPUCMD_AddWrite(idReg, uni->ID);
+        GPUCMD_AddIncrementalWrites(dataReg, uni->data, 3);
+    }
+}
+
 void GLASS_gpu_uploadConstUniforms(const ShaderInfo* shader) {
     ASSERT(shader);
     GLASS_uploadBoolUniformMask(shader, shader->constBoolMask);
     GLASS_uploadConstIntUniforms(shader);
     GLASS_uploadConstFloatUniforms(shader);
+}
+
+static INLINE void GLASS_uploadIntUniform(const ShaderInfo* shader, UniformInfo* info) {
+    const u32 reg = (shader->flags & SHADER_FLAG_GEOMETRY) ? GPUREG_GSH_INTUNIFORM_I0 : GPUREG_VSH_INTUNIFORM_I0;
+
+    if (info->count == 1) {
+        GPUCMD_AddWrite(reg + info->ID, info->data.value);
+    } else {
+        GPUCMD_AddIncrementalWrites(reg + info->ID, info->data.values, info->count);
+    }
+}
+
+static INLINE void GLASS_uploadFloatUniform(const ShaderInfo* shader, UniformInfo* info) {
+    const u32 idReg = (shader->flags & SHADER_FLAG_GEOMETRY) ? GPUREG_GSH_FLOATUNIFORM_CONFIG : GPUREG_VSH_FLOATUNIFORM_CONFIG;
+    const u32 dataReg = (shader->flags & SHADER_FLAG_GEOMETRY) ? GPUREG_GSH_FLOATUNIFORM_DATA : GPUREG_VSH_FLOATUNIFORM_DATA;
+
+    // ID is automatically incremented after each write.
+    // TODO: packed values don't work, it seems.
+    GPUCMD_AddWrite(idReg, 0x80000000 | info->ID);
+
+    for (size_t i = 0; i < info->count; ++i) {
+        float components[4];
+        uint32_t* buffer = &info->data.values[i * 3];
+        GLASS_utility_unpackFloatVector(buffer, components);
+        GPUCMD_AddWrites(dataReg, (u32*)components, 4);
+    }
+
+    // for (size_t i = 0; i < info->count; ++i)
+    //  GPUCMD_AddIncrementalWrites(dataReg, &info->data.values[i * 3], 3);
 }
 
 void GLASS_gpu_uploadUniforms(ShaderInfo* shader) {

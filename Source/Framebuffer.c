@@ -6,40 +6,7 @@
     (((format) == GL_RGBA8) || ((format) == GL_RGB5_A1) || ((format) == GL_RGB565) || ((format) == GL_RGBA4))
 
 #define IS_DEPTH_FORMAT(format) \
-  (((format) == GL_DEPTH_COMPONENT16) || ((format) == GL_DEPTH_COMPONENT24) || ((format) == GL_DEPTH24_STENCIL8))
-
-static GLint GLASS_getColorSize(GLenum format, GLenum color) {
-    switch (format) {
-        case GL_RGBA8:
-            return 8;
-        case GL_RGB5_A1:
-            return color == GL_RENDERBUFFER_ALPHA_SIZE ? 1 : 5;
-        case GL_RGB565:
-            if (color == GL_RENDERBUFFER_GREEN_SIZE) {
-                return 6;
-            } else if (color == GL_RENDERBUFFER_ALPHA_SIZE) {
-                return 0;
-            } else {
-                return 5;
-            }
-        case GL_RGBA4:
-            return 4;
-    }
-
-    UNREACHABLE("Invalid color format!");
-}
-
-static GLint GLASS_getDepthSize(GLenum format) {
-    switch (format) {
-        case GL_DEPTH_COMPONENT16:
-            return 16;
-        case GL_DEPTH_COMPONENT24:
-        case GL_DEPTH24_STENCIL8:
-            return 24;
-    }
-
-    UNREACHABLE("Invalid depth format!");
-}
+    (((format) == GL_DEPTH_COMPONENT16) || ((format) == GL_DEPTH_COMPONENT24) || ((format) == GL_DEPTH24_STENCIL8))
 
 void glBindFramebuffer(GLenum target, GLuint framebuffer) {
     if (target != GL_FRAMEBUFFER) {
@@ -270,6 +237,39 @@ void glGenRenderbuffers(GLsizei n, GLuint* renderbuffers) {
         info->format = GL_RGBA4;
         renderbuffers[i] = name;
     }
+}
+
+static GLint GLASS_getColorSize(GLenum format, GLenum color) {
+    switch (format) {
+        case GL_RGBA8:
+            return 8;
+        case GL_RGB5_A1:
+            return color == GL_RENDERBUFFER_ALPHA_SIZE ? 1 : 5;
+        case GL_RGB565:
+            if (color == GL_RENDERBUFFER_GREEN_SIZE) {
+                return 6;
+            } else if (color == GL_RENDERBUFFER_ALPHA_SIZE) {
+                return 0;
+            } else {
+                return 5;
+            }
+        case GL_RGBA4:
+            return 4;
+    }
+
+    UNREACHABLE("Invalid color format!");
+}
+
+static GLint GLASS_getDepthSize(GLenum format) {
+    switch (format) {
+        case GL_DEPTH_COMPONENT16:
+            return 16;
+        case GL_DEPTH_COMPONENT24:
+        case GL_DEPTH24_STENCIL8:
+            return 24;
+    }
+
+    UNREACHABLE("Invalid depth format!");
 }
 
 void glGetRenderbufferParameteriv(GLenum target, GLenum pname, GLint* params) {

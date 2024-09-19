@@ -1,20 +1,7 @@
 #include "Utility.h"
 #include "Context.h"
 #include "Memory.h"
-
-static INLINE void GLASS_getDisplayBuffer(CtxCommon* ctx, RenderbufferInfo* displayBuffer) {
-    u16 width = 0, height = 0;
-    displayBuffer->address = gfxGetFramebuffer(ctx->settings.targetScreen, ctx->settings.targetSide, &height, &width);
-    displayBuffer->format = GLASS_utility_wrapFBFormat(gfxGetScreenFormat(ctx->settings.targetScreen));
-    displayBuffer->width = width;
-    displayBuffer->height = height;
-}
-
-static void GLASS_swapBuffersCb(gxCmdQueue_s* queue) {
-    CtxCommon* ctx = (CtxCommon*)queue->user;
-    gfxScreenSwapBuffers(ctx->settings.targetScreen, ctx->settings.targetScreen == GFX_TOP && ctx->settings.targetSide == GFX_RIGHT);
-    gxCmdQueueSetCallback(queue, NULL, NULL);
-}
+#include "GPU.h"
 
 glassCtx glassCreateContext(glassVersion version) { return glassCreateContextWithSettings(version, NULL); }
 
@@ -58,10 +45,13 @@ void glassWriteSettings(glassCtx wrapped, const glassCtxSettings* settings) {
 
 void glassBindContext(glassCtx* ctx) { GLASS_context_bind(ctx); }
 
-void glassSwapBuffers(void) {
-    RenderbufferInfo displayBuffer;
-    memset(&displayBuffer, 0, sizeof(RenderbufferInfo));
+static void GLASS_swapBuffersCb(gxCmdQueue_s* queue) {
+    CtxCommon* ctx = (CtxCommon*)queue->user;
+    gfxScreenSwapBuffers(ctx->settings.targetScreen, ctx->settings.targetScreen == GFX_TOP && ctx->settings.targetSide == GFX_RIGHT);
+    gxCmdQueueSetCallback(queue, NULL, NULL);
+}
 
+void glassSwapBuffers(void) {
     // Execute GPU commands.
     GLASS_context_update();
     CtxCommon* ctx = GLASS_context_getCommon();
@@ -78,15 +68,20 @@ void glassSwapBuffers(void) {
         return;
 
     // Get display buffer.
-    GLASS_getDisplayBuffer(ctx, &displayBuffer);
-    ASSERT(displayBuffer.address);
+    RenderbufferInfo* displayBuffer;
+    u16 width = 0, height = 0;
+    displayBuffer->address = gfxGetFramebuffer(ctx->settings.targetScreen, ctx->settings.targetSide, &height, &width);
+    ASSERT(displayBuffer->address);
+    displayBuffer->format = GLASS_utility_wrapFBFormat(gfxGetScreenFormat(ctx->settings.targetScreen));
+    displayBuffer->width = width;
+    displayBuffer->height = height;
 
     // Get transfer flags.
-    const u32 transferFlags = GLASS_utility_makeTransferFlags(false, false, false, GLASS_utility_getTransferFormat(fb->colorBuffer->format), GLASS_utility_getTransferFormat(displayBuffer.format), ctx->settings.transferScale);
+    const u32 transferFlags = GLASS_utility_makeTransferFlags(false, false, false, GLASS_utility_getTransferFormat(fb->colorBuffer->format), GLASS_utility_getTransferFormat(displayBuffer->format), ctx->settings.transferScale);
 
     // Transfer buffer.
     GLASS_gpu_flushQueue(ctx, false);
     gxCmdQueueSetCallback(&ctx->gxQueue, GLASS_swapBuffersCb, (void*)ctx);
-    GLASS_gpu_transferBuffer(fb->colorBuffer, &displayBuffer, transferFlags);
+    GLASS_gpu_transferBuffer(fb->colorBuffer, displayBuffer, transferFlags);
     GLASS_gpu_runQueue(ctx, false);
 }
