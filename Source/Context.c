@@ -1,5 +1,6 @@
 #include "Context.h"
 #include "Memory.h"
+#include "GPU.h"
 
 #define CONTEXT_FLAG_ALL (~(DECL_FLAG(0) - 1))
 
@@ -9,7 +10,7 @@ static CtxCommon* g_OldCtx = NULL;
 static void GLASS_context_initCommon(CtxCommon* ctx, const glassCtxSettings* settings) {
     ASSERT(ctx);
 
-    /* Platform */
+    // Platform.
     ctx->flags = CONTEXT_FLAG_ALL;
     ctx->lastError = GL_NO_ERROR;
     ctx->cmdBuffer = NULL;
@@ -29,11 +30,11 @@ static void GLASS_context_initCommon(CtxCommon* ctx, const glassCtxSettings* set
 
     GLASS_gpu_init(ctx);
 
-    /* Buffers */
+    // Buffers.
     ctx->arrayBuffer = GLASS_INVALID_OBJECT;
     ctx->elementArrayBuffer = GLASS_INVALID_OBJECT;
 
-    /* Framebuffer */
+    // Framebuffer.
     ctx->framebuffer = GLASS_INVALID_OBJECT;
     ctx->renderbuffer = GLASS_INVALID_OBJECT;
     ctx->clearColor = 0;
@@ -41,27 +42,44 @@ static void GLASS_context_initCommon(CtxCommon* ctx, const glassCtxSettings* set
     ctx->clearStencil = 0;
     ctx->block32 = false;
 
-    /* Viewport */
+    // Viewport.
     ctx->viewportX = 0;
     ctx->viewportY = 0;
     ctx->viewportW = 0;
     ctx->viewportH = 0;
 
-    /* Scissor */
+    // Scissor.
     ctx->scissorMode = GPU_SCISSOR_DISABLE;
     ctx->scissorX = 0;
     ctx->scissorY = 0;
     ctx->scissorW = 0;
     ctx->scissorH = 0;
 
-     /* Program */
-     ctx->currentProgram = GLASS_INVALID_OBJECT;
+    // Program.
+    ctx->currentProgram = GLASS_INVALID_OBJECT;
 
-    /* Fragment */
+    // Attributes.
+    for (size_t i = 0; i < GLASS_NUM_ATTRIB_REGS; ++i) {
+        AttributeInfo* attrib = &ctx->attribs[i];
+        attrib->type = GL_FLOAT;
+        attrib->count = 4;
+        attrib->stride = 0;
+        attrib->boundBuffer = GLASS_INVALID_OBJECT;
+        attrib->physAddr = 0;
+        attrib->components[0] = 0.0f;
+        attrib->components[1] = 0.0f;
+        attrib->components[2] = 0.0f;
+        attrib->components[3] = 1.0f;
+    }
+
+    for (size_t i = 0; i < GLASS_NUM_ATTRIB_SLOTS; ++i)
+        ctx->attribSlots[i] = GLASS_NUM_ATTRIB_REGS; // Initialized to OOB.
+
+    // Fragment.
     ctx->fragMode = GL_FRAGOP_MODE_DEFAULT_PICA;
     ctx->blendMode = false;
 
-    /* Color, Depth */
+    // Color, Depth.
     ctx->writeRed = true;
     ctx->writeGreen = true;
     ctx->writeBlue = true;
@@ -70,19 +88,19 @@ static void GLASS_context_initCommon(CtxCommon* ctx, const glassCtxSettings* set
     ctx->depthTest = false;
     ctx->depthFunc = GL_LESS;
 
-    /* Depth Map */
+    // Depth Map.
     ctx->depthNear = 0.0f;
     ctx->depthFar = 1.0f;
     ctx->polygonOffset = false;
     ctx->polygonFactor = 0.0f;
     ctx->polygonUnits = 0.0f;
 
-    /* Early Depth */
+    // Early Depth.
     ctx->earlyDepthTest = false;
     ctx->clearEarlyDepth = 1.0f;
     ctx->earlyDepthFunc = GL_LESS;
 
-    /* Stencil */
+    // Stencil.
     ctx->stencilTest = false;
     ctx->stencilFunc = GL_ALWAYS;
     ctx->stencilRef = 0;
@@ -92,17 +110,17 @@ static void GLASS_context_initCommon(CtxCommon* ctx, const glassCtxSettings* set
     ctx->stencilDepthFail = GL_KEEP;
     ctx->stencilPass = GL_KEEP;
 
-    /* Cull Face */
+    // Cull Face.
     ctx->cullFace = false;
     ctx->cullFaceMode = GL_BACK;
     ctx->frontFaceMode = GL_CCW;
 
-    /* Alpha */
+    // Alpha.
     ctx->alphaTest = false;
     ctx->alphaFunc = GL_ALWAYS;
     ctx->alphaRef = 0;
 
-    /* Blend */
+    // Blend.
     ctx->blendColor = 0;
     ctx->blendEqRGB = GL_FUNC_ADD;
     ctx->blendEqAlpha = GL_FUNC_ADD;
@@ -111,7 +129,7 @@ static void GLASS_context_initCommon(CtxCommon* ctx, const glassCtxSettings* set
     ctx->blendSrcAlpha = GL_ONE;
     ctx->blendDstAlpha = GL_ZERO;
 
-    /* Logic Op */
+    // Logic Op.
     ctx->logicOp = GL_COPY;
 }
 
@@ -248,7 +266,11 @@ static void GLASS_context_update(void) {
             GLASS_gpu_uploadUniforms(gs);
     }
 
-    // TODO: attribs?
+    // Handle attributes.
+    if (g_Context->flags & CONTEXT_FLAG_ATTRIBS) {
+        GLASS_gpu_uploadAttributes(g_Context->attribs, g_Context->attribSlots);
+        g_Context->flags &= ~CONTEXT_FLAG_ATTRIBS;
+    }
 
     // TODO: combiners
 

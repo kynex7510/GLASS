@@ -210,6 +210,10 @@ typedef struct {
 
     /* Program */
     GLuint currentProgram; // Shader program in use.
+    
+    /* Attributes */
+    AttributeInfo attribs[GLASS_NUM_ATTRIB_REGS]; // Attributes data.
+    size_t attribSlots[GLASS_NUM_ATTRIB_SLOTS];   // Attributes slots.
 
     /* Fragment */
     GLenum fragMode; // Fragment mode.
