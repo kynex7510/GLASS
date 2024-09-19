@@ -136,7 +136,7 @@ void glDeleteFramebuffers(GLsizei n, const GLuint* framebuffers) {
 
     CtxCommon* ctx = GLASS_context_getCommon();
 
-    for (GLsizei i = 0; i < n; i++) {
+    for (GLsizei i = 0; i < n; ++i) {
         GLuint name = framebuffers[i];
 
         // Validate name.
@@ -167,7 +167,7 @@ void glDeleteRenderbuffers(GLsizei n, const GLuint* renderbuffers) {
     if (OBJ_IS_FRAMEBUFFER(ctx->framebuffer))
         fbinfo = (FramebufferInfo*)ctx->framebuffer;
 
-    for (GLsizei i = 0; i < n; i++) {
+    for (GLsizei i = 0; i < n; ++i) {
         GLuint name = renderbuffers[i];
 
         // Validate name.
@@ -240,7 +240,7 @@ void glGenFramebuffers(GLsizei n, GLuint* framebuffers) {
         return;
     }
 
-    for (GLsizei i = 0; i < n; i++) {
+    for (GLsizei i = 0; i < n; ++i) {
         GLuint name = GLASS_createObject(GLASS_FRAMEBUFFER_TYPE);
         if (!OBJ_IS_FRAMEBUFFER(name)) {
             GLASS_context_setError(GL_OUT_OF_MEMORY);
@@ -259,7 +259,7 @@ void glGenRenderbuffers(GLsizei n, GLuint* renderbuffers) {
         return;
     }
 
-    for (GLsizei i = 0; i < n; i++) {
+    for (GLsizei i = 0; i < n; ++i) {
         GLuint name = GLASS_createObject(GLASS_RENDERBUFFER_TYPE);
         if (!OBJ_IS_RENDERBUFFER(name)) {
             GLASS_context_setError(GL_OUT_OF_MEMORY);

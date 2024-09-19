@@ -43,7 +43,7 @@ static INLINE void GLASS_uploadBoolUniformMask(const ShaderInfo* shader, u16 mas
 static INLINE void GLASS_uploadConstIntUniforms(const ShaderInfo* shader) {
     const u32 reg = (shader->flags & SHADER_FLAG_GEOMETRY) ? GPUREG_GSH_INTUNIFORM_I0 : GPUREG_VSH_INTUNIFORM_I0;
 
-    for (size_t i = 0; i < 4; i++) {
+    for (size_t i = 0; i < 4; ++i) {
         if (!((shader->constIntMask >> i) & 1))
             continue;
 
@@ -65,7 +65,7 @@ static INLINE void GLASS_uploadConstFloatUniforms(const ShaderInfo* shader) {
     const u32 idReg = (shader->flags & SHADER_FLAG_GEOMETRY) ? GPUREG_GSH_FLOATUNIFORM_CONFIG : GPUREG_VSH_FLOATUNIFORM_CONFIG;
     const u32 dataReg = (shader->flags & SHADER_FLAG_GEOMETRY) ? GPUREG_GSH_FLOATUNIFORM_DATA : GPUREG_VSH_FLOATUNIFORM_DATA;
 
-    for (size_t i = 0; i < shader->numOfConstFloatUniforms; i++) {
+    for (size_t i = 0; i < shader->numOfConstFloatUniforms; ++i) {
         const ConstFloatInfo* uni = &shader->constFloatUniforms[i];
         GPUCMD_AddWrite(idReg, uni->ID);
         GPUCMD_AddIncrementalWrites(dataReg, uni->data, 3);
@@ -80,14 +80,14 @@ static INLINE void GLASS_uploadFloatUniform(const ShaderInfo* shader, UniformInf
     // TODO: packed values don't work, it seems.
     GPUCMD_AddWrite(idReg, 0x80000000 | info->ID);
 
-    for (size_t i = 0; i < info->count; i++) {
+    for (size_t i = 0; i < info->count; ++i) {
         float components[4];
         uint32_t* buffer = &info->data.values[i * 3];
         GLASS_utility_unpackFloatVector(buffer, components);
         GPUCMD_AddWrites(dataReg, (u32*)components, 4);
     }
 
-    // for (size_t i = 0; i < info->count; i++)
+    // for (size_t i = 0; i < info->count; ++i)
     //  GPUCMD_AddIncrementalWrites(dataReg, &info->data.values[i * 3], 3);
 }
 
@@ -309,7 +309,7 @@ void GLASS_gpu_bindShaders(const ShaderInfo* vertexShader, const ShaderInfo* geo
 
     if (vertexShader && geometryShader && (geometryShader->flags & SHADER_FLAG_MERGE_OUTMAPS)) {
         // Merge outmaps.
-        for (size_t i = 0; i < 7; i++) {
+        for (size_t i = 0; i < 7; ++i) {
             const u32 vshOutSem = vertexShader->outSems[i];
             u32 gshOutSem = geometryShader->outSems[i];
 
@@ -363,7 +363,7 @@ void GLASS_gpu_uploadUniforms(ShaderInfo* shader) {
     bool uploadBool = false;
     u16 boolMask = shader->constBoolMask;
 
-    for (size_t i = 0; i < shader->numOfActiveUniforms; i++) {
+    for (size_t i = 0; i < shader->numOfActiveUniforms; ++i) {
         UniformInfo* uni = &shader->activeUniforms[i];
 
         if (!uni->dirty)
@@ -403,7 +403,7 @@ void GLASS_gpu_uploadAttributes(const AttributeInfo* attribs, const size_t* slot
     format[1] = 0xFFF0000; // Fixed by default (ie. if disabled).
 
     // Handle params.
-    for (size_t i = 0; i < GLASS_NUM_ATTRIB_SLOTS; i++) {
+    for (size_t i = 0; i < GLASS_NUM_ATTRIB_SLOTS; ++i) {
         const size_t reg = slots[i];
 
         if (reg >= GLASS_NUM_ATTRIB_REGS)
@@ -477,7 +477,7 @@ void GLASS_gpu_setCombiners(const CombinerInfo* combiners) {
         GPUREG_TEXENV3_SOURCE, GPUREG_TEXENV4_SOURCE, GPUREG_TEXENV5_SOURCE,
     };
 
-    for (size_t i = 0; i < GLASS_NUM_COMBINER_STAGES; i++) {
+    for (size_t i = 0; i < GLASS_NUM_COMBINER_STAGES; ++i) {
         u32 params[5];
         const CombinerInfo* combiner = &combiners[i];
 

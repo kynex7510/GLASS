@@ -65,7 +65,7 @@ typedef struct {
 static void GLASS_freeUniformData(ShaderInfo* shader) {
     ASSERT(shader);
 
-    for (size_t i = 0; i < shader->numOfActiveUniforms; i++) {
+    for (size_t i = 0; i < shader->numOfActiveUniforms; ++i) {
         UniformInfo* uni = &shader->activeUniforms[i];
         if (uni->type == GLASS_UNI_FLOAT || (uni->type == GLASS_UNI_INT && uni->count > 1))
             GLASS_virtualFree(uni->data.values);
@@ -172,7 +172,7 @@ static size_t GLASS_lenActiveUniforms(ProgramInfo* info) {
     if (OBJ_IS_SHADER(info->linkedVertex)) {
         // Look in vertex shader.
         ShaderInfo* vshad = (ShaderInfo*)info->linkedVertex;
-        for (size_t i = 0; i < vshad->numOfActiveUniforms; i++) {
+        for (size_t i = 0; i < vshad->numOfActiveUniforms; ++i) {
             const UniformInfo* uni = &vshad->activeUniforms[i];
             const size_t len = strlen(uni->symbol);
             if (len > lenOfActiveUniforms)
@@ -182,7 +182,7 @@ static size_t GLASS_lenActiveUniforms(ProgramInfo* info) {
         // Look in geometry shader.
         if (OBJ_IS_SHADER(info->linkedGeometry)) {
             ShaderInfo* gshad = (ShaderInfo*)info->linkedGeometry;
-            for (size_t i = 0; i < gshad->numOfActiveUniforms; i++) {
+            for (size_t i = 0; i < gshad->numOfActiveUniforms; ++i) {
                 const UniformInfo* uni = &gshad->activeUniforms[i];
                 const size_t len = strlen(uni->symbol);
                 if (len > lenOfActiveUniforms)
@@ -197,7 +197,7 @@ static size_t GLASS_lenActiveUniforms(ProgramInfo* info) {
 static size_t GLASS_lookupShader(const GLuint* shaders, size_t maxShaders, size_t index, bool isGeometry) {
     ASSERT(shaders);
 
-    for (size_t i = (index + 1); i < maxShaders; i++) {
+    for (size_t i = (index + 1); i < maxShaders; ++i) {
         GLuint name = shaders[i];
 
         // Force failure if one of the shaders is invalid.
@@ -231,7 +231,7 @@ static DVLB* GLASS_parseDVLB(const u8* data, size_t size) {
         dvlb->DVLETable = (u32*)((u8*)dvlb + sizeof(DVLB));
 
         // Fill table with offsets.
-        for (size_t i = 0; i < numOfDVLEs; i++) {
+        for (size_t i = 0; i < numOfDVLEs; ++i) {
             dvlb->DVLETable[i] = *(u32*)(data + DVLB_MIN_SIZE + (4 * i));
             ASSERT(dvlb->DVLETable[i] <= size);
             // Relocation.
@@ -282,7 +282,7 @@ static SharedShaderData* GLASS_parseDVLP(const u8* data, size_t size) {
         memcpy(sharedData->binaryCode, data + offsetToBlob, sharedData->numOfCodeWords * sizeof(u32));
 
         // Read op descs.
-        for (size_t i = 0; i < sharedData->numOfOpDescs; i++)
+        for (size_t i = 0; i < sharedData->numOfOpDescs; ++i)
             sharedData->opDescs[i] = ((u32*)(data + offsetToOpDescs))[i * 2];
     }
 
@@ -378,7 +378,7 @@ static void GLASS_generateOutmaps(const DVLEInfo* info, ShaderInfo* out) {
     out->outClock = 0;
     memset(out->outSems, 0x1F, sizeof(out->outSems));
 
-    for (size_t i = 0; i < info->numOfOutRegs; i++) {
+    for (size_t i = 0; i < info->numOfOutRegs; ++i) {
         const DVLE_outEntry_s* entry = &info->outRegs[i];
         u8 sem = 0x1F;
         size_t maxSem = 0;
@@ -441,7 +441,7 @@ static void GLASS_generateOutmaps(const DVLEInfo* info, ShaderInfo* out) {
         }
 
         // Set register semantics.
-        for (size_t i = 0, curSem = 0; i < 4 && curSem < maxSem; i++) {
+        for (size_t i = 0, curSem = 0; i < 4 && curSem < maxSem; ++i) {
             if (entry->mask & (1 << i)) {
                 out->outSems[entry->regID] &= ~(0xFF << (i * 8));
                 out->outSems[entry->regID] |= ((sem++) << (i * 8));
@@ -477,7 +477,7 @@ static bool GLASS_loadUniforms(const DVLEInfo* info, ShaderInfo* out) {
 
     // Setup constant uniforms.
     size_t numOfConstFloatUniforms = 0;
-    for (size_t i = 0; i < info->numOfConstUniforms; i++) {
+    for (size_t i = 0; i < info->numOfConstUniforms; ++i) {
         const DVLEConstEntry* constEntry = &info->constUniforms[i];
 
         switch (constEntry->type) {
@@ -507,7 +507,7 @@ static bool GLASS_loadUniforms(const DVLEInfo* info, ShaderInfo* out) {
     out->numOfConstFloatUniforms = numOfConstFloatUniforms;
     numOfConstFloatUniforms = 0;
 
-    for (size_t i = 0; i < info->numOfConstUniforms; i++) {
+    for (size_t i = 0; i < info->numOfConstUniforms; ++i) {
         const DVLEConstEntry* constEntry = &info->constUniforms[i];
         if (constEntry->type != GLASS_UNI_FLOAT)
             continue;
@@ -533,7 +533,7 @@ static bool GLASS_loadUniforms(const DVLEInfo* info, ShaderInfo* out) {
 
     out->numOfActiveUniforms = info->numOfActiveUniforms;
 
-    for (size_t i = 0; i < info->numOfActiveUniforms; i++) {
+    for (size_t i = 0; i < info->numOfActiveUniforms; ++i) {
         UniformInfo* uni = &out->activeUniforms[i];
         const DVLE_uniformEntry_s* entry = &info->activeUniforms[i];
 
@@ -919,7 +919,7 @@ void glShaderBinary(GLsizei n, const GLuint* shaders, GLenum binaryformat, const
     }
 
     // Handle DVLEs.
-    for (size_t i = 0; i < dvlb->numOfDVLEs; i++) {
+    for (size_t i = 0; i < dvlb->numOfDVLEs; ++i) {
         const u8* pointerToDVLE = (u8*)dvlb->DVLETable[i];
         const size_t maxSize = size - (size_t)(pointerToDVLE - data);
 

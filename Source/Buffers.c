@@ -116,7 +116,7 @@ void glDeleteBuffers(GLsizei n, const GLuint* buffers) {
 
     CtxCommon* ctx = GLASS_context_getCommon();
 
-    for (GLsizei i = 0; i < n; i++) {
+    for (GLsizei i = 0; i < n; ++i) {
         GLuint name = buffers[i];
 
         // Validate name.
@@ -148,7 +148,7 @@ void glGenBuffers(GLsizei n, GLuint* buffers) {
         return;
     }
 
-    for (GLsizei i = 0; i < n; i++) {
+    for (GLsizei i = 0; i < n; ++i) {
         GLuint name = GLASS_createObject(GLASS_BUFFER_TYPE);
         if (!OBJ_IS_BUFFER(name)) {
             GLASS_context_setError(GL_OUT_OF_MEMORY);
