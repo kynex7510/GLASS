@@ -57,8 +57,6 @@ void glBlendColor(GLclampf red, GLclampf green, GLclampf blue, GLclampf alpha) {
     }
 }
 
-void glBlendEquation(GLenum mode) { glBlendEquationSeparate(mode, mode); }
-
 void glBlendEquationSeparate(GLenum modeRGB, GLenum modeAlpha) {
   if (!IS_EQUATION(modeRGB) || !IS_EQUATION(modeAlpha)) {
     GLASS_context_setError(GL_INVALID_ENUM);
@@ -74,7 +72,7 @@ void glBlendEquationSeparate(GLenum modeRGB, GLenum modeAlpha) {
     }
 }
 
-void glBlendFunc(GLenum sfactor, GLenum dfactor) { glBlendFuncSeparate(sfactor, dfactor, sfactor, dfactor); }
+void glBlendEquation(GLenum mode) { glBlendEquationSeparate(mode, mode); }
 
 void glBlendFuncSeparate(GLenum srcRGB, GLenum dstRGB, GLenum srcAlpha, GLenum dstAlpha) {
     if (!IS_BLEND_FUNC(srcRGB) || !IS_BLEND_FUNC(dstRGB) || !IS_BLEND_FUNC(srcAlpha) || !IS_BLEND_FUNC(dstAlpha)) {
@@ -92,6 +90,8 @@ void glBlendFuncSeparate(GLenum srcRGB, GLenum dstRGB, GLenum srcAlpha, GLenum d
             ctx->flags |= CONTEXT_FLAG_BLEND;
     }
 }
+
+void glBlendFunc(GLenum sfactor, GLenum dfactor) { glBlendFuncSeparate(sfactor, dfactor, sfactor, dfactor); }
 
 void glColorMask(GLboolean red, GLboolean green, GLboolean blue, GLboolean alpha) {
     CtxCommon* ctx = GLASS_context_getCommon();

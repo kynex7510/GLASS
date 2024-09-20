@@ -62,7 +62,7 @@ void glBufferData(GLenum target, GLsizeiptr size, const void* data, GLenum usage
     }
 
     // Get buffer.
-    BufferInfo* info = GLASS_context_getBoundBufferInfo(target);
+    BufferInfo* info = GLASS_getBoundBufferInfo(target);
     if (!info)
         return;
 
@@ -91,7 +91,7 @@ void glBufferSubData(GLenum target, GLintptr offset, GLsizeiptr size, const void
     }
 
     // Get buffer.
-    BufferInfo* info = GLASS_context_getBoundBufferInfo(target);
+    BufferInfo* info = GLASS_getBoundBufferInfo(target);
     if (!info)
         return;
 
@@ -164,7 +164,7 @@ void glGenBuffers(GLsizei n, GLuint* buffers) {
 void glGetBufferParameteriv(GLenum target, GLenum pname, GLint* data) {
     ASSERT(data);
 
-    BufferInfo* info = GLASS_context_getBoundBufferInfo(target);
+    BufferInfo* info = GLASS_getBoundBufferInfo(target);
     if (!info)
         return;
 

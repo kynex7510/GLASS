@@ -124,7 +124,7 @@ static void GLASS_detachFromProgram(ProgramInfo* pinfo, ShaderInfo* sinfo) {
         pinfo->attachedVertex = GLASS_INVALID_OBJECT;
     }
 
-    GLASS_decSharedDataRefc(sinfo);
+    GLASS_decShaderRefc((ShaderInfo*)sinfo);
 }
 
 static void GLASS_freeProgram(ProgramInfo* info) {
@@ -245,7 +245,7 @@ static DVLB* GLASS_parseDVLB(const u8* data, size_t size) {
 static SharedShaderData* GLASS_parseDVLP(const u8* data, size_t size) {
     ASSERT(data);
     ASSERT(size > DVLP_MIN_SIZE);
-    ASSERT(EqMem(data, DVLP_MAGIC, 4));
+    ASSERT(memcmp(data, DVLP_MAGIC, sizeof(DVLP_MAGIC)) == 0);
 
     // Read offsets.
     u32 offsetToBlob = 0;
@@ -756,31 +756,31 @@ void glGetProgramiv(GLuint program, GLenum pname, GLint* params) {
     // Get parameter.
     switch (pname) {
         case GL_DELETE_STATUS:
-           params = (info->flags & PROGRAM_FLAG_DELETE) ? GL_TRUE : GL_FALSE;
+            *params = (info->flags & PROGRAM_FLAG_DELETE) ? GL_TRUE : GL_FALSE;
             break;
         case GL_LINK_STATUS:
-           params = (info->flags & PROGRAM_FLAG_LINK_FAILED) ? GL_FALSE : GL_TRUE;
+            *params = (info->flags & PROGRAM_FLAG_LINK_FAILED) ? GL_FALSE : GL_TRUE;
             break;
         case GL_VALIDATE_STATUS:
-           params = GL_TRUE;
+            *params = GL_TRUE;
             break;
         case GL_INFO_LOG_LENGTH:
-           params = 0;
+            *params = 0;
             break;
         case GL_ATTACHED_SHADERS:
             if (OBJ_IS_SHADER(info->attachedVertex) && OBJ_IS_SHADER(info->attachedGeometry)) {
-               params = 2;
+               *params = 2;
             } else if (OBJ_IS_SHADER(info->attachedVertex) || OBJ_IS_SHADER(info->attachedGeometry)) {
-               params = 1;
+               *params = 1;
             }  else {
-               params = 0;
+               *params = 0;
             }
             break;
         case GL_ACTIVE_UNIFORMS:
-           params = GLASS_numActiveUniforms(info);
+            *params = GLASS_numActiveUniforms(info);
             break;
         case GL_ACTIVE_UNIFORM_MAX_LENGTH:
-           params = GLASS_lenActiveUniforms(info);
+            *params = GLASS_lenActiveUniforms(info);
             break;
             // TODO
         case GL_ACTIVE_ATTRIBUTES:
@@ -803,10 +803,10 @@ void glGetShaderiv(GLuint shader, GLenum pname, GLint* params) {
     // Get parameter.
     switch (pname) {
         case GL_SHADER_TYPE:
-           params = (info->flags & SHADER_FLAG_GEOMETRY) ? GL_GEOMETRY_SHADER_PICA : GL_VERTEX_SHADER;
+            *params = (info->flags & SHADER_FLAG_GEOMETRY) ? GL_GEOMETRY_SHADER_PICA : GL_VERTEX_SHADER;
             break;
         case GL_DELETE_STATUS:
-           params = (info->flags & SHADER_FLAG_DELETE) ? GL_TRUE : GL_FALSE;
+            *params = (info->flags & SHADER_FLAG_DELETE) ? GL_TRUE : GL_FALSE;
             break;
         case GL_COMPILE_STATUS:
         case GL_INFO_LOG_LENGTH:

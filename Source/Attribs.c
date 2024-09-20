@@ -146,8 +146,7 @@ void glGetVertexAttribPointerv(GLuint index, GLenum pname, GLvoid** pointer) {
 
         // Remove buffer base if required.
         if (attrib->boundBuffer) {
-            BufferInfo* binfo = (BufferInfo*)attrib->boundBuffer;
-            ASSERT(OBJ_IS_BUFFER(binfo));
+            const BufferInfo* binfo = (BufferInfo*)attrib->boundBuffer;
             virtAddr -= (u32)binfo->address;
         }
     }
@@ -234,8 +233,7 @@ void glVertexAttribPointer(GLuint index, GLint size, GLenum type, GLboolean norm
     // Get vertex buffer physical address.
     u32 physAddr = 0;
     if (ctx->arrayBuffer != GLASS_INVALID_OBJECT) {
-        BufferInfo* binfo = (BufferInfo*)ctx->arrayBuffer;
-        ASSERT(OBJ_IS_BUFFER(binfo));
+        const BufferInfo* binfo = (BufferInfo*)ctx->arrayBuffer;
         physAddr = osConvertVirtToPhys((void*)(binfo->address + (size_t)pointer));
     } else {
         physAddr = osConvertVirtToPhys(pointer);

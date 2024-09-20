@@ -137,12 +137,12 @@ static void GLASS_context_cleanupCommon(CtxCommon* ctx) {
     ASSERT(ctx);
 
     if (ctx == g_Context)
-        GLASS_context_bindContext(NULL);
+        GLASS_context_bind(NULL);
 
     GLASS_gpu_finalize(ctx);
 }
 
-void GLASS_context_initV1(CtxV1* ctx, glassCtxSettings* settings) {
+void GLASS_context_initV1(CtxV1* ctx, const glassCtxSettings* settings) {
     ASSERT(ctx);
     GLASS_context_initCommon(&ctx->common, settings);
     ctx->common.version = GLASS_VERSION_1_1;
@@ -158,7 +158,7 @@ CtxCommon* GLASS_context_getCommon(void) {
     return g_Context;
 }
 
-void GLASS_context_bind(void* ctx) {
+void GLASS_context_bind(CtxCommon* ctx) {
     const bool skipUpdate = (ctx == g_Context) || (g_Context == NULL && ctx == g_OldCtx);
 
     // Complete pending commands.

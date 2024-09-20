@@ -256,47 +256,7 @@ GLint glGetUniformLocation(GLuint program, const GLchar* name) {
     return -1;
 }
 
-void glUniform1f(GLint location, GLfloat v0) {
-    GLfloat values[] = {v0};
-    glUniform1fv(location, 1, values);
-}
-
-void glUniform2f(GLint location, GLfloat v0, GLfloat v1) {
-    GLfloat values[] = {v0, v1};
-    glUniform2fv(location, 1, values);
-}
-
-void glUniform3f(GLint location, GLfloat v0, GLfloat v1, GLfloat v2) {
-    GLfloat values[] = {v0, v1, v2};
-    glUniform3fv(location, 1, values);
-}
-
-void glUniform4f(GLint location, GLfloat v0, GLfloat v1, GLfloat v2, GLfloat v3) {
-    GLfloat values[] = {v0, v1, v2, v3};
-    glUniform4fv(location, 1, values);
-}
-
-void glUniform1i(GLint location, GLint v0) {
-    GLint values[] = {v0};
-    glUniform1iv(location, 1, values);
-}
-
-void glUniform2i(GLint location, GLint v0, GLint v1) {
-    GLint values[] = {v0, v1};
-    glUniform2iv(location, 1, values);
-}
-
-void glUniform3i(GLint location, GLint v0, GLint v1, GLint v2) {
-    GLint values[] = {v0, v1, v2};
-    glUniform3iv(location, 1, values);
-}
-
-void glUniform4i(GLint location, GLint v0, GLint v1, GLint v2, GLint v3) {
-    GLint values[] = {v0, v1, v2, v3};
-    glUniform4iv(location, 1, values);
-}
-
-static void GLASS_setUniformValues(GLint location, GLint* intValues, GLfloat* floatValues, size_t numOfComponents, GLsizei numOfElements) {
+static void GLASS_setUniformValues(GLint location, const GLint* intValues, const GLfloat* floatValues, size_t numOfComponents, GLsizei numOfElements) {
     ASSERT(numOfComponents <= 4);
 
     if (numOfElements < 0) {
@@ -406,6 +366,46 @@ void glUniform1iv(GLint location, GLsizei count, const GLint* value) { GLASS_set
 void glUniform2iv(GLint location, GLsizei count, const GLint* value) { GLASS_setUniformValues(location, value, NULL, 2, count); }
 void glUniform3iv(GLint location, GLsizei count, const GLint* value) { GLASS_setUniformValues(location, value, NULL, 3, count); }
 void glUniform4iv(GLint location, GLsizei count, const GLint* value) { GLASS_setUniformValues(location, value, NULL, 4, count); }
+
+void glUniform1f(GLint location, GLfloat v0) {
+    GLfloat values[] = {v0};
+    glUniform1fv(location, 1, values);
+}
+
+void glUniform2f(GLint location, GLfloat v0, GLfloat v1) {
+    GLfloat values[] = {v0, v1};
+    glUniform2fv(location, 1, values);
+}
+
+void glUniform3f(GLint location, GLfloat v0, GLfloat v1, GLfloat v2) {
+    GLfloat values[] = {v0, v1, v2};
+    glUniform3fv(location, 1, values);
+}
+
+void glUniform4f(GLint location, GLfloat v0, GLfloat v1, GLfloat v2, GLfloat v3) {
+    GLfloat values[] = {v0, v1, v2, v3};
+    glUniform4fv(location, 1, values);
+}
+
+void glUniform1i(GLint location, GLint v0) {
+    GLint values[] = {v0};
+    glUniform1iv(location, 1, values);
+}
+
+void glUniform2i(GLint location, GLint v0, GLint v1) {
+    GLint values[] = {v0, v1};
+    glUniform2iv(location, 1, values);
+}
+
+void glUniform3i(GLint location, GLint v0, GLint v1, GLint v2) {
+    GLint values[] = {v0, v1, v2};
+    glUniform3iv(location, 1, values);
+}
+
+void glUniform4i(GLint location, GLint v0, GLint v1, GLint v2, GLint v3) {
+    GLint values[] = {v0, v1, v2, v3};
+    glUniform4iv(location, 1, values);
+}
 
 void glUniformMatrix2fv(GLint location, GLsizei count, GLboolean transpose, const GLfloat* value) {
     if (transpose != GL_FALSE) {

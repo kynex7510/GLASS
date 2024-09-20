@@ -517,7 +517,7 @@ void GLASS_gpu_setFragOp(GLenum fragMode, bool blendMode) {
             gpuFragMode = GPU_FRAGOPMODE_GAS_ACC;
             break;
         default:
-            Unreachable("Invalid fragment mode!");
+            UNREACHABLE("Invalid fragment mode!");
     }
 
     GPUCMD_AddMaskedWrite(GPUREG_COLOR_OPERATION, 0x07, 0xE40000 | (blendMode ? 0x100 : 0x0) | gpuFragMode);
@@ -626,7 +626,7 @@ void GLASS_gpu_drawArrays(GLenum mode, GLint first, GLsizei count) {
     GPUCMD_AddWrite(GPUREG_VTX_FUNC, 1);
 }
 
-void GLASS_gpu_drawElements(GLenum mode, GLsizei count, GLenum type, GLvoid* indices) {
+void GLASS_gpu_drawElements(GLenum mode, GLsizei count, GLenum type, const GLvoid* indices) {
     const GPU_Primitive_t primitive = GLASS_utility_getDrawPrimitive(mode);
     const u32 gpuType = GLASS_utility_getDrawType(type);
     const u32 physAddr = osConvertVirtToPhys(indices);

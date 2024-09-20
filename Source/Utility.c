@@ -1,10 +1,11 @@
 #include "Utility.h"
 #include "Memory.h"
 
+#include <stdlib.h> // abort
+
 #ifndef NDEBUG
 
-#include <stdlib.h>
-#include <stdio.h>
+#include <stdio.h> // file utilities
 
 #define CITRA_TYPE 0x20000
 #define CITRA_VERSION 11

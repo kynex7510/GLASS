@@ -3,7 +3,7 @@
 
 #include "Types.h"
 
-#include <string.h>
+#include <string.h> // Lots of utilities...
 
 void* GLASS_virtualAlloc(size_t size);
 void GLASS_virtualFree(void* p);

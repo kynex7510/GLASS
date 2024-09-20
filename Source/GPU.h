@@ -47,6 +47,6 @@ void GLASS_gpu_setBlendColor(u32 color);
 void GLASS_gpu_setLogicOp(GLenum logicOp);
 
 void GLASS_gpu_drawArrays(GLenum mode, GLint first, GLsizei count);
-void GLASS_gpu_drawElements(GLenum mode, GLsizei count, GLenum type, GLvoid* indices);
+void GLASS_gpu_drawElements(GLenum mode, GLsizei count, GLenum type, const GLvoid* indices);
 
 #endif /* _GLASS_GPU_H */

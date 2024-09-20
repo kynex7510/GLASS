@@ -33,7 +33,7 @@ void GLASS_utility_logImpl(const char* msg, size_t len);
 #else
 
 #define LOG(msg)
-#define ASSERT(cond) (cond)
+#define ASSERT(cond) (void)(cond)
 #define UNREACHABLE(msg) GLASS_utility_abort()
 
 #endif // NDEBUG

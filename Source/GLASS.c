@@ -18,10 +18,12 @@ glassCtx glassCreateContextWithSettings(glassVersion version, const glassCtxSett
 
 void glassDestroyContext(glassCtx wrapped) {
     ASSERT(wrapped);
-    CtxCommon* ctx = (CtxCommon*)ctx;
+    CtxCommon* ctx = (CtxCommon*)wrapped;
     
     if (ctx->version == GLASS_VERSION_1_1) {
         GLASS_context_cleanupV1((CtxV1*)ctx);
+    } else {
+        UNREACHABLE("Invalid constext version!");
     }
 
     GLASS_virtualFree(ctx);
@@ -43,7 +45,7 @@ void glassWriteSettings(glassCtx wrapped, const glassCtxSettings* settings) {
     memcpy(&ctx->settings, settings, sizeof(glassCtxSettings));
 }
 
-void glassBindContext(glassCtx* ctx) { GLASS_context_bind(ctx); }
+void glassBindContext(glassCtx ctx) { GLASS_context_bind((CtxCommon*)ctx); }
 
 static void GLASS_swapBuffersCb(gxCmdQueue_s* queue) {
     CtxCommon* ctx = (CtxCommon*)queue->user;
@@ -68,20 +70,20 @@ void glassSwapBuffers(void) {
         return;
 
     // Get display buffer.
-    RenderbufferInfo* displayBuffer;
+    RenderbufferInfo displayBuffer;
     u16 width = 0, height = 0;
-    displayBuffer->address = gfxGetFramebuffer(ctx->settings.targetScreen, ctx->settings.targetSide, &height, &width);
-    ASSERT(displayBuffer->address);
-    displayBuffer->format = GLASS_utility_wrapFBFormat(gfxGetScreenFormat(ctx->settings.targetScreen));
-    displayBuffer->width = width;
-    displayBuffer->height = height;
+    displayBuffer.address = gfxGetFramebuffer(ctx->settings.targetScreen, ctx->settings.targetSide, &height, &width);
+    ASSERT(displayBuffer.address);
+    displayBuffer.format = GLASS_utility_wrapFBFormat(gfxGetScreenFormat(ctx->settings.targetScreen));
+    displayBuffer.width = width;
+    displayBuffer.height = height;
 
     // Get transfer flags.
-    const u32 transferFlags = GLASS_utility_makeTransferFlags(false, false, false, GLASS_utility_getTransferFormat(fb->colorBuffer->format), GLASS_utility_getTransferFormat(displayBuffer->format), ctx->settings.transferScale);
+    const u32 transferFlags = GLASS_utility_makeTransferFlags(false, false, false, GLASS_utility_getTransferFormat(fb->colorBuffer->format), GLASS_utility_getTransferFormat(displayBuffer.format), ctx->settings.transferScale);
 
     // Transfer buffer.
     GLASS_gpu_flushQueue(ctx, false);
     gxCmdQueueSetCallback(&ctx->gxQueue, GLASS_swapBuffersCb, (void*)ctx);
-    GLASS_gpu_transferBuffer(fb->colorBuffer, displayBuffer, transferFlags);
+    GLASS_gpu_transferBuffer(fb->colorBuffer, &displayBuffer, transferFlags);
     GLASS_gpu_runQueue(ctx, false);
 }

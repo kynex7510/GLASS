@@ -9,7 +9,7 @@ typedef struct {
     CtxCommon common;
 } CtxV1;
 
-void GLASS_context_initV1(CtxV1* ctx, glassCtxSettings* settings);
+void GLASS_context_initV1(CtxV1* ctx, const glassCtxSettings* settings);
 void GLASS_context_cleanupV1(CtxV1* ctx);
 
 CtxCommon* GLASS_context_getCommon(void);
@@ -20,7 +20,7 @@ INLINE CtxV1* GLASS_context_getV1(void) {
     return (CtxV1*)ctx;
 }
 
-void GLASS_context_bind(void* ctx);
+void GLASS_context_bind(CtxCommon* ctx);
 void GLASS_context_update(void);
 void GLASS_context_setError(GLenum error);
 
