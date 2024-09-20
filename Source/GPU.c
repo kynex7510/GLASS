@@ -159,14 +159,14 @@ void GLASS_gpu_bindFramebuffer(const FramebufferInfo* info, bool block32) {
 
     // Set buffer parameters.
     if (colorBuffer) {
-        GPUCMD_AddWrite(GPUREG_COLORBUFFER_FORMAT, (GLASS_utility_wrapFBFormat(colorFormat) << 16) | GLASS_utility_getPixelSizeForFB(colorFormat));
+        GPUCMD_AddWrite(GPUREG_COLORBUFFER_FORMAT, (GLASS_utility_getRBFormat(colorFormat) << 16) | GLASS_utility_getPixelSizeForFB(colorFormat));
         params[0] = params[1] = 0x0F;
     } else {
         params[0] = params[1] = 0;
     }
 
     if (depthBuffer) {
-        GPUCMD_AddWrite(GPUREG_DEPTHBUFFER_FORMAT, GLASS_utility_wrapFBFormat(depthFormat));
+        GPUCMD_AddWrite(GPUREG_DEPTHBUFFER_FORMAT, GLASS_utility_getRBFormat(depthFormat));
         params[2] = params[3] = 0x03;
     } else {
         params[2] = params[3] = 0;
