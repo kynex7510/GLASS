@@ -14,18 +14,18 @@
 
 #define LOG(msg) GLASS_utility_logImpl((msg), sizeof((msg)) - 1)
 
-#define ASSERT(cond)                                                                                     \
-    do {                                                                                                 \
-        if (!(cond)) {                                                                                   \
-            LOG("Assertion failed: " #cond "\nIn file: " __FILE__ "\nOn line: " AS_STRING(__LINE) "\n"); \
-            GLASS_utility_abort();                                                                       \
-        }                                                                                                \
+#define ASSERT(cond)                                                                                  \
+    do {                                                                                              \
+        if (!(cond)) {                                                                                \
+            LOG("Assertion failed: " #cond "\nIn file: " __FILE__ "\nOn line: " AS_STRING(__LINE__)); \
+            GLASS_utility_abort();                                                                    \
+        }                                                                                             \
     } while (false)
 
-#define UNREACHABLE(msg)                                                                              \
-    do {                                                                                              \
-        LOG("Unreachable point: " msg "\nIn file: " __FILE__ "\nOn line: " AS_STRING(__LINE__) "\n"); \
-        GLASS_utility_abort();                                                                        \
+#define UNREACHABLE(msg)                                                                         \
+    do {                                                                                         \
+        LOG("Unreachable point: " msg "\nIn file: " __FILE__ "\nOn line: " AS_STRING(__LINE__)); \
+        GLASS_utility_abort();                                                                   \
     } while (false)
 
 void GLASS_utility_logImpl(const char* msg, size_t len);

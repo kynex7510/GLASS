@@ -215,7 +215,7 @@ static size_t GLASS_lookupShader(const GLuint* shaders, size_t maxShaders, size_
 static DVLB* GLASS_parseDVLB(const u8* data, size_t size) {
     ASSERT(data);
     ASSERT(size > DVLB_MIN_SIZE);
-    ASSERT(memcmp(data, DVLB_MAGIC, sizeof(DVLB_MAGIC)) == 0);
+    ASSERT(memcmp(data, DVLB_MAGIC, sizeof(DVLB_MAGIC) - 1) == 0);
 
     // Read number of DVLEs.
     u32 numOfDVLEs = 0;
@@ -245,7 +245,7 @@ static DVLB* GLASS_parseDVLB(const u8* data, size_t size) {
 static SharedShaderData* GLASS_parseDVLP(const u8* data, size_t size) {
     ASSERT(data);
     ASSERT(size > DVLP_MIN_SIZE);
-    ASSERT(memcmp(data, DVLP_MAGIC, sizeof(DVLP_MAGIC)) == 0);
+    ASSERT(memcmp(data, DVLP_MAGIC, sizeof(DVLP_MAGIC) - 1) == 0);
 
     // Read offsets.
     u32 offsetToBlob = 0;
@@ -293,7 +293,7 @@ static void GLASS_getDVLEInfo(const u8* data, size_t size, DVLEInfo* out) {
     ASSERT(data);
     ASSERT(out);
     ASSERT(size > DVLE_MIN_SIZE);
-    ASSERT(memcmp(data, DVLE_MAGIC, sizeof(DVLE_MAGIC)) == 0);
+    ASSERT(memcmp(data, DVLE_MAGIC, sizeof(DVLE_MAGIC) - 1) == 0);
 
     // Get info.
     u8 flags = 0;
