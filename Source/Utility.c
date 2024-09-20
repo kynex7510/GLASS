@@ -581,10 +581,10 @@ void GLASS_utility_unpackFloatVector(const u32* in, float*out) {
     ASSERT(in);
     ASSERT(out);
 
-    out[0] = f24tof32(in[2] & 0xFFFFFF);
-    out[1] = f24tof32((in[2] >> 24) | ((in[1] & 0xFFFF) << 8));
-    out[2] = f24tof32((in[1] >> 16) | ((in[0] & 0xFF) << 16));
-    out[3] = f24tof32(in[0] >> 8);
+    out[0] = GLASS_utility_f24tof32(in[2] & 0xFFFFFF);
+    out[1] = GLASS_utility_f24tof32((in[2] >> 24) | ((in[1] & 0xFFFF) << 8));
+    out[2] = GLASS_utility_f24tof32((in[1] >> 16) | ((in[0] & 0xFF) << 16));
+    out[3] = GLASS_utility_f24tof32(in[0] >> 8);
 }
 
 bool GLASS_utility_getBoolUniform(const UniformInfo* info, size_t offset) {
