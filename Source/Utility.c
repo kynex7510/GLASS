@@ -190,7 +190,7 @@ GLenum GLASS_utility_wrapFBFormat(GSPGPU_FramebufferFormat format) {
     UNREACHABLE("Invalid GSP framebuffer format!");
 }
 
-GX_TRANSFER_FORMAT GLASS_utility_getTransferFormatForFB(GLenum format) {
+GX_TRANSFER_FORMAT GLASS_utility_getTransferFormat(GLenum format) {
     switch (format) {
         case GL_RGBA8:
             return GX_TRANSFER_FMT_RGBA8;
