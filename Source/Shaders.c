@@ -526,7 +526,7 @@ static bool GLASS_loadUniforms(const DVLEInfo* info, ShaderInfo* out) {
 
     ASSERT(numOfConstFloatUniforms == out->numOfConstFloatUniforms);
 
-  // Setup active uniforms.
+    // Setup active uniforms.
     out->activeUniforms = (UniformInfo*)GLASS_virtualAlloc(sizeof(UniformInfo) * info->numOfActiveUniforms);
     if (!out->activeUniforms)
         return false;

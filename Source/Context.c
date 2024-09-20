@@ -227,7 +227,7 @@ void GLASS_context_update(void) {
         g_Context->flags &= ~CONTEXT_FLAG_FRAMEBUFFER;
     }
 
-     // Handle draw.
+    // Handle draw.
     if (g_Context->flags & CONTEXT_FLAG_DRAW) {
         GLASS_gpu_flushFramebuffer();
         GLASS_gpu_invalidateFramebuffer();

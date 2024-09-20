@@ -348,7 +348,7 @@ static INLINE void GLASS_uploadFloatUniform(const ShaderInfo* shader, UniformInf
 
     for (size_t i = 0; i < info->count; ++i) {
         float components[4];
-        uint32_t* buffer = &info->data.values[i * 3];
+        u32* buffer = &info->data.values[i * 3];
         GLASS_utility_unpackFloatVector(buffer, components);
         GPUCMD_AddWrites(dataReg, (u32*)components, 4);
     }

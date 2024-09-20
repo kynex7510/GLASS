@@ -212,7 +212,7 @@ static GLint GLASS_lookupUniform(const ShaderInfo* shader, const char* name, siz
         if (strstr(name, uni->symbol) != name)
             continue;
 
-        if (!CHECK_OFFSET(uni->type, offset) || offset < uni->count)
+        if (!CHECK_OFFSET(uni->type, offset) || offset > uni->count)
             break;
 
         // Make location.
