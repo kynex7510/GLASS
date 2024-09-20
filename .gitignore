@@ -1,8 +1,9 @@
 .vscode
-build
-debug
-release
+Debug
+Release
+Lib
 lib
+include
 *.3dsx
 *.smdh
 *.elf
