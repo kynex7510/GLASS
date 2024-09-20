@@ -215,6 +215,10 @@ typedef struct {
     AttributeInfo attribs[GLASS_NUM_ATTRIB_REGS]; // Attributes data.
     size_t attribSlots[GLASS_NUM_ATTRIB_SLOTS];   // Attributes slots.
 
+    /* Combiners */
+    GLint combinerStage;                               // Current combiner stage.
+    CombinerInfo combiners[GLASS_NUM_COMBINER_STAGES]; // Combiners.
+
     /* Fragment */
     GLenum fragMode; // Fragment mode.
     bool blendMode;  // Blend mode.

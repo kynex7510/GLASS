@@ -48,6 +48,7 @@ void glassWriteSettings(glassCtx wrapped, const glassCtxSettings* settings) {
 void glassBindContext(glassCtx ctx) { GLASS_context_bind((CtxCommon*)ctx); }
 
 static void GLASS_swapBuffersCb(gxCmdQueue_s* queue) {
+    // TODO: we have a race here.
     CtxCommon* ctx = (CtxCommon*)queue->user;
     gfxScreenSwapBuffers(ctx->settings.targetScreen, ctx->settings.targetScreen == GFX_TOP && ctx->settings.targetSide == GFX_RIGHT);
     gxCmdQueueSetCallback(queue, NULL, NULL);

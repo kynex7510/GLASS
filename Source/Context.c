@@ -75,6 +75,29 @@ static void GLASS_context_initCommon(CtxCommon* ctx, const glassCtxSettings* set
     for (size_t i = 0; i < GLASS_NUM_ATTRIB_SLOTS; ++i)
         ctx->attribSlots[i] = GLASS_NUM_ATTRIB_REGS; // Initialized to OOB.
 
+    // Combiners.
+    ctx->combinerStage = 0;
+    for (size_t i = 0; i < GLASS_NUM_COMBINER_STAGES; ++i) {
+        CombinerInfo *combiner = &ctx->combiners[i];
+        combiner->rgbSrc[0] = !i ? GL_PRIMARY_COLOR : GL_PREVIOUS;
+        combiner->rgbSrc[1] = GL_PRIMARY_COLOR;
+        combiner->rgbSrc[2] = GL_PRIMARY_COLOR;
+        combiner->alphaSrc[0] = !i ? GL_PRIMARY_COLOR : GL_PREVIOUS;
+        combiner->alphaSrc[1] = GL_PRIMARY_COLOR;
+        combiner->alphaSrc[2] = GL_PRIMARY_COLOR;
+        combiner->rgbOp[0] = GL_SRC_COLOR;
+        combiner->rgbOp[1] = GL_SRC_COLOR;
+        combiner->rgbOp[2] = GL_SRC_COLOR;
+        combiner->alphaOp[0] = GL_SRC_ALPHA;
+        combiner->alphaOp[1] = GL_SRC_ALPHA;
+        combiner->alphaOp[2] = GL_SRC_ALPHA;
+        combiner->rgbFunc = GL_REPLACE;
+        combiner->alphaFunc = GL_REPLACE;
+        combiner->rgbScale = 1.0f;
+        combiner->alphaScale = 1.0f;
+        combiner->color = 0xFFFFFFFF;
+    }
+
     // Fragment.
     ctx->fragMode = GL_FRAGOP_MODE_DEFAULT_PICA;
     ctx->blendMode = false;
@@ -272,7 +295,11 @@ void GLASS_context_update(void) {
         g_Context->flags &= ~CONTEXT_FLAG_ATTRIBS;
     }
 
-    // TODO: combiners
+    // Handle combiners.
+    if (g_Context->flags & CONTEXT_FLAG_COMBINERS) {
+        GLASS_gpu_setCombiners(g_Context->combiners);
+        g_Context->flags &= ~CONTEXT_FLAG_COMBINERS;
+    }
 
     // Handle fragment.
     if (g_Context->flags & CONTEXT_FLAG_FRAGMENT) {
