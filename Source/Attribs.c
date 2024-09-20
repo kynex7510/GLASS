@@ -38,7 +38,7 @@ void glEnableVertexAttribArray(GLuint index) {
     GLASS_context_setError(GL_OUT_OF_MEMORY);
 }
 
-static bool GLASS_readFloats(const size_t index, const GLenum pname, GLfloat* params) {
+static bool GLASS_readFloats(size_t index, GLenum pname, GLfloat* params) {
     CtxCommon* ctx = GLASS_context_getCommon();
     const AttributeInfo* attrib = &ctx->attribs[index];
 
@@ -53,7 +53,7 @@ static bool GLASS_readFloats(const size_t index, const GLenum pname, GLfloat* pa
     return false;
 }
 
-static bool GLASS_readInt(const size_t index, const GLenum pname, GLint* param) {
+static bool GLASS_readInt(size_t index, GLenum pname, GLint* param) {
     CtxCommon* ctx = GLASS_context_getCommon();
     const AttributeInfo* attrib = &ctx->attribs[index];
 
@@ -155,7 +155,7 @@ void glGetVertexAttribPointerv(GLuint index, GLenum pname, GLvoid** pointer) {
     *pointer = virtAddr;
 }
 
-static void GLASS_setFixedAttrib(const GLuint reg, const GLfloat* params) {
+static void GLASS_setFixedAttrib(GLuint reg, GLfloat* params) {
     if (reg >= GLASS_NUM_ATTRIB_REGS) {
         GLASS_context_setError(GL_INVALID_VALUE);
         return;
