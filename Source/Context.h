@@ -9,7 +9,7 @@ typedef struct {
     CtxCommon common;
 } CtxV1;
 
-void GLASS_context_initV1(CtxV1* ctx, const glassCtxSettings* settings);
+void GLASS_context_initV1(CtxV1* ctx, const glassSettings* settings);
 void GLASS_context_cleanupV1(CtxV1* ctx);
 
 CtxCommon* GLASS_context_getCommon(void);

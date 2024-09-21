@@ -5,7 +5,7 @@
 
 glassCtx glassCreateContext(glassVersion version) { return glassCreateContextWithSettings(version, NULL); }
 
-glassCtx glassCreateContextWithSettings(glassVersion version, const glassCtxSettings* settings) {
+glassCtx glassCreateContextWithSettings(glassVersion version, const glassSettings* settings) {
     if (version == GLASS_VERSION_1_1) {
         CtxV1* ctx = GLASS_virtualAlloc(sizeof(CtxV1));
         if (ctx)
@@ -29,20 +29,20 @@ void glassDestroyContext(glassCtx wrapped) {
     GLASS_virtualFree(ctx);
 }
 
-void glassReadSettings(glassCtx wrapped, glassCtxSettings* settings) {
+void glassReadSettings(glassCtx wrapped, glassSettings* settings) {
     ASSERT(wrapped);
     ASSERT(settings);
 
     const CtxCommon* ctx = (CtxCommon*)wrapped;
-    memcpy(settings, &ctx->settings, sizeof(glassCtxSettings));
+    memcpy(settings, &ctx->settings, sizeof(glassSettings));
 }
 
-void glassWriteSettings(glassCtx wrapped, const glassCtxSettings* settings) {
+void glassWriteSettings(glassCtx wrapped, const glassSettings* settings) {
     ASSERT(wrapped);
     ASSERT(settings);
 
     CtxCommon* ctx = (CtxCommon*)wrapped;
-    memcpy(&ctx->settings, settings, sizeof(glassCtxSettings));
+    memcpy(&ctx->settings, settings, sizeof(glassSettings));
 }
 
 void glassBindContext(glassCtx ctx) { GLASS_context_bind((CtxCommon*)ctx); }

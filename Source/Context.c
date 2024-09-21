@@ -7,7 +7,7 @@
 static CtxCommon* g_Context = NULL;
 static CtxCommon* g_OldCtx = NULL;
 
-static void GLASS_context_initCommon(CtxCommon* ctx, const glassCtxSettings* settings) {
+static void GLASS_context_initCommon(CtxCommon* ctx, const glassSettings* settings) {
     ASSERT(ctx);
 
     // Platform.
@@ -165,7 +165,7 @@ static void GLASS_context_cleanupCommon(CtxCommon* ctx) {
     GLASS_gpu_finalize(ctx);
 }
 
-void GLASS_context_initV1(CtxV1* ctx, const glassCtxSettings* settings) {
+void GLASS_context_initV1(CtxV1* ctx, const glassSettings* settings) {
     ASSERT(ctx);
     GLASS_context_initCommon(&ctx->common, settings);
     ctx->common.version = GLASS_VERSION_1_1;

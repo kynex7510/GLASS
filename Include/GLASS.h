@@ -14,17 +14,17 @@ typedef struct {
     gfxScreen_t targetScreen;        // Draw target screen (default: GFX_TOP).
     gfx3dSide_t targetSide;          // Draw target side (default: GFX_LEFT).
     GX_TRANSFER_SCALE transferScale; // Anti-aliasing (default: GX_TRANSFER_SCALE_NO).
-} glassCtxSettings;
+} glassSettings;
 
 #if defined(__cplusplus)
 extern "C" {
 #endif // __cplusplus
 
 glassCtx glassCreateContext(glassVersion version);
-glassCtx glassCreateContextWithSettings(glassVersion version, const glassCtxSettings* settings);
+glassCtx glassCreateContextWithSettings(glassVersion version, const glassSettings* settings);
 void glassDestroyContext(glassCtx ctx);
-void glassReadSettings(glassCtx ctx, glassCtxSettings* settings);
-void glassWriteSettings(glassCtx ctx, const glassCtxSettings* settings);
+void glassReadSettings(glassCtx ctx, glassSettings* settings);
+void glassWriteSettings(glassCtx ctx, const glassSettings* settings);
 void glassBindContext(glassCtx ctx);
 void glassSwapBuffers(void);
 

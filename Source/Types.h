@@ -173,7 +173,7 @@ typedef struct {
 
 typedef struct {
     glassVersion version;      // Context version.
-    glassCtxSettings settings; // Context settings.
+    glassSettings settings; // Context settings.
 
     /* Platform */
     u32 flags;            // State flags.
