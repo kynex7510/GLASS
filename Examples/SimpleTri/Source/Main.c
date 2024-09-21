@@ -116,13 +116,6 @@ int main() {
         sceneRender();
         glassSwapBuffers();
         gspWaitForVBlank();
-
-        while (!(kDown & KEY_A)) {
-            hidScanInput();
-            kDown = hidKeysDown();
-        }
-
-        break;
     }
 
     // Deinitialize graphics.

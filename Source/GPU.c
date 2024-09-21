@@ -439,25 +439,25 @@ void GLASS_gpu_uploadAttributes(const AttributeInfo* attribs, const size_t* slot
     // Handle buffers.
     for (size_t i = 0; i < GLASS_NUM_ATTRIB_SLOTS; ++i) {
         const size_t index = slots[i];
+        u32 params[3] = {};
 
-        if (index >= GLASS_NUM_ATTRIB_REGS)
-            continue;
+        if (index < GLASS_NUM_ATTRIB_REGS) {
+            const AttributeInfo* attrib = &attribs[index];
 
-        const AttributeInfo* attrib = &attribs[index];
-
-        if (attrib->physAddr) {
-            u32 params[3] = {};
-            params[0] = attrib->physAddr - PHYSICAL_LINEAR_BASE;
-            params[1] = index;
-            params[2] = ((attrib->stride & 0xFF) << 16) |
+            if (attrib->physAddr) {
+                params[0] = attrib->physAddr - PHYSICAL_LINEAR_BASE;
+                params[1] = index;
+                params[2] = ((attrib->stride & 0xFF) << 16) |
                         (1 << 28); // TODO: number of times this buffer is used?
-            GPUCMD_AddIncrementalWrites(GPUREG_ATTRIBBUFFER0_OFFSET + (i * 0x03), params, 3);
-        } else {
-            u32 packed[3] = {};
-            GLASS_utility_packFloatVector(attrib->components, packed);
-            GPUCMD_AddWrite(GPUREG_FIXEDATTRIB_INDEX, i);
-            GPUCMD_AddIncrementalWrites(GPUREG_FIXEDATTRIB_DATA0, packed, 3);
+            } else {
+                u32 packed[3] = {};
+                GLASS_utility_packFloatVector(attrib->components, packed);
+                GPUCMD_AddWrite(GPUREG_FIXEDATTRIB_INDEX, i);
+                GPUCMD_AddIncrementalWrites(GPUREG_FIXEDATTRIB_DATA0, packed, 3);
+            }
         }
+
+        GPUCMD_AddIncrementalWrites(GPUREG_ATTRIBBUFFER0_OFFSET + (i * 0x03), params, 3);
     }
 }
 
