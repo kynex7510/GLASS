@@ -78,8 +78,10 @@ void glBufferData(GLenum target, GLsizeiptr size, const void* data, GLenum usage
 
     info->usage = usage;
 
-    if (data)
+    if (data) {
         memcpy(info->address, data, size);
+        ASSERT(R_SUCCEEDED(GSPGPU_FlushDataCache(info->address, size)));
+    }
 }
 
 void glBufferSubData(GLenum target, GLintptr offset, GLsizeiptr size, const void* data) {
@@ -104,6 +106,7 @@ void glBufferSubData(GLenum target, GLintptr offset, GLsizeiptr size, const void
 
     // Copy data.
     memcpy(info->address + offset, data, size);
+    ASSERT(R_SUCCEEDED(GSPGPU_FlushDataCache(info->address + offset, size)));
 }
 
 void glDeleteBuffers(GLsizei n, const GLuint* buffers) {
