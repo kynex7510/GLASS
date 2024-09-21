@@ -343,18 +343,10 @@ static INLINE void GLASS_uploadFloatUniform(const ShaderInfo* shader, UniformInf
     const u32 dataReg = (shader->flags & SHADER_FLAG_GEOMETRY) ? GPUREG_GSH_FLOATUNIFORM_DATA : GPUREG_VSH_FLOATUNIFORM_DATA;
 
     // ID is automatically incremented after each write.
-    // TODO: packed values don't work, it seems.
-    GPUCMD_AddWrite(idReg, 0x80000000 | info->ID);
+    GPUCMD_AddWrite(idReg, info->ID);
 
-    for (size_t i = 0; i < info->count; ++i) {
-        float components[4];
-        u32* buffer = &info->data.values[i * 3];
-        GLASS_utility_unpackFloatVector(buffer, components);
-        GPUCMD_AddWrites(dataReg, (u32*)components, 4);
-    }
-
-    // for (size_t i = 0; i < info->count; ++i)
-    //  GPUCMD_AddIncrementalWrites(dataReg, &info->data.values[i * 3], 3);
+    for (size_t i = 0; i < info->count; ++i)
+        GPUCMD_AddIncrementalWrites(dataReg, &info->data.values[i * 3], 3);
 }
 
 void GLASS_gpu_uploadUniforms(ShaderInfo* shader) {

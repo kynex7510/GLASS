@@ -581,7 +581,7 @@ void GLASS_utility_packFloatVector(const float* in, u32* out) {
     out[2] = (cvtY << 24) | cvtX;
 }
 
-void GLASS_utility_unpackFloatVector(const u32* in, float*out) {
+void GLASS_utility_unpackFloatVector(const u32* in, float* out) {
     ASSERT(in);
     ASSERT(out);
 

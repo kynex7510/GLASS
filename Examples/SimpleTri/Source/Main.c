@@ -18,6 +18,18 @@ static const position g_VertexList[3] = {
 static GLint g_ProjLoc;
 static C3D_Mtx g_Proj;
 
+static void invertComponents(C3D_Mtx* matrix) {
+    for (size_t i = 0; i < 4; ++i) {
+        C3D_FVec* row = &matrix->r[i];
+        float tmp = row->x;
+        row->x = row->w;
+        row->w = tmp;
+        tmp = row->y;
+        row->y = row->z;
+        row->z = tmp;
+    }
+}
+
 static GLuint sceneInit() {
     // Load the vertex shader, create a shader program and bind it.
     GLuint prog = glCreateProgram();
@@ -47,6 +59,10 @@ static GLuint sceneInit() {
 
     // Compute the projection matrix.
     Mtx_OrthoTilt(&g_Proj, 0.0, 400.0, 0.0, 240.0, 0.0, 1.0, true);
+
+    // Citro3D components are inverted.
+    invertComponents(&g_Proj);
+
     return vbo;
 }
 
@@ -100,6 +116,13 @@ int main() {
         sceneRender();
         glassSwapBuffers();
         gspWaitForVBlank();
+
+        while (!(kDown & KEY_A)) {
+            hidScanInput();
+            kDown = hidKeysDown();
+        }
+
+        break;
     }
 
     // Deinitialize graphics.
