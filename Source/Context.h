@@ -23,5 +23,7 @@ INLINE CtxV1* GLASS_context_getV1(void) {
 void GLASS_context_bind(CtxCommon* ctx);
 void GLASS_context_update(void);
 void GLASS_context_setError(GLenum error);
+void GLASS_context_setSwap(CtxCommon* ctx, bool swap);
+void GLASS_context_waitSwap(CtxCommon* ctx);
 
 #endif /* _GLASS_CONTEXT_H */

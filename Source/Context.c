@@ -16,6 +16,7 @@ static void GLASS_context_initCommon(CtxCommon* ctx, const glassSettings* settin
     ctx->cmdBuffer = NULL;
     ctx->cmdBufferSize = 0;
     ctx->cmdBufferOffset = 0;
+    ctx->inSwap = 0;
     memset(&ctx->gxQueue, 0, sizeof(gxCmdQueue_s));
 
     if (settings) {
@@ -381,4 +382,23 @@ void GLASS_context_setError(GLenum error) {
     ASSERT(g_Context);
     if (g_Context->lastError == GL_NO_ERROR)
         g_Context->lastError = error;
+}
+
+void GLASS_context_setSwap(CtxCommon* ctx, bool swap) {
+    ASSERT(ctx);
+
+    do {
+        __ldrexb(&ctx->inSwap);
+    } while (__strexb(&ctx->inSwap, swap ? 1 : 0));
+}
+
+void GLASS_context_waitSwap(CtxCommon* ctx) {
+    ASSERT(ctx);
+
+    u8 inSwap = 1;
+    do {
+        inSwap = __ldrexb(&ctx->inSwap);
+    } while (inSwap == 1);
+
+    __clrex();
 }

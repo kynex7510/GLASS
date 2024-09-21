@@ -19,7 +19,9 @@ glassCtx glassCreateContextWithSettings(glassVersion version, const glassSetting
 void glassDestroyContext(glassCtx wrapped) {
     ASSERT(wrapped);
     CtxCommon* ctx = (CtxCommon*)wrapped;
-    
+
+    GLASS_context_waitSwap(ctx);
+
     if (ctx->version == GLASS_VERSION_1_1) {
         GLASS_context_cleanupV1((CtxV1*)ctx);
     } else {
@@ -42,16 +44,17 @@ void glassWriteSettings(glassCtx wrapped, const glassSettings* settings) {
     ASSERT(settings);
 
     CtxCommon* ctx = (CtxCommon*)wrapped;
+    GLASS_context_waitSwap(ctx);
     memcpy(&ctx->settings, settings, sizeof(glassSettings));
 }
 
 void glassBindContext(glassCtx ctx) { GLASS_context_bind((CtxCommon*)ctx); }
 
 static void GLASS_swapBuffersCb(gxCmdQueue_s* queue) {
-    // TODO: we have a race here.
     CtxCommon* ctx = (CtxCommon*)queue->user;
     gfxScreenSwapBuffers(ctx->settings.targetScreen, ctx->settings.targetScreen == GFX_TOP && ctx->settings.targetSide == GFX_RIGHT);
     gxCmdQueueSetCallback(queue, NULL, NULL);
+    GLASS_context_setSwap(ctx, false);
 }
 
 void glassSwapBuffers(void) {
@@ -85,6 +88,7 @@ void glassSwapBuffers(void) {
     // Transfer buffer.
     GLASS_gpu_flushQueue(ctx, false);
     gxCmdQueueSetCallback(&ctx->gxQueue, GLASS_swapBuffersCb, (void*)ctx);
+    GLASS_context_setSwap(ctx, true);
     GLASS_gpu_transferBuffer(fb->colorBuffer, &displayBuffer, transferFlags);
     GLASS_gpu_runQueue(ctx, false);
 }

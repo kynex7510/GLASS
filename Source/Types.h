@@ -182,6 +182,7 @@ typedef struct {
     u32 cmdBufferSize;    // Offset relative to cmd buffer offset.
     u32 cmdBufferOffset;  // Offset relative to cmd buffer base.
     gxCmdQueue_s gxQueue; // Queue for GX commands.
+    u8 inSwap;            // Whether we're currently swapping.
 
     /* Buffers */
     GLuint arrayBuffer;        // GL_ARRAY_BUFFER
