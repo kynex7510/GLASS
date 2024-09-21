@@ -178,13 +178,16 @@ GLenum GLASS_utility_wrapFBFormat(GSPGPU_FramebufferFormat format) {
     switch (format) {
         case GSP_RGBA8_OES:
             return GL_RGBA8;
+        case GSP_BGR8_OES:
+            // This is not supported by OpenGL framebuffers; however it's required
+            // for correctly wrapping libctru framebuffer formats.
+            return GL_BGR8;
         case GSP_RGB565_OES:
             return GL_RGB565;
         case GSP_RGB5_A1_OES:
             return GL_RGB5_A1;
         case GSP_RGBA4_OES:
             return GL_RGBA4;
-        case GSP_BGR8_OES: // Unsupported.
     }
 
     UNREACHABLE("Invalid GSP framebuffer format!");
