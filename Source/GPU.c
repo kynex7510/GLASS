@@ -43,6 +43,11 @@ void GLASS_gpu_flushCommands(CtxCommon* ctx) {
         GPUCMD_Split(NULL, &ctx->cmdBufferSize);
         GPUCMD_SetBuffer(NULL, 0, 0);
 
+
+        //
+        //  GSPGPU_FlushDataCache(ctx->cmdBuffer, GPU_MAX_ENTRIES * sizeof(u32));
+        //
+
         // Process GPU commands.
         GX_ProcessCommandList(ctx->cmdBuffer + ctx->cmdBufferOffset, ctx->cmdBufferSize * sizeof(u32), GX_CMDLIST_FLUSH);
 
@@ -194,9 +199,9 @@ void GLASS_gpu_setViewport(GLint x, GLint y, GLsizei width, GLsizei height) {
 }
 
 void GLASS_gpu_setScissorTest(GPU_SCISSORMODE mode, GLint x, GLint y, GLsizei width, GLsizei height) {
-    GPUCMD_AddMaskedWrite(GPUREG_SCISSORTEST_MODE, 0x01, mode);
+    GPUCMD_AddWrite(GPUREG_SCISSORTEST_MODE, mode);
     GPUCMD_AddWrite(GPUREG_SCISSORTEST_POS, (y << 16) | (x & 0xFFFF));
-    GPUCMD_AddWrite(GPUREG_SCISSORTEST_DIM, ((height - y - 1) << 16) | ((width - x - 1) & 0xFFFF));
+    GPUCMD_AddWrite(GPUREG_SCISSORTEST_DIM, 0);
 }
 
 static void GLASS_uploadShaderBinary(const ShaderInfo* shader) {
@@ -232,11 +237,11 @@ void GLASS_gpu_bindShaders(const ShaderInfo* vertexShader, const ShaderInfo* geo
     if (vertexShader) {
         GLASS_uploadShaderBinary(vertexShader);
         GPUCMD_AddWrite(GPUREG_VSH_ENTRYPOINT, 0x7FFF0000 | (vertexShader->codeEntrypoint & 0xFFFF));
-        GPUCMD_AddMaskedWrite(GPUREG_VSH_OUTMAP_MASK, 0x03, vertexShader->outMask);
+        GPUCMD_AddWrite(GPUREG_VSH_OUTMAP_MASK, vertexShader->outMask);
 
         // Set vertex shader outmap number.
-        GPUCMD_AddMaskedWrite(GPUREG_VSH_OUTMAP_TOTAL1, 0x01, vertexShader->outTotal - 1);
-        GPUCMD_AddMaskedWrite(GPUREG_VSH_OUTMAP_TOTAL2, 0x01, vertexShader->outTotal - 1);
+        GPUCMD_AddWrite(GPUREG_VSH_OUTMAP_TOTAL1, vertexShader->outTotal - 1);
+        GPUCMD_AddWrite(GPUREG_VSH_OUTMAP_TOTAL2, vertexShader->outTotal - 1);
     }
 
     if (geometryShader) {
@@ -281,9 +286,9 @@ void GLASS_gpu_bindShaders(const ShaderInfo* vertexShader, const ShaderInfo* geo
 
     if (mergedOutTotal) {
         GPUCMD_AddMaskedWrite(GPUREG_PRIMITIVE_CONFIG, 0x01, mergedOutTotal - 1);
-        GPUCMD_AddMaskedWrite(GPUREG_SH_OUTMAP_TOTAL, 0x01, mergedOutTotal);
+        GPUCMD_AddWrite(GPUREG_SH_OUTMAP_TOTAL, mergedOutTotal);
         GPUCMD_AddIncrementalWrites(GPUREG_SH_OUTMAP_O0, mergedOutSems, 7);
-        GPUCMD_AddMaskedWrite(GPUREG_SH_OUTATTR_MODE, 0x01, useTexcoords ? 1 : 0);
+        GPUCMD_AddWrite(GPUREG_SH_OUTATTR_MODE, useTexcoords ? 1 : 0);
         GPUCMD_AddWrite(GPUREG_SH_OUTATTR_CLOCK, mergedOutClock);
     }
 
@@ -525,7 +530,9 @@ void GLASS_gpu_setFragOp(GLenum fragMode, bool blendMode) {
             UNREACHABLE("Invalid fragment mode!");
     }
 
-    GPUCMD_AddMaskedWrite(GPUREG_COLOR_OPERATION, 0x07, 0xE40000 | (blendMode ? 0x100 : 0x0) | gpuFragMode);
+    (void)gpuFragMode;
+
+    // GPUCMD_AddMaskedWrite(GPUREG_COLOR_OPERATION, 0x07, 0xE40000 | (blendMode ? 0x100 : 0x0) | gpuFragMode);
 }
 
 void GLASS_gpu_setColorDepthMask(bool writeRed, bool writeGreen, bool writeBlue, bool writeAlpha, bool writeDepth, bool depthTest, GLenum depthFunc) {
@@ -534,7 +541,7 @@ void GLASS_gpu_setColorDepthMask(bool writeRed, bool writeGreen, bool writeBlue,
     if (depthTest)
         value |= (GLASS_utility_getTestFunc(depthFunc) << 4) | (writeDepth ? 0x1000 : 0x00) | 1;
 
-    GPUCMD_AddMaskedWrite(GPUREG_DEPTH_COLOR_MASK, 0x03, value);
+    // GPUCMD_AddMaskedWrite(GPUREG_DEPTH_COLOR_MASK, 0x03, value);
 }
 
 void GLASS_gpu_setDepthMap(bool enabled, GLclampf nearVal, GLclampf farVal, GLfloat units, GLenum depthFormat) {
@@ -552,14 +559,14 @@ void GLASS_gpu_setDepthMap(bool enabled, GLclampf nearVal, GLclampf farVal, GLfl
             break;
     }
 
-    GPUCMD_AddMaskedWrite(GPUREG_DEPTHMAP_ENABLE, 0x01, enabled ? 1 : 0);
+    // GPUCMD_AddMaskedWrite(GPUREG_DEPTHMAP_ENABLE, 0x01, enabled ? 1 : 0);
     GPUCMD_AddWrite(GPUREG_DEPTHMAP_SCALE, f32tof24(nearVal - farVal));
     GPUCMD_AddWrite(GPUREG_DEPTHMAP_OFFSET, f32tof24(nearVal + offset));
 }
 
 void GLASS_gpu_setEarlyDepthTest(bool enabled) {
     GPUCMD_AddMaskedWrite(GPUREG_EARLYDEPTH_TEST1, 0x01, enabled ? 1 : 0);
-    GPUCMD_AddMaskedWrite(GPUREG_EARLYDEPTH_TEST2, 0x01, enabled ? 1 : 0);
+    // GPUCMD_AddMaskedWrite(GPUREG_EARLYDEPTH_TEST2, 0x01, enabled ? 1 : 0);
 }
 
 void GLASS_gpu_setEarlyDepthFunc(GPU_EARLYDEPTHFUNC func) { GPUCMD_AddMaskedWrite(GPUREG_EARLYDEPTH_FUNC, 0x01, func); }
@@ -580,7 +587,7 @@ void GLASS_gpu_setStencilTest(bool enabled, GLenum func, GLint ref, GLuint mask,
         value |= ((u8)mask << 24);
     }
 
-    GPUCMD_AddWrite(GPUREG_STENCIL_TEST, value);
+    //GPUCMD_AddWrite(GPUREG_STENCIL_TEST, value);
 }
 
 void GLASS_gpu_setStencilOp(GLenum sfail, GLenum dpfail, GLenum dppass) { GPUCMD_AddMaskedWrite(GPUREG_STENCIL_OP, 0x03, GLASS_utility_getStencilOp(sfail) | (GLASS_utility_getStencilOp(dpfail) << 4) | (GLASS_utility_getStencilOp(dppass) << 8)); }
@@ -590,7 +597,7 @@ void GLASS_gpu_setCullFace(bool enabled, GLenum cullFace, GLenum frontFace) {
     // - set FRONT-CCW for FRONT-CCW/BACK-CW;
     // - set BACK-CCW in all other cases.
     const GPU_CULLMODE mode = ((cullFace == GL_FRONT) != (frontFace == GL_CCW)) ? GPU_CULL_BACK_CCW : GPU_CULL_FRONT_CCW;
-    GPUCMD_AddMaskedWrite(GPUREG_FACECULLING_CONFIG, 0x01, enabled ? mode : GPU_CULL_NONE);
+    (void)mode;//GPUCMD_AddMaskedWrite(GPUREG_FACECULLING_CONFIG, 0x01, enabled ? mode : GPU_CULL_NONE);
 }
 
 void GLASS_gpu_setAlphaTest(bool enabled, GLenum func, GLclampf ref) {
@@ -601,7 +608,7 @@ void GLASS_gpu_setAlphaTest(bool enabled, GLenum func, GLclampf ref) {
         value |= ((u8)(ref * 0xFF) << 8);
     }
 
-    GPUCMD_AddMaskedWrite(GPUREG_FRAGOP_ALPHA_TEST, 0x03, value);
+    // GPUCMD_AddMaskedWrite(GPUREG_FRAGOP_ALPHA_TEST, 0x03, value);
 }
 
 void GLASS_gpu_setBlendFunc(GLenum rgbEq, GLenum alphaEq, GLenum srcColor, GLenum dstColor, GLenum srcAlpha, GLenum dstAlpha) {
@@ -615,7 +622,7 @@ void GLASS_gpu_setBlendFunc(GLenum rgbEq, GLenum alphaEq, GLenum srcColor, GLenu
 }
 
 void GLASS_gpu_setBlendColor(u32 color) { GPUCMD_AddWrite(GPUREG_BLEND_COLOR, color); }
-void GLASS_gpu_setLogicOp(GLenum op) { GPUCMD_AddMaskedWrite(GPUREG_LOGIC_OP, 0x01, GLASS_utility_getLogicOp(op)); }
+void GLASS_gpu_setLogicOp(GLenum op) { /*GPUCMD_AddMaskedWrite(GPUREG_LOGIC_OP, 0x01, GLASS_utility_getLogicOp(op));*/ }
 
 void GLASS_gpu_drawArrays(GLenum mode, GLint first, GLsizei count) {
     GPUCMD_AddMaskedWrite(GPUREG_PRIMITIVE_CONFIG, 2, GLASS_utility_getDrawPrimitive(mode));

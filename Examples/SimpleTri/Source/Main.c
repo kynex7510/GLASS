@@ -60,6 +60,7 @@ static void sceneRender(void) {
 
 int main() {
     // Initialize graphics.
+    gfxSetDoubleBuffering(GFX_TOP, false);
     gfxInitDefault();
 
     glassSettings settings;
@@ -96,19 +97,17 @@ int main() {
 			break; // break in order to return to hbmenu.
 
         // Render the scene.
-        glClear(GL_COLOR_BUFFER_BIT);
+        // glClear(GL_COLOR_BUFFER_BIT);
         sceneRender();
         glassSwapBuffers();
         gspWaitForVBlank();
 
-        /*
         while (!(kDown & KEY_A)) {
             hidScanInput();
             kDown = hidKeysDown();
         }
 
         break;
-        */
     }
 
     // Deinitialize graphics.

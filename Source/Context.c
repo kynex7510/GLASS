@@ -2,8 +2,6 @@
 #include "Memory.h"
 #include "GPU.h"
 
-#define CONTEXT_FLAG_ALL (~(DECL_FLAG(0) - 1))
-
 static CtxCommon* g_Context = NULL;
 static CtxCommon* g_OldCtx = NULL;
 
@@ -11,7 +9,7 @@ static void GLASS_context_initCommon(CtxCommon* ctx, const glassSettings* settin
     ASSERT(ctx);
 
     // Platform.
-    ctx->flags = CONTEXT_FLAG_ALL;
+    ctx->flags = 0;
     ctx->lastError = GL_NO_ERROR;
     ctx->cmdBuffer = NULL;
     ctx->cmdBufferSize = 0;
@@ -97,10 +95,12 @@ static void GLASS_context_initCommon(CtxCommon* ctx, const glassSettings* settin
         combiner->alphaScale = 1.0f;
         combiner->color = 0xFFFFFFFF;
     }
+    ctx->flags |= CONTEXT_FLAG_COMBINERS;
 
     // Fragment.
     ctx->fragMode = GL_FRAGOP_MODE_DEFAULT_PICA;
     ctx->blendMode = false;
+    ctx->flags |= CONTEXT_FLAG_FRAGMENT;
 
     // Color, Depth.
     ctx->writeRed = true;
@@ -110,6 +110,7 @@ static void GLASS_context_initCommon(CtxCommon* ctx, const glassSettings* settin
     ctx->writeDepth = true;
     ctx->depthTest = false;
     ctx->depthFunc = GL_LESS;
+    ctx->flags |= CONTEXT_FLAG_COLOR_DEPTH;
 
     // Depth Map.
     ctx->depthNear = 0.0f;
@@ -117,11 +118,13 @@ static void GLASS_context_initCommon(CtxCommon* ctx, const glassSettings* settin
     ctx->polygonOffset = false;
     ctx->polygonFactor = 0.0f;
     ctx->polygonUnits = 0.0f;
+    ctx->flags |= CONTEXT_FLAG_DEPTHMAP;
 
     // Early Depth.
     ctx->earlyDepthTest = false;
     ctx->clearEarlyDepth = 1.0f;
     ctx->earlyDepthFunc = GL_LESS;
+    ctx->flags |= CONTEXT_FLAG_EARLY_DEPTH;
 
     // Stencil.
     ctx->stencilTest = false;
@@ -132,16 +135,19 @@ static void GLASS_context_initCommon(CtxCommon* ctx, const glassSettings* settin
     ctx->stencilFail = GL_KEEP;
     ctx->stencilDepthFail = GL_KEEP;
     ctx->stencilPass = GL_KEEP;
+    ctx->flags |= CONTEXT_FLAG_STENCIL;
 
     // Cull Face.
     ctx->cullFace = false;
     ctx->cullFaceMode = GL_BACK;
     ctx->frontFaceMode = GL_CCW;
+    ctx->flags |= CONTEXT_FLAG_CULL_FACE;
 
     // Alpha.
     ctx->alphaTest = false;
     ctx->alphaFunc = GL_ALWAYS;
     ctx->alphaRef = 0;
+    ctx->flags |= CONTEXT_FLAG_ALPHA;
 
     // Blend.
     ctx->blendColor = 0;
@@ -151,6 +157,7 @@ static void GLASS_context_initCommon(CtxCommon* ctx, const glassSettings* settin
     ctx->blendDstRGB = GL_ZERO;
     ctx->blendSrcAlpha = GL_ONE;
     ctx->blendDstAlpha = GL_ZERO;
+    ctx->flags |= CONTEXT_FLAG_BLEND;
 
     // Logic Op.
     ctx->logicOp = GL_COPY;
@@ -182,7 +189,7 @@ CtxCommon* GLASS_context_getCommon(void) {
 }
 
 void GLASS_context_bind(CtxCommon* ctx) {
-    const bool skipUpdate = (ctx == g_Context) || (g_Context == NULL && ctx == g_OldCtx);
+    // const bool skipUpdate = (ctx == g_Context) || (g_Context == NULL && ctx == g_OldCtx);
 
     // Complete pending commands.
     if (g_Context)
@@ -198,8 +205,10 @@ void GLASS_context_bind(CtxCommon* ctx) {
     if (g_Context) {
         GLASS_gpu_runQueue(g_Context, true);
 
+        /*
         if (!skipUpdate)
             g_Context->flags = CONTEXT_FLAG_ALL;
+            */
     }
 }
 
@@ -373,6 +382,37 @@ void GLASS_context_update(void) {
 
         g_Context->flags &= ~CONTEXT_FLAG_BLEND;
     }
+
+    //
+    static bool firstInit = false;
+    if (!firstInit) {
+        GPUCMD_AddWrite(GPUREG_DEPTHBUFFER_FORMAT, 0x00);
+        GPUCMD_AddWrite(GPUREG_STENCIL_OP, 0x00);
+        GPUCMD_AddMaskedWrite(GPUREG_GAS_DELTAZ_DEPTH, 0b1000, 0x2000000);	
+        GPUCMD_AddWrite(GPUREG_BLEND_COLOR, 0x00);
+        GPUCMD_AddWrite(GPUREG_BLEND_FUNC, 0x76760000);
+        GPUCMD_AddWrite(GPUREG_FRAGOP_SHADOW, 0x80003c00);
+        GPUCMD_AddMaskedWrite(GPUREG_EARLYDEPTH_FUNC, 1, 1);	
+        GPUCMD_AddMaskedWrite(GPUREG_EARLYDEPTH_DATA, 0b111, 0);
+        GPUCMD_AddMaskedWrite(GPUREG_TEXUNIT_CONFIG, 0b1011, 0x1000);
+        GPUCMD_AddMaskedWrite(GPUREG_TEXUNIT_CONFIG, 0b100, 0x11000);
+        GPUCMD_AddWrite(GPUREG_TEXUNIT0_SHADOW, 1);
+        GPUCMD_AddMaskedWrite(GPUREG_TEXENV_UPDATE_BUFFER, 0b111, 0);
+        GPUCMD_AddWrite(GPUREG_TEXENV_BUFFER_COLOR, 0xFFFFFFFF);
+        GPUCMD_AddWrite(GPUREG_FOG_COLOR, 0);
+        GPUCMD_AddWrite(GPUREG_EARLYDEPTH_CLEAR, 1);
+        GPUCMD_AddWrite(GPUREG_SCISSORTEST_DIM, 0);	
+        GPUCMD_AddMaskedWrite(GPUREG_COLOR_OPERATION, 0b111, 0xe40100);
+        GPUCMD_AddWrite(GPUREG_DEPTH_COLOR_MASK, 0x1f61);
+        GPUCMD_AddWrite(GPUREG_DEPTHMAP_ENABLE, 1);
+        GPUCMD_AddWrite(GPUREG_EARLYDEPTH_TEST2, 0);
+        GPUCMD_AddWrite(GPUREG_STENCIL_TEST, 0xFF000010);
+        GPUCMD_AddWrite(GPUREG_FACECULLING_CONFIG, 2);
+        GPUCMD_AddWrite(GPUREG_FRAGOP_ALPHA_TEST, 0x10);
+        GPUCMD_AddWrite(GPUREG_LOGIC_OP, 0);
+        firstInit = true;
+    }
+    //
 
     GLASS_gpu_disableCommands(g_Context);
 }
