@@ -1,4 +1,5 @@
 .vscode
+Build
 Debug
 Release
 Lib
@@ -7,4 +8,4 @@ include
 *.3dsx
 *.smdh
 *.elf
-Examples
+Examples/BothScreens
