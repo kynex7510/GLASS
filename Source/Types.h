@@ -9,8 +9,9 @@
 #define DECL_FLAG(id) (u32)(1 << (id))
 
 #define GLASS_INVALID_OBJECT 0
-#define GLASS_NUM_ATTRIB_SLOTS 12
 #define GLASS_NUM_ATTRIB_REGS 16
+#define GLASS_MAX_ENABLED_ATTRIBS 12
+#define GLASS_NUM_ATTRIB_BUFFERS 12
 #define GLASS_NUM_BOOL_UNIFORMS 16
 #define GLASS_NUM_INT_UNIFORMS 4
 #define GLASS_NUM_FLOAT_UNIFORMS 96
@@ -42,6 +43,9 @@
 #define PROGRAM_FLAG_LINK_FAILED DECL_FLAG(1)
 #define PROGRAM_FLAG_UPDATE_VERTEX DECL_FLAG(2)
 #define PROGRAM_FLAG_UPDATE_GEOMETRY DECL_FLAG(3)
+
+#define ATTRIB_FLAG_ENABLED DECL_FLAG(0)
+#define ATTRIB_FLAG_FIXED DECL_FLAG(1)
 
 #define CONTEXT_FLAG_FRAMEBUFFER DECL_FLAG(0)
 #define CONTEXT_FLAG_DRAW DECL_FLAG(1)
@@ -94,10 +98,12 @@ typedef struct {
 typedef struct {
     GLenum type;           // Type of each component.
     GLint count;           // Num of components.
-    GLsizei stride;        // Num of all bytes.
+    GLsizei stride;        // Buffer stride.
     GLuint boundBuffer;    // Bound array buffer.
-    u32 physAddr;          // Physical address to buffer.
+    u32 physAddr;          // Buffer physical address.
+    u32 physOffset;        // Physical offset to buffer.
     GLfloat components[4]; // Fixed attrib X-Y-Z-W.
+    u16 flags;             // Attribute flags.
 } AttributeInfo;
 
 typedef struct {
@@ -215,7 +221,7 @@ typedef struct {
     
     /* Attributes */
     AttributeInfo attribs[GLASS_NUM_ATTRIB_REGS]; // Attributes data.
-    size_t attribSlots[GLASS_NUM_ATTRIB_SLOTS];   // Attributes slots.
+    GLsizei numEnabledAttribs;                    // Number of enabled attributes.
 
     /* Combiners */
     GLint combinerStage;                               // Current combiner stage.

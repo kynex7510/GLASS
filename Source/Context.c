@@ -65,14 +65,15 @@ static void GLASS_context_initCommon(CtxCommon* ctx, const glassSettings* settin
         attrib->stride = 0;
         attrib->boundBuffer = GLASS_INVALID_OBJECT;
         attrib->physAddr = 0;
+        attrib->physOffset = 0;
         attrib->components[0] = 0.0f;
         attrib->components[1] = 0.0f;
         attrib->components[2] = 0.0f;
         attrib->components[3] = 1.0f;
+        attrib->flags = ATTRIB_FLAG_FIXED;
     }
 
-    for (size_t i = 0; i < GLASS_NUM_ATTRIB_SLOTS; ++i)
-        ctx->attribSlots[i] = GLASS_NUM_ATTRIB_REGS; // Initialized to OOB.
+    ctx->numEnabledAttribs = 0;
 
     // Combiners.
     ctx->combinerStage = 0;
@@ -297,7 +298,7 @@ void GLASS_context_update(void) {
 
     // Handle attributes.
     if (g_Context->flags & CONTEXT_FLAG_ATTRIBS) {
-        GLASS_gpu_uploadAttributes(g_Context->attribs, g_Context->attribSlots);
+        GLASS_gpu_uploadAttributes(g_Context->attribs);
         g_Context->flags &= ~CONTEXT_FLAG_ATTRIBS;
     }
 

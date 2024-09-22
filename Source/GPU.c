@@ -2,9 +2,19 @@
 #include "Utility.h"
 #include "Memory.h"
 
+#include <stdlib.h> // qsort
+
 #define PHYSICAL_LINEAR_BASE 0x18000000
 #define GPU_MAX_ENTRIES 0x4000
 #define GX_MAX_ENTRIES 32
+
+typedef struct {
+    u32 physAddr;                                    // Physical address to buffer.
+    GLsizei stride;                                  // Buffer stride.
+    GLsizei numComponents;                           // Number of components.
+    u32 components[GLASS_MAX_ENABLED_ATTRIBS];       // Buffer components (attributes), sorted by offset.
+    u32 componentOffsets[GLASS_MAX_ENABLED_ATTRIBS]; // Component offsets.
+} AttributeBuffer;
 
 void GLASS_gpu_init(CtxCommon* ctx) {
     ASSERT(ctx);
@@ -383,43 +393,123 @@ void GLASS_gpu_uploadUniforms(ShaderInfo* shader) {
         GLASS_uploadBoolUniformMask(shader, boolMask);
 }
 
-void GLASS_gpu_uploadAttributes(const AttributeInfo* attribs, const size_t* slots) {
+static int GLASS_compareAttribOffsets(const void *a, const void *b) {
+    const u32 v0 = ((u32*)a)[1];
+    const u32 v1 = ((u32*)b)[1];
+    if (v0 < v1) return -1;
+    if (v0 > v1) return 1;
+    return 0;
+}
+
+// We want to know which buffers to use, which components are applied to it, in which order, etc.
+static void GLASS_extractAttribBuffersInfo(const AttributeInfo* attribs, AttributeBuffer* attribBuffers) {
+    for (size_t regId = 0; regId < GLASS_NUM_ATTRIB_REGS; ++regId) {
+        const AttributeInfo* attrib = &attribs[regId];
+
+        if (!(attrib->flags & ATTRIB_FLAG_ENABLED) || (attrib->flags & ATTRIB_FLAG_FIXED))
+            continue;
+
+        // Find attribute buffer.
+        size_t firstEmpty = GLASS_NUM_ATTRIB_BUFFERS;
+        bool found = false;
+        for (size_t i = 0; i < GLASS_NUM_ATTRIB_BUFFERS; ++i) {
+            AttributeBuffer* attribBuffer = &attribBuffers[i];
+            if (attribBuffer->physAddr == attrib->physAddr) {
+                ASSERT(attribBuffer->stride == attrib->stride);
+                ASSERT(attribBuffer->numComponents < GLASS_MAX_ENABLED_ATTRIBS);
+                attribBuffer->components[attribBuffer->numComponents] = regId;
+                attribBuffer->componentOffsets[attribBuffer->numComponents++] = attrib->physOffset;
+                found = true;
+                break;
+            }
+
+            if (!attribBuffer->physAddr && firstEmpty == GLASS_NUM_ATTRIB_BUFFERS)
+                firstEmpty = i;
+        }
+
+        // Initialize if not done yet.
+        if (!found && firstEmpty != GLASS_NUM_ATTRIB_BUFFERS) {
+            AttributeBuffer* attribBuffer = &attribBuffers[firstEmpty];
+            attribBuffer->physAddr = attrib->physAddr;
+            attribBuffer->stride = attrib->stride;
+            attribBuffer->numComponents = 1;
+            attribBuffer->components[0] = regId;
+            attribBuffer->componentOffsets[0] = attrib->physOffset;
+            found = true;
+        }
+
+        ASSERT(found);
+    }
+
+    // Sort each buffer components.
+    for (size_t i = 0; i < GLASS_NUM_ATTRIB_BUFFERS; ++i) {
+        AttributeBuffer* attribBuffer = &attribBuffers[i];
+        if (!attribBuffer->physAddr)
+            continue;
+
+        u32 buffer[GLASS_MAX_ENABLED_ATTRIBS * 2];
+        for (size_t j = 0; j < attribBuffer->numComponents; ++j) {
+            buffer[j * 2] = attribBuffer->components[j];
+            buffer[(j * 2) + 1] = attribBuffer->componentOffsets[j];
+        }
+
+        qsort(buffer, attribBuffer->numComponents, sizeof(u32) * 2, GLASS_compareAttribOffsets);
+
+        // We don't need the offsets anymore.
+        for (size_t j = 0; j < attribBuffer->numComponents; ++j)
+            attribBuffer->components[j] = buffer[j * 2];
+    }
+}
+
+void GLASS_gpu_uploadAttributes(const AttributeInfo* attribs) {
     ASSERT(attribs);
-    ASSERT(slots);
+
+    // Extract attrib buffers info.
+    // Each buffer comes with a list of input registers, ordered by their offset.
+    AttributeBuffer attribBuffers[GLASS_NUM_ATTRIB_BUFFERS] = {};
+    GLASS_extractAttribBuffersInfo(attribs, attribBuffers);
 
     u32 format[2];
     u32 permutation[2];
-    size_t attribCount = 0;
+    size_t attribCount = 0; // Also acts as an index.
+    u32 componentTable[GLASS_NUM_ATTRIB_REGS];
 
     format[0] = permutation[0] = permutation[1] = 0;
     format[1] = 0xFFF0000; // Fixed by default (ie. if disabled).
 
-    // Handle params.
-    for (size_t i = 0; i < GLASS_NUM_ATTRIB_SLOTS; ++i) {
-        const size_t reg = slots[i];
-
-        if (reg >= GLASS_NUM_ATTRIB_REGS)
+    // Step 1: setup attribute params (type, count, isFixed, etc.).
+    for (size_t regId = 0; regId < GLASS_NUM_ATTRIB_REGS; ++regId) {
+        const AttributeInfo* attrib = &attribs[regId];
+        if (!(attrib->flags & ATTRIB_FLAG_ENABLED))
             continue;
 
-        const AttributeInfo* attrib = &attribs[reg];
-        GPU_FORMATS attribType = GLASS_utility_getAttribType(attrib->type);
+        // Handle fixed/non-fixed attributes.
+        if (attrib->flags & ATTRIB_FLAG_FIXED) {
+            u32 packed[3];
+            GLASS_utility_packFloatVector(attrib->components, packed);
+            GPUCMD_AddWrite(GPUREG_FIXEDATTRIB_INDEX, attribCount);
+            GPUCMD_AddIncrementalWrites(GPUREG_FIXEDATTRIB_DATA0, packed, 3);
+        } else {
+            const GPU_FORMATS attribType = GLASS_utility_getAttribType(attrib->type);
 
-        if (attrib->physAddr) {
-            if (i < 8) {
-                format[0] |= GPU_ATTRIBFMT(i, attrib->count, attribType);
+            if (attribCount < 8) {
+                format[0] |= GPU_ATTRIBFMT(attribCount, attrib->count, attribType);
             } else {
-                format[1] |= GPU_ATTRIBFMT(i - 8, attrib->count, attribType);
+                format[1] |= GPU_ATTRIBFMT(attribCount - 8, attrib->count, attribType);
             }
 
-            format[1] &= ~(1 << (16 + i));
+            // Clear fixed flag.
+            format[1] &= ~(1u << (16 + attribCount));
         }
 
-        if (i < 8) {
-            permutation[0] |= (reg << (4 * i));
+        // Map attribute to input register.
+        if (attribCount < 8) {
+            permutation[0] |= (regId << (4 * attribCount));
         } else {
-            permutation[1] |= (reg << (4 * i));
+            permutation[1] |= (regId << (4  * attribCount));
         }
-
+        
+        componentTable[regId] = attribCount;
         ++attribCount;
     }
 
@@ -436,25 +526,29 @@ void GLASS_gpu_uploadAttributes(const AttributeInfo* attribs, const size_t* slot
     // Set buffers base.
     GPUCMD_AddWrite(GPUREG_ATTRIBBUFFERS_LOC, PHYSICAL_LINEAR_BASE >> 3);
 
-    // Handle buffers.
-    for (size_t i = 0; i < GLASS_NUM_ATTRIB_SLOTS; ++i) {
-        const size_t index = slots[i];
+    // Setup attribute buffers.
+    for (size_t i = 0; i < GLASS_NUM_ATTRIB_BUFFERS; ++i) {
         u32 params[3] = {};
+        AttributeBuffer* attribBuffer = &attribBuffers[i];
 
-        if (index < GLASS_NUM_ATTRIB_REGS) {
-            const AttributeInfo* attrib = &attribs[index];
+        if (attribBuffer->physAddr) {
+            // Calculate permutation.
+            u32 permutation[2] = {};
 
-            if (attrib->physAddr) {
-                params[0] = attrib->physAddr - PHYSICAL_LINEAR_BASE;
-                params[1] = index;
-                params[2] = ((attrib->stride & 0xFF) << 16) |
-                        (1 << 28); // TODO: number of times this buffer is used?
-            } else {
-                u32 packed[3] = {};
-                GLASS_utility_packFloatVector(attrib->components, packed);
-                GPUCMD_AddWrite(GPUREG_FIXEDATTRIB_INDEX, i);
-                GPUCMD_AddIncrementalWrites(GPUREG_FIXEDATTRIB_DATA0, packed, 3);
+            // Basically resolve every input register to its mapped vertex attribute.
+            for (size_t j = 0; j < attribBuffer->numComponents; ++j) {
+                const u32 regId = attribBuffer->components[j];
+                const u32 attribIndex = componentTable[regId];
+                if (j < 8) {
+                    permutation[0] = (attribIndex << (j * 4));
+                } else {
+                    permutation[1] = (attribIndex << (j * 4));
+                }
             }
+
+            params[0] = attribBuffer->physAddr - PHYSICAL_LINEAR_BASE;
+            params[1] = permutation[0];
+            params[2] = permutation[1] | ((attribBuffer->stride & 0xFF) << 16) | ((attribBuffer->numComponents & 0xF) << 28);
         }
 
         GPUCMD_AddIncrementalWrites(GPUREG_ATTRIBBUFFER0_OFFSET + (i * 0x03), params, 3);

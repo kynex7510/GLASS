@@ -11,12 +11,12 @@ void glDisableVertexAttribArray(GLuint index) {
     }
 
     CtxCommon* ctx = GLASS_context_getCommon();
-    for (size_t i = 0; i < GLASS_NUM_ATTRIB_SLOTS; ++i) {
-        if (ctx->attribSlots[i] == index) {
-            ctx->attribSlots[i] = GLASS_NUM_ATTRIB_REGS;
-            ctx->flags |= CONTEXT_FLAG_ATTRIBS;
-            return;
-        }
+    AttributeInfo* attrib = &ctx->attribs[index];
+
+    if (attrib->flags & ATTRIB_FLAG_ENABLED) {
+        --ctx->numEnabledAttribs;
+        attrib->flags &= ~(ATTRIB_FLAG_ENABLED);
+        ctx->flags |= CONTEXT_FLAG_ATTRIBS;
     }
 }
 
@@ -27,15 +27,18 @@ void glEnableVertexAttribArray(GLuint index) {
     }
 
     CtxCommon* ctx = GLASS_context_getCommon();
-    for (size_t i = 0; i < GLASS_NUM_ATTRIB_SLOTS; ++i) {
-        if (ctx->attribSlots[i] == GLASS_NUM_ATTRIB_REGS) {
-            ctx->attribSlots[i] = index;
-            ctx->flags |= CONTEXT_FLAG_ATTRIBS;
+    AttributeInfo* attrib = &ctx->attribs[index];
+
+    if (!(attrib->flags & ATTRIB_FLAG_ENABLED)) {
+        if (ctx->numEnabledAttribs >= GLASS_MAX_ENABLED_ATTRIBS) {
+            GLASS_context_setError(GL_INVALID_OPERATION);
             return;
         }
-    }
 
-    GLASS_context_setError(GL_OUT_OF_MEMORY);
+        ++ctx->numEnabledAttribs;
+        attrib->flags |= ATTRIB_FLAG_ENABLED;
+        ctx->flags |= CONTEXT_FLAG_ATTRIBS;
+    }
 }
 
 static bool GLASS_readFloats(size_t index, GLenum pname, GLfloat* params) {
@@ -74,13 +77,7 @@ static bool GLASS_readInt(size_t index, GLenum pname, GLint* param) {
             *param = GL_FALSE;
             return true;
         case GL_VERTEX_ATTRIB_ARRAY_ENABLED:
-            *param = GL_FALSE;
-            for (size_t i = 0; i < GLASS_NUM_ATTRIB_SLOTS; ++i) {
-                if (ctx->attribSlots[i] == index) {
-                    *param = GL_TRUE;
-                    break;
-                }
-            }
+            *param = (attrib->flags & ATTRIB_FLAG_ENABLED) ? GL_TRUE : GL_FALSE;
             return true;
     }
 
@@ -139,22 +136,21 @@ void glGetVertexAttribPointerv(GLuint index, GLenum pname, GLvoid** pointer) {
     AttributeInfo* attrib = &ctx->attribs[index];
 
     // Recover virtual address.
-    u8* virtAddr = NULL;
-    if (attrib->physAddr) {
-        virtAddr = GLASS_utility_convertPhysToVirt(attrib->physAddr);
-        ASSERT(virtAddr);
+    GLvoid* virtAddr = NULL;
 
-        // Remove buffer base if required.
-        if (attrib->boundBuffer) {
-            const BufferInfo* binfo = (BufferInfo*)attrib->boundBuffer;
-            virtAddr -= (u32)binfo->address;
+    if (!(attrib->flags & ATTRIB_FLAG_FIXED)) {
+        if (attrib->boundBuffer != GLASS_INVALID_OBJECT) {
+            virtAddr = (GLvoid*)attrib->physOffset;
+        } else {
+            virtAddr = GLASS_utility_convertPhysToVirt(attrib->physAddr);
+            ASSERT(virtAddr);
         }
     }
 
     *pointer = virtAddr;
 }
 
-static void GLASS_setFixedAttrib(GLuint reg, GLfloat* params) {
+static void GLASS_setFixedAttrib(GLuint reg, const GLfloat* params) {
     if (reg >= GLASS_NUM_ATTRIB_REGS) {
         GLASS_context_setError(GL_INVALID_VALUE);
         return;
@@ -169,6 +165,8 @@ static void GLASS_setFixedAttrib(GLuint reg, GLfloat* params) {
     attrib->stride = sizeof(GLfloat) * 4;
     attrib->boundBuffer = GLASS_INVALID_OBJECT;
     attrib->physAddr = 0;
+    attrib->physOffset = 0;
+    attrib->flags |= ATTRIB_FLAG_FIXED;
 
     for (size_t i = 0; i < 4; ++i)
         attrib->components[i] = params[i];
@@ -177,22 +175,22 @@ static void GLASS_setFixedAttrib(GLuint reg, GLfloat* params) {
 }
 
 void glVertexAttrib1f(GLuint index, GLfloat v0) {
-    GLfloat values[4] = {v0, 0.0f, 0.0f, 1.0f};
+    const GLfloat values[4] = {v0, 0.0f, 0.0f, 1.0f};
     GLASS_setFixedAttrib(index, values);
 }
 
 void glVertexAttrib2f(GLuint index, GLfloat v0, GLfloat v1) {
-    GLfloat values[4] = {v0, v1, 0.0f, 1.0f};
+    const GLfloat values[4] = {v0, v1, 0.0f, 1.0f};
     GLASS_setFixedAttrib(index, values);
 }
 
 void glVertexAttrib3f(GLuint index, GLfloat v0, GLfloat v1, GLfloat v2) {
-    GLfloat values[4] = {v0, v1, v2, 1.0f};
+    const GLfloat values[4] = {v0, v1, v2, 1.0f};
     GLASS_setFixedAttrib(index, values);
 }
 
 void glVertexAttrib4f(GLuint index, GLfloat v0, GLfloat v1, GLfloat v2, GLfloat v3) {
-    GLfloat values[4] = {v0, v1, v2, v3};
+    const GLfloat values[4] = {v0, v1, v2, v3};
     GLASS_setFixedAttrib(index, values);
 }
 
@@ -232,9 +230,11 @@ void glVertexAttribPointer(GLuint index, GLint size, GLenum type, GLboolean norm
 
     // Get vertex buffer physical address.
     u32 physAddr = 0;
+    u32 physOffset = 0;
     if (ctx->arrayBuffer != GLASS_INVALID_OBJECT) {
         const BufferInfo* binfo = (BufferInfo*)ctx->arrayBuffer;
-        physAddr = osConvertVirtToPhys((void*)(binfo->address + (size_t)pointer));
+        physAddr = osConvertVirtToPhys((void*)binfo->address);
+        physOffset = (u32)pointer;
     } else {
         physAddr = osConvertVirtToPhys(pointer);
     }
@@ -247,10 +247,12 @@ void glVertexAttribPointer(GLuint index, GLint size, GLenum type, GLboolean norm
     attrib->stride = stride;
     attrib->boundBuffer = ctx->arrayBuffer;
     attrib->physAddr = physAddr;
+    attrib->physOffset = physOffset;
     attrib->components[0] = 0.0f;
     attrib->components[1] = 0.0f;
     attrib->components[2] = 0.0f;
     attrib->components[3] = 1.0f;
+    attrib->flags &= ~(ATTRIB_FLAG_FIXED);
 
     ctx->flags |= CONTEXT_FLAG_ATTRIBS;
 }

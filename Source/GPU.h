@@ -27,7 +27,7 @@ void GLASS_gpu_bindShaders(const ShaderInfo* vertexShader, const ShaderInfo* geo
 void GLASS_gpu_uploadConstUniforms(const ShaderInfo* shader);
 void GLASS_gpu_uploadUniforms(ShaderInfo* shader);
 
-void GLASS_gpu_uploadAttributes(const AttributeInfo* attribs, const size_t* slots);
+void GLASS_gpu_uploadAttributes(const AttributeInfo* attribs);
 
 void GLASS_gpu_setCombiners(const CombinerInfo* combiners);
 
