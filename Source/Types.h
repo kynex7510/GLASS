@@ -59,6 +59,7 @@
 #define CONTEXT_FLAG_CULL_FACE DECL_FLAG(13)
 #define CONTEXT_FLAG_ALPHA DECL_FLAG(14)
 #define CONTEXT_FLAG_BLEND DECL_FLAG(15)
+#define CONTEXT_FLAG_ALL (~(0u))
 
 #define OBJ_IS_BUFFER(x) GLASS_checkObjectType((x), GLASS_BUFFER_TYPE)
 #define OBJ_IS_TEXTURE(x) GLASS_checkObjectType((x), GLASS_TEXTURE_TYPE)
@@ -222,7 +223,6 @@ typedef struct {
 
     /* Fragment */
     GLenum fragMode; // Fragment mode.
-    bool blendMode;  // Blend mode.
 
     /* Color, Depth */
     bool writeRed;    // Write red.
@@ -265,7 +265,8 @@ typedef struct {
     GLenum alphaFunc;  // Alpha test function.
     GLclampf alphaRef; // Alpha test reference value.
 
-    /* Blend */
+    /* Blend, Logic Op */
+    bool blendMode;       // Blend mode.
     u32 blendColor;       // Blend color.
     GLenum blendEqRGB;    // Blend equation RGB.
     GLenum blendEqAlpha;  // Blend equation alpha.
@@ -273,9 +274,7 @@ typedef struct {
     GLenum blendDstRGB;   // Blend destination RGB.
     GLenum blendSrcAlpha; // Blend source alpha.
     GLenum blendDstAlpha; // Blend destination alpha.
-
-    /* Logic Op */
-    GLenum logicOp; // Logic op.
+    GLenum logicOp;       // Logic op.
 } CtxCommon;
 
 GLuint GLASS_createObject(u32 type);

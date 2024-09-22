@@ -2,8 +2,6 @@
 #include "Memory.h"
 #include "GPU.h"
 
-#define CONTEXT_FLAG_ALL (~(DECL_FLAG(0) - 1))
-
 static CtxCommon* g_Context = NULL;
 static CtxCommon* g_OldCtx = NULL;
 
@@ -11,7 +9,7 @@ static void GLASS_context_initCommon(CtxCommon* ctx, const glassSettings* settin
     ASSERT(ctx);
 
     // Platform.
-    ctx->flags = CONTEXT_FLAG_ALL;
+    ctx->flags = 0;
     ctx->lastError = GL_NO_ERROR;
     ctx->cmdBuffer = NULL;
     ctx->cmdBufferSize = 0;
@@ -79,7 +77,7 @@ static void GLASS_context_initCommon(CtxCommon* ctx, const glassSettings* settin
     // Combiners.
     ctx->combinerStage = 0;
     for (size_t i = 0; i < GLASS_NUM_COMBINER_STAGES; ++i) {
-        CombinerInfo *combiner = &ctx->combiners[i];
+        CombinerInfo* combiner = &ctx->combiners[i];
         combiner->rgbSrc[0] = !i ? GL_PRIMARY_COLOR : GL_PREVIOUS;
         combiner->rgbSrc[1] = GL_PRIMARY_COLOR;
         combiner->rgbSrc[2] = GL_PRIMARY_COLOR;
@@ -98,10 +96,11 @@ static void GLASS_context_initCommon(CtxCommon* ctx, const glassSettings* settin
         combiner->alphaScale = 1.0f;
         combiner->color = 0xFFFFFFFF;
     }
+    ctx->flags |= CONTEXT_FLAG_COMBINERS;
 
     // Fragment.
     ctx->fragMode = GL_FRAGOP_MODE_DEFAULT_PICA;
-    ctx->blendMode = false;
+    ctx->flags |= CONTEXT_FLAG_FRAGMENT;
 
     // Color, Depth.
     ctx->writeRed = true;
@@ -111,6 +110,7 @@ static void GLASS_context_initCommon(CtxCommon* ctx, const glassSettings* settin
     ctx->writeDepth = true;
     ctx->depthTest = false;
     ctx->depthFunc = GL_LESS;
+    ctx->flags |= CONTEXT_FLAG_COLOR_DEPTH;
 
     // Depth Map.
     ctx->depthNear = 0.0f;
@@ -118,11 +118,13 @@ static void GLASS_context_initCommon(CtxCommon* ctx, const glassSettings* settin
     ctx->polygonOffset = false;
     ctx->polygonFactor = 0.0f;
     ctx->polygonUnits = 0.0f;
+    ctx->flags |= CONTEXT_FLAG_DEPTHMAP;
 
     // Early Depth.
     ctx->earlyDepthTest = false;
     ctx->clearEarlyDepth = 1.0f;
     ctx->earlyDepthFunc = GL_LESS;
+    ctx->flags |= CONTEXT_FLAG_EARLY_DEPTH;
 
     // Stencil.
     ctx->stencilTest = false;
@@ -133,18 +135,22 @@ static void GLASS_context_initCommon(CtxCommon* ctx, const glassSettings* settin
     ctx->stencilFail = GL_KEEP;
     ctx->stencilDepthFail = GL_KEEP;
     ctx->stencilPass = GL_KEEP;
+    ctx->flags |= CONTEXT_FLAG_STENCIL;
 
     // Cull Face.
     ctx->cullFace = false;
     ctx->cullFaceMode = GL_BACK;
     ctx->frontFaceMode = GL_CCW;
+    ctx->flags |= CONTEXT_FLAG_CULL_FACE;
 
     // Alpha.
     ctx->alphaTest = false;
     ctx->alphaFunc = GL_ALWAYS;
     ctx->alphaRef = 0;
+    ctx->flags |= CONTEXT_FLAG_ALPHA;
 
     // Blend.
+    ctx->blendMode = false;
     ctx->blendColor = 0;
     ctx->blendEqRGB = GL_FUNC_ADD;
     ctx->blendEqAlpha = GL_FUNC_ADD;
@@ -152,9 +158,8 @@ static void GLASS_context_initCommon(CtxCommon* ctx, const glassSettings* settin
     ctx->blendDstRGB = GL_ZERO;
     ctx->blendSrcAlpha = GL_ONE;
     ctx->blendDstAlpha = GL_ZERO;
-
-    // Logic Op.
     ctx->logicOp = GL_COPY;
+    ctx->flags |= CONTEXT_FLAG_BLEND;
 }
 
 static void GLASS_context_cleanupCommon(CtxCommon* ctx) {
@@ -335,8 +340,9 @@ void GLASS_context_update(void) {
 
     // Handle early depth clear.
     if (g_Context->flags & CONTEXT_FLAG_EARLY_DEPTH_CLEAR) {
-        if (g_Context->earlyDepthTest)
+        if (g_Context->earlyDepthTest) {
             GLASS_gpu_clearEarlyDepthBuffer();
+        }
 
         g_Context->flags &= ~CONTEXT_FLAG_EARLY_DEPTH_CLEAR;
     }
