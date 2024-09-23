@@ -68,9 +68,9 @@ void glBufferData(GLenum target, GLsizeiptr size, const void* data, GLenum usage
 
     // Allocate buffer.
     if (info->address)
-        GLASS_linearFree(info->address);
+        glassLinearFree(info->address);
 
-    info->address = GLASS_linearAlloc(size);
+    info->address = glassLinearAlloc(size);
     if (!info->address) {
         GLASS_context_setError(GL_OUT_OF_MEMORY);
         return;
@@ -102,7 +102,7 @@ void glBufferSubData(GLenum target, GLintptr offset, GLsizeiptr size, const void
         return;
 
     // Get buffer size.
-    GLsizeiptr bufSize = (GLsizeiptr)GLASS_linearSize(info->address);
+    GLsizeiptr bufSize = (GLsizeiptr)glassLinearSize(info->address);
     if (size > (bufSize - offset)) {
         GLASS_context_setError(GL_INVALID_VALUE);
         return;
@@ -145,9 +145,9 @@ void glDeleteBuffers(GLsizei n, const GLuint* buffers) {
 
         // Delete buffer.
         if (info->address)
-            GLASS_linearFree(info->address);
+            glassLinearFree(info->address);
 
-        GLASS_virtualFree(info);
+        glassVirtualFree(info);
     }
 }
 
@@ -181,7 +181,7 @@ void glGetBufferParameteriv(GLenum target, GLenum pname, GLint* data) {
 
     switch (pname) {
         case GL_BUFFER_SIZE:
-            *data = GLASS_linearSize(info->address);
+            *data = glassLinearSize(info->address);
             break;
         case GL_BUFFER_USAGE:
             *data = info->usage;

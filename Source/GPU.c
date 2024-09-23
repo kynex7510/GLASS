@@ -19,18 +19,18 @@ typedef struct {
 void GLASS_gpu_init(CtxCommon* ctx) {
     ASSERT(ctx);
 
-    ctx->cmdBuffer = GLASS_linearAlloc(GPU_MAX_ENTRIES * sizeof(u32));
+    ctx->cmdBuffer = glassLinearAlloc(GPU_MAX_ENTRIES * sizeof(u32));
     ASSERT(ctx->cmdBuffer);
 
     ctx->gxQueue.maxEntries = GX_MAX_ENTRIES;
-    ctx->gxQueue.entries = GLASS_virtualAlloc(ctx->gxQueue.maxEntries * sizeof(gxCmdEntry_s));
+    ctx->gxQueue.entries = glassVirtualAlloc(ctx->gxQueue.maxEntries * sizeof(gxCmdEntry_s));
     ASSERT(ctx->gxQueue.entries);
 }
 
 void GLASS_gpu_finalize(CtxCommon* ctx) {
     ASSERT(ctx);
-    GLASS_virtualFree(ctx->gxQueue.entries);
-    GLASS_linearFree(ctx->cmdBuffer);
+    glassVirtualFree(ctx->gxQueue.entries);
+    glassLinearFree(ctx->cmdBuffer);
 }
 
 void GLASS_gpu_enableCommands(CtxCommon* ctx) {

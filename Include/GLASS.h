@@ -28,10 +28,24 @@ extern "C" {
 glassCtx glassCreateContext(glassVersion version);
 glassCtx glassCreateContextEx(const glassInitParams* initParams, const glassSettings* settings);
 void glassDestroyContext(glassCtx ctx);
+void glassBindContext(glassCtx ctx);
+
 void glassReadSettings(glassCtx ctx, glassSettings* settings);
 void glassWriteSettings(glassCtx ctx, const glassSettings* settings);
-void glassBindContext(glassCtx ctx);
+
 void glassSwapBuffers(void);
+
+void* glassVirtualAlloc(size_t size);
+void glassVirtualFree(void* p);
+size_t glassVirtualSize(void* p);
+
+void* glassLinearAlloc(size_t size);
+void glassLinearFree(void* p);
+size_t glassLinearSize(void* p);
+
+void* glassVRAMAlloc(size_t size, vramAllocPos pos);
+void glassVRAMFree(void* p);
+size_t glassVRAMSize(void* p);
 
 #if defined(__cplusplus)
 }

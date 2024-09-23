@@ -115,7 +115,7 @@ void glDeleteFramebuffers(GLsizei n, const GLuint* framebuffers) {
             ctx->framebuffer = GLASS_INVALID_OBJECT;
 
         // Delete framebuffer.
-        GLASS_virtualFree((FramebufferInfo*)name);
+        glassVirtualFree((FramebufferInfo*)name);
     }
 }
 
@@ -154,9 +154,9 @@ void glDeleteRenderbuffers(GLsizei n, const GLuint* renderbuffers) {
 
         // Delete renderbuffer.
         if (info->address)
-            GLASS_vramFree(info->address);
+            glassVRAMFree(info->address);
 
-        GLASS_virtualFree(info);
+        glassVirtualFree(info);
     }
 }
 
@@ -362,12 +362,12 @@ void glRenderbufferStorage(GLenum target, GLenum internalformat, GLsizei width, 
     const size_t bufferSize = width * height * GLASS_utility_getBytesPerPixel(internalformat);
 
     if (info->address)
-        GLASS_vramFree(info->address);
+        glassVRAMFree(info->address);
 
-    info->address = GLASS_vramAlloc(bufferSize, IS_DEPTH_FORMAT(internalformat) ? VRAM_ALLOC_B : VRAM_ALLOC_A);
+    info->address = glassVRAMAlloc(bufferSize, IS_DEPTH_FORMAT(internalformat) ? VRAM_ALLOC_B : VRAM_ALLOC_A);
 
     if (!info->address)
-        info->address = GLASS_vramAlloc(bufferSize, IS_DEPTH_FORMAT(internalformat) ? VRAM_ALLOC_A : VRAM_ALLOC_B);
+        info->address = glassVRAMAlloc(bufferSize, IS_DEPTH_FORMAT(internalformat) ? VRAM_ALLOC_A : VRAM_ALLOC_B);
 
     if (!info->address) {
         GLASS_context_setError(GL_OUT_OF_MEMORY);

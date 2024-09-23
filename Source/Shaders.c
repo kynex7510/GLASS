@@ -68,11 +68,11 @@ static void GLASS_freeUniformData(ShaderInfo* shader) {
     for (size_t i = 0; i < shader->numOfActiveUniforms; ++i) {
         UniformInfo* uni = &shader->activeUniforms[i];
         if (uni->type == GLASS_UNI_FLOAT || (uni->type == GLASS_UNI_INT && uni->count > 1))
-            GLASS_virtualFree(uni->data.values);
+            glassVirtualFree(uni->data.values);
     }
 
-    GLASS_virtualFree(shader->constFloatUniforms);
-    GLASS_virtualFree(shader->activeUniforms);
+    glassVirtualFree(shader->constFloatUniforms);
+    glassVirtualFree(shader->activeUniforms);
 }
 
 static void GLASS_decSharedDataRefc(SharedShaderData* sharedData) {
@@ -82,7 +82,7 @@ static void GLASS_decSharedDataRefc(SharedShaderData* sharedData) {
         --sharedData->refc;
 
     if (!sharedData->refc)
-        GLASS_virtualFree(sharedData);
+        glassVirtualFree(sharedData);
 }
 
 static void GLASS_decShaderRefc(ShaderInfo* shader) {
@@ -98,7 +98,7 @@ static void GLASS_decShaderRefc(ShaderInfo* shader) {
             GLASS_decSharedDataRefc(shader->sharedData);
 
         GLASS_freeUniformData(shader);
-        GLASS_virtualFree(shader);
+        glassVirtualFree(shader);
     }
 }
 
@@ -143,7 +143,7 @@ static void GLASS_freeProgram(ProgramInfo* info) {
     if (OBJ_IS_SHADER(info->linkedGeometry))
         GLASS_decShaderRefc((ShaderInfo*)info->linkedGeometry);
 
-    GLASS_virtualFree(info);
+    glassVirtualFree(info);
 }
 
 static size_t GLASS_numActiveUniforms(ProgramInfo* info) {
@@ -224,7 +224,7 @@ static DVLB* GLASS_parseDVLB(const u8* data, size_t size) {
 
     // Allocate DVLB.
     const size_t sizeOfDVLB = sizeof(DVLB) + (numOfDVLEs * 4);
-    DVLB* dvlb = (DVLB*)GLASS_virtualAlloc(sizeOfDVLB);
+    DVLB* dvlb = (DVLB*)glassVirtualAlloc(sizeOfDVLB);
 
     if (dvlb) {
         dvlb->numOfDVLEs = numOfDVLEs;
@@ -269,7 +269,7 @@ static SharedShaderData* GLASS_parseDVLP(const u8* data, size_t size) {
 
     // Allocate data.
     const size_t sizeOfData = sizeof(SharedShaderData) + (numOfCodeWords * sizeof(u32)) + (numOfOpDescs * sizeof(u32));
-    SharedShaderData* sharedData = (SharedShaderData*)GLASS_virtualAlloc(sizeOfData);
+    SharedShaderData* sharedData = (SharedShaderData*)glassVirtualAlloc(sizeOfData);
 
     if (sharedData) {
         sharedData->refc = 0;
@@ -500,7 +500,7 @@ static bool GLASS_loadUniforms(const DVLEInfo* info, ShaderInfo* out) {
         }
     }
 
-    out->constFloatUniforms = (ConstFloatInfo*)GLASS_virtualAlloc(sizeof(ConstFloatInfo) * numOfConstFloatUniforms);
+    out->constFloatUniforms = (ConstFloatInfo*)glassVirtualAlloc(sizeof(ConstFloatInfo) * numOfConstFloatUniforms);
     if (!out->constFloatUniforms)
         return false;
 
@@ -538,7 +538,7 @@ static bool GLASS_loadUniforms(const DVLEInfo* info, ShaderInfo* out) {
 
     // Setup active uniforms.
     out->numOfActiveUniforms = info->numOfActiveUniforms - numOfInputRegs;
-    out->activeUniforms = (UniformInfo*)GLASS_virtualAlloc(sizeof(UniformInfo) * out->numOfActiveUniforms);
+    out->activeUniforms = (UniformInfo*)glassVirtualAlloc(sizeof(UniformInfo) * out->numOfActiveUniforms);
     if (!out->activeUniforms)
         return false;
 
@@ -573,7 +573,7 @@ static bool GLASS_loadUniforms(const DVLEInfo* info, ShaderInfo* out) {
             uni->type = GLASS_UNI_INT;
 
             if (uni->count > 1) {
-                uni->data.values = (u32*)GLASS_virtualAlloc(sizeof(u32) * uni->count);
+                uni->data.values = (u32*)glassVirtualAlloc(sizeof(u32) * uni->count);
                 if (!uni->data.values)
                     return false;
             } else {
@@ -588,7 +588,7 @@ static bool GLASS_loadUniforms(const DVLEInfo* info, ShaderInfo* out) {
             ASSERT(entry->endReg <= 0x6F);
             uni->ID -= 0x10;
             uni->type = GLASS_UNI_FLOAT;
-            uni->data.values = (u32*)GLASS_virtualAlloc((sizeof(u32) * 3) * uni->count);
+            uni->data.values = (u32*)glassVirtualAlloc((sizeof(u32) * 3) * uni->count);
             if (!uni->data.values)
                 return false;
 
@@ -965,11 +965,11 @@ void glShaderBinary(GLsizei n, const GLuint* shaders, GLenum binaryformat, const
         GLASS_generateOutmaps(&info, shader);
 
         // Make copy of symbol table.
-        GLASS_virtualFree(shader->symbolTable);
+        glassVirtualFree(shader->symbolTable);
         shader->symbolTable = NULL;
         shader->sizeOfSymbolTable = 0;
 
-        shader->symbolTable = (char*)GLASS_virtualAlloc(info.sizeOfSymbolTable);
+        shader->symbolTable = (char*)glassVirtualAlloc(info.sizeOfSymbolTable);
         if (!shader->symbolTable) {
             GLASS_context_setError(GL_OUT_OF_MEMORY);
             goto glShaderBinary_skip;
@@ -1002,9 +1002,9 @@ void glShaderBinary(GLsizei n, const GLuint* shaders, GLenum binaryformat, const
 glShaderBinary_skip:
     // Free resources.
     if (sharedData && !sharedData->refc)
-        GLASS_virtualFree(sharedData);
+        glassVirtualFree(sharedData);
 
-    GLASS_virtualFree(dvlb);
+    glassVirtualFree(dvlb);
 }
 
 void glUseProgram(GLuint program) {
