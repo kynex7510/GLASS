@@ -3,8 +3,6 @@
 
 #include "Vshader_shbin.h"
 
-#define GLASS_VERSION_2_0 GLASS_VERSION_1_1
-
 typedef struct {
     float x, y, z;
 } position;
@@ -78,11 +76,7 @@ int main() {
     // Initialize graphics.
     gfxInitDefault();
 
-    glassSettings settings;
-    settings.targetScreen = GFX_TOP;
-    settings.targetSide = GFX_LEFT;
-    settings.transferScale = GX_TRANSFER_SCALE_NO;
-    glassCtx ctx = glassCreateContextWithSettings(GLASS_VERSION_2_0, &settings);
+    glassCtx ctx = glassCreateContext(GLASS_VERSION_2_0);
     glassBindContext(ctx);
 
     // Initialize the render target.

@@ -7,17 +7,17 @@
 
 typedef struct {
     CtxCommon common;
-} CtxV1;
+} CtxV2;
 
-void GLASS_context_initV1(CtxV1* ctx, const glassSettings* settings);
-void GLASS_context_cleanupV1(CtxV1* ctx);
+void GLASS_context_initV2(CtxV2* ctx, const glassInitParams* initParams, const glassSettings* settings);
+void GLASS_context_cleanupV2(CtxV2* ctx);
 
 CtxCommon* GLASS_context_getCommon(void);
 
-INLINE CtxV1* GLASS_context_getV1(void) {
+INLINE CtxV2* GLASS_context_getV2(void) {
     CtxCommon* ctx = GLASS_context_getCommon();
-    ASSERT(ctx->version == GLASS_VERSION_1_1);
-    return (CtxV1*)ctx;
+    ASSERT(ctx->initParams.version == GLASS_VERSION_2_0);
+    return (CtxV2*)ctx;
 }
 
 void GLASS_context_bind(CtxCommon* ctx);

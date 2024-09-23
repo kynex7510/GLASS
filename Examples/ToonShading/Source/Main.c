@@ -2,30 +2,10 @@
 #include <citro3d.h>
 
 #include "Vshader_shbin.h"
-
-typedef struct {
-    float x, y, z;
-} position;
-
-typedef struct {
-    float r, g, b, a;
-} color;
-
-static const position g_VertexList[3] = {
-    {200.0f, 200.0f, 0.5f}, // Top
-    {100.0f, 40.0f, 0.5f},  // Left
-    {300.0f, 40.0f, 0.5f},  // Right
-};
-
-static const color g_ColorList[3] =
-{
-	{ 1.0f, 0.0f, 0.0f, 1.0f },
-	{ 0.0f, 1.0f, 0.0f, 1.0f },
-	{ 0.0f, 0.0f, 1.0f, 1.0f },
-};
+#include "Teapot.h"
 
 static GLint g_ProjLoc;
-static C3D_Mtx g_Proj;
+static GLint g_ModelViewLoc;
 
 static void invertComponents(C3D_Mtx* matrix) {
     for (size_t i = 0; i < 4; ++i) {
@@ -39,7 +19,7 @@ static void invertComponents(C3D_Mtx* matrix) {
     }
 }
 
-static void sceneInit(GLuint* vbos) {
+static void sceneInit(GLuint* buffers) {
     // Load the vertex shader, create a shader program and bind it.
     GLuint prog = glCreateProgram();
     GLuint shad = glCreateShader(GL_VERTEX_SHADER);
@@ -52,35 +32,49 @@ static void sceneInit(GLuint* vbos) {
 
     // Get the location of the uniforms.
     g_ProjLoc = glGetUniformLocation(prog, "projection");
+    g_ModelViewLoc = glGetUniformLocation(prog, "modelView");
 
-    // Create the VBOs (vertex buffer objects).
-    glGenBuffers(2, vbos);
+    // Create the VBO (vertex buffer object) and IBO (index buffer object).
+    glGenBuffers(2, buffers);
 
-    // Configure position attribute.
-    glBindBuffer(GL_ARRAY_BUFFER, vbos[0]);
+    glBindBuffer(GL_ARRAY_BUFFER, buffers[0]);
     glBufferData(GL_ARRAY_BUFFER, sizeof(g_VertexList), g_VertexList, GL_STATIC_DRAW);
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(position), NULL); // v0 = position
+
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, buffers[1]);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(g_VertexElements), g_VertexElements, GL_STATIC_DRAW);
+
+    // Configure attributes for use with the vertex shader.
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(float[6]), NULL); // v0 = position
     glEnableVertexAttribArray(0);
 
-    // Configure color attribute.
-    glBindBuffer(GL_ARRAY_BUFFER, vbos[1]);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(g_ColorList), g_ColorList, GL_STATIC_DRAW);
-    glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, sizeof(color), NULL); // v1 = color
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(float[6]), (void*)(sizeof(float[6]) / 2)); // v1 = normal
     glEnableVertexAttribArray(1);
-
-    // Compute the projection matrix.
-    Mtx_OrthoTilt(&g_Proj, 0.0, 400.0, 0.0, 240.0, 0.0, 1.0, true);
-
-    // Citro3D components are inverted.
-    invertComponents(&g_Proj);
 }
 
-static void sceneRender(void) {
+static void sceneRender(float iod, float angleX, float angleY) {
+    // Compute the projection matrix.
+    C3D_Mtx proj;
+	Mtx_PerspStereoTilt(&proj, C3D_AngleFromDegrees(40.0f), C3D_AspectRatioTop, 0.01f, 1000.0f, iod, 2.0f, false);
+
+    C3D_FVec objPos = FVec4_New(0.0f, 0.0f, -3.0f, 1.0f);
+
+	// Calculate the modelView matrix
+	C3D_Mtx modelView;
+	Mtx_Identity(&modelView);
+	Mtx_Translate(&modelView, objPos.x, objPos.y, objPos.z, true);
+    Mtx_RotateX(&modelView, C3D_Angle(sinf(angleX)/4), true);
+	Mtx_RotateY(&modelView, C3D_Angle(angleY), true);
+	Mtx_Scale(&modelView, 2.0f, 2.0f, 2.0f);
+
     // Update the uniforms.
-    glUniformMatrix4fv(g_ProjLoc, 1, GL_FALSE, g_Proj.m);
+    invertComponents(&proj);
+    invertComponents(&modelView);
+
+    glUniformMatrix4fv(g_ProjLoc, 1, GL_FALSE, proj.m);
+    glUniformMatrix4fv(g_ModelViewLoc, 1, GL_FALSE, modelView.m);
 
     // Draw the VBO.
-    glDrawArrays(GL_TRIANGLES, 0, 3);
+    glDrawElements(GL_TRIANGLES, NUM_ELEMENTS, GL_UNSIGNED_SHORT, NULL);
 }
 
 int main() {
@@ -105,27 +99,40 @@ int main() {
     glClearColor(104 / 256.0f, 176 / 256.0f, 216 / 256.0f, 1.0f);
 
     // Initialize the scene.
-    GLuint vbos[2];
-    sceneInit(vbos);
+    GLuint buffers[2];
+    sceneInit(buffers);
 
     // Main loop.
+    float angleX = 0.0f;
+    float angleY = 0.0f;
+
     while (aptMainLoop()) {
         hidScanInput();
 
         // Respond to user input.
         u32 kDown = hidKeysDown();
+        u32 kHeld = hidKeysHeld();
 		if (kDown & KEY_START)
 			break; // break in order to return to hbmenu.
 
+        float slider = osGet3DSliderState();
+		float iod = slider/3;
+
+		// Rotate the model
+		if (!(kHeld & KEY_A)) {
+            angleX += 1.0f/64;
+			angleY += 1.0f/256;
+        }
+
         // Render the scene.
         glClear(GL_COLOR_BUFFER_BIT);
-        sceneRender();
+        sceneRender(-iod, angleX, angleY);
         glassSwapBuffers();
         gspWaitForVBlank();
     }
 
     // Deinitialize graphics.
-    glDeleteBuffers(2, vbos);
+    glDeleteBuffers(2, buffers);
     glDeleteRenderbuffers(1, &rb);
     glDeleteFramebuffers(1, &fb);
 

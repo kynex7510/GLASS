@@ -3,13 +3,22 @@
 #include "Memory.h"
 #include "GPU.h"
 
-glassCtx glassCreateContext(glassVersion version) { return glassCreateContextWithSettings(version, NULL); }
+glassCtx glassCreateContext(glassVersion version) {
+    glassInitParams initParams;
+    initParams.version = version;
+    initParams.flushAllLinearMem = true;
+    return glassCreateContextEx(&initParams, NULL);
+}
 
-glassCtx glassCreateContextWithSettings(glassVersion version, const glassSettings* settings) {
-    if (version == GLASS_VERSION_1_1) {
-        CtxV1* ctx = GLASS_virtualAlloc(sizeof(CtxV1));
-        if (ctx)
-            GLASS_context_initV1(ctx, settings);
+glassCtx glassCreateContextEx(const glassInitParams* initParams, const glassSettings* settings) {
+    if (!initParams)
+        return NULL;
+
+    if (initParams->version == GLASS_VERSION_2_0) {
+        CtxV2* ctx = glassVirtualAlloc(sizeof(CtxV2));
+        if (ctx) {
+            GLASS_context_initV2(ctx, initParams, settings);
+        }
         return (glassCtx)ctx;
     }
 
@@ -22,14 +31,16 @@ void glassDestroyContext(glassCtx wrapped) {
 
     GLASS_context_waitSwap(ctx);
 
-    if (ctx->version == GLASS_VERSION_1_1) {
-        GLASS_context_cleanupV1((CtxV1*)ctx);
+    if (ctx->initParams.version == GLASS_VERSION_2_0) {
+        GLASS_context_cleanupV2((CtxV2*)ctx);
     } else {
         UNREACHABLE("Invalid constext version!");
     }
 
-    GLASS_virtualFree(ctx);
+    glassVirtualFree(ctx);
 }
+
+void glassBindContext(glassCtx ctx) { GLASS_context_bind((CtxCommon*)ctx); }
 
 void glassReadSettings(glassCtx wrapped, glassSettings* settings) {
     ASSERT(wrapped);
@@ -47,8 +58,6 @@ void glassWriteSettings(glassCtx wrapped, const glassSettings* settings) {
     GLASS_context_waitSwap(ctx);
     memcpy(&ctx->settings, settings, sizeof(glassSettings));
 }
-
-void glassBindContext(glassCtx ctx) { GLASS_context_bind((CtxCommon*)ctx); }
 
 static void GLASS_swapBuffersCb(gxCmdQueue_s* queue) {
     CtxCommon* ctx = (CtxCommon*)queue->user;

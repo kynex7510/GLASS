@@ -179,8 +179,8 @@ typedef struct {
 } CombinerInfo;
 
 typedef struct {
-    glassVersion version;      // Context version.
-    glassSettings settings; // Context settings.
+    glassInitParams initParams; // Context parameters.
+    glassSettings settings;     // Context settings.
 
     /* Platform */
     u32 flags;            // State flags.

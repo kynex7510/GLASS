@@ -26,7 +26,7 @@ GLuint GLASS_createObject(u32 type) {
             return GLASS_INVALID_OBJECT;
     }
 
-    u32* obj = GLASS_virtualAlloc(objSize);
+    u32* obj = glassVirtualAlloc(objSize);
     if (obj) {
         *obj = type;
         return (GLuint)obj;

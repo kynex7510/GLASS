@@ -101,9 +101,6 @@ void glDrawArrays(GLenum mode, GLint first, GLsizei count) {
 }
 
 void glDrawElements(GLenum mode, GLsizei count, GLenum type, const GLvoid* indices) {
-    // TODO: use element array buffer if indices == NULL.
-    ASSERT(indices);
-
     if (!IS_DRAW_MODE(mode)) {
         GLASS_context_setError(GL_INVALID_ENUM);
         return;
@@ -122,13 +119,24 @@ void glDrawElements(GLenum mode, GLsizei count, GLenum type, const GLvoid* indic
     if (!GLASS_checkFB())
         return;
 
+    // Get physical address.
+    CtxCommon* ctx = GLASS_context_getCommon();
+    u32 physAddr = 0;
+    if (ctx->elementArrayBuffer != GLASS_INVALID_OBJECT) {
+        const BufferInfo* binfo = (BufferInfo*)ctx->elementArrayBuffer;
+        physAddr = osConvertVirtToPhys((void*)(binfo->address + (u32)indices));
+    } else {
+        physAddr = osConvertVirtToPhys(indices);
+    }
+
+    ASSERT(physAddr);
+
     // Apply prior commands.
     GLASS_context_update();
 
     // Add draw command.
-    CtxCommon* ctx = GLASS_context_getCommon();
     GLASS_gpu_enableCommands(ctx);
-    GLASS_gpu_drawElements(mode, count, type, indices);
+    GLASS_gpu_drawElements(mode, count, type, physAddr);
     GLASS_gpu_disableCommands(ctx);
     ctx->flags |= CONTEXT_FLAG_DRAW;
 }
