@@ -186,6 +186,7 @@ static size_t GLASS_lenActiveUniforms(ProgramInfo* info) {
     return lenOfActiveUniforms;
 }
 
+// TODO: verify the behaviour with geo shaders. Do we need to read from them?
 static size_t GLASS_numActiveAttribs(ProgramInfo* info) {
     ASSERT(info);
 
@@ -204,7 +205,6 @@ static size_t GLASS_numActiveAttribs(ProgramInfo* info) {
     return numOfActiveAttribs;
 }
 
-// TO CHECK
 static size_t GLASS_lenActiveAttribs(ProgramInfo* info) {
     ASSERT(info);
 
