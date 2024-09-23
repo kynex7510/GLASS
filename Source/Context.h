@@ -9,14 +9,14 @@ typedef struct {
     CtxCommon common;
 } CtxV2;
 
-void GLASS_context_initV2(CtxV2* ctx, const glassSettings* settings);
+void GLASS_context_initV2(CtxV2* ctx, const glassInitParams* initParams, const glassSettings* settings);
 void GLASS_context_cleanupV2(CtxV2* ctx);
 
 CtxCommon* GLASS_context_getCommon(void);
 
 INLINE CtxV2* GLASS_context_getV2(void) {
     CtxCommon* ctx = GLASS_context_getCommon();
-    ASSERT(ctx->version == GLASS_VERSION_2_0);
+    ASSERT(ctx->initParams.version == GLASS_VERSION_2_0);
     return (CtxV2*)ctx;
 }
 

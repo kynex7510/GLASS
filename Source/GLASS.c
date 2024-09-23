@@ -3,13 +3,21 @@
 #include "Memory.h"
 #include "GPU.h"
 
-glassCtx glassCreateContext(glassVersion version) { return glassCreateContextWithSettings(version, NULL); }
+glassCtx glassCreateContext(glassVersion version) {
+    glassInitParams initParams;
+    initParams.version = version;
+    initParams.flushAllLinearMem = true;
+    return glassCreateContextEx(&initParams, NULL);
+}
 
-glassCtx glassCreateContextWithSettings(glassVersion version, const glassSettings* settings) {
-    if (version == GLASS_VERSION_2_0) {
+glassCtx glassCreateContextEx(const glassInitParams* initParams, const glassSettings* settings) {
+    if (!initParams)
+        return NULL;
+
+    if (initParams->version == GLASS_VERSION_2_0) {
         CtxV2* ctx = GLASS_virtualAlloc(sizeof(CtxV2));
         if (ctx) {
-            GLASS_context_initV2(ctx, settings);
+            GLASS_context_initV2(ctx, initParams, settings);
         }
         return (glassCtx)ctx;
     }
@@ -23,7 +31,7 @@ void glassDestroyContext(glassCtx wrapped) {
 
     GLASS_context_waitSwap(ctx);
 
-    if (ctx->version == GLASS_VERSION_2_0) {
+    if (ctx->initParams.version == GLASS_VERSION_2_0) {
         GLASS_context_cleanupV2((CtxV2*)ctx);
     } else {
         UNREACHABLE("Invalid constext version!");

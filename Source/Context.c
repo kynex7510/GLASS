@@ -5,17 +5,11 @@
 static CtxCommon* g_Context = NULL;
 static CtxCommon* g_OldCtx = NULL;
 
-static void GLASS_context_initCommon(CtxCommon* ctx, const glassSettings* settings) {
+static void GLASS_context_initCommon(CtxCommon* ctx, const glassInitParams* initParams, const glassSettings* settings) {
     ASSERT(ctx);
 
-    // Platform.
-    ctx->flags = 0;
-    ctx->lastError = GL_NO_ERROR;
-    ctx->cmdBuffer = NULL;
-    ctx->cmdBufferSize = 0;
-    ctx->cmdBufferOffset = 0;
-    ctx->inSwap = 0;
-    memset(&ctx->gxQueue, 0, sizeof(gxCmdQueue_s));
+    ctx->initParams.version = initParams->version;
+    ctx->initParams.flushAllLinearMem = initParams->flushAllLinearMem;
 
     if (settings) {
         ctx->settings.targetScreen = settings->targetScreen;
@@ -26,6 +20,15 @@ static void GLASS_context_initCommon(CtxCommon* ctx, const glassSettings* settin
         ctx->settings.targetSide = GFX_LEFT;
         ctx->settings.transferScale = GX_TRANSFER_SCALE_NO;
     }
+
+    // Platform.
+    ctx->flags = 0;
+    ctx->lastError = GL_NO_ERROR;
+    ctx->cmdBuffer = NULL;
+    ctx->cmdBufferSize = 0;
+    ctx->cmdBufferOffset = 0;
+    ctx->inSwap = 0;
+    memset(&ctx->gxQueue, 0, sizeof(gxCmdQueue_s));
 
     GLASS_gpu_init(ctx);
 
@@ -172,10 +175,9 @@ static void GLASS_context_cleanupCommon(CtxCommon* ctx) {
     GLASS_gpu_finalize(ctx);
 }
 
-void GLASS_context_initV2(CtxV2* ctx, const glassSettings* settings) {
+void GLASS_context_initV2(CtxV2* ctx, const glassInitParams* initParams, const glassSettings* settings) {
     ASSERT(ctx);
-    GLASS_context_initCommon(&ctx->common, settings);
-    ctx->common.version = GLASS_VERSION_2_0;
+    GLASS_context_initCommon(&ctx->common, initParams, settings);
 }
 
 void GLASS_context_cleanupV2(CtxV2* ctx) {

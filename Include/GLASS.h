@@ -8,6 +8,12 @@
 typedef void* glassCtx;
 typedef u32 glassVersion;
 
+// Context initialization parameters.
+typedef struct {
+    u8 version;             // Context version.
+    bool flushAllLinearMem; // Whether to flush all linear memory (default: true).
+} glassInitParams;
+
 // Context settings.
 typedef struct {
     gfxScreen_t targetScreen;        // Draw target screen (default: GFX_TOP).
@@ -20,7 +26,7 @@ extern "C" {
 #endif // __cplusplus
 
 glassCtx glassCreateContext(glassVersion version);
-glassCtx glassCreateContextWithSettings(glassVersion version, const glassSettings* settings);
+glassCtx glassCreateContextEx(const glassInitParams* initParams, const glassSettings* settings);
 void glassDestroyContext(glassCtx ctx);
 void glassReadSettings(glassCtx ctx, glassSettings* settings);
 void glassWriteSettings(glassCtx ctx, const glassSettings* settings);

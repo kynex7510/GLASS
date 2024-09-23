@@ -80,7 +80,11 @@ void glBufferData(GLenum target, GLsizeiptr size, const void* data, GLenum usage
 
     if (data) {
         memcpy(info->address, data, size);
-        ASSERT(R_SUCCEEDED(GSPGPU_FlushDataCache(info->address, size)));
+
+        CtxCommon* ctx = GLASS_context_getCommon();
+        if (!ctx->initParams.flushAllLinearMem) {
+            ASSERT(R_SUCCEEDED(GSPGPU_FlushDataCache(info->address, size)));
+        }
     }
 }
 
@@ -106,7 +110,11 @@ void glBufferSubData(GLenum target, GLintptr offset, GLsizeiptr size, const void
 
     // Copy data.
     memcpy(info->address + offset, data, size);
-    ASSERT(R_SUCCEEDED(GSPGPU_FlushDataCache(info->address + offset, size)));
+
+    CtxCommon* ctx = GLASS_context_getCommon();
+    if (!ctx->initParams.flushAllLinearMem) {
+        ASSERT(R_SUCCEEDED(GSPGPU_FlushDataCache(info->address + offset, size)));
+    }
 }
 
 void glDeleteBuffers(GLsizei n, const GLuint* buffers) {

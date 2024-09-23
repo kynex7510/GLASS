@@ -54,7 +54,16 @@ void GLASS_gpu_flushCommands(CtxCommon* ctx) {
         GPUCMD_SetBuffer(NULL, 0, 0);
 
         // Process GPU commands.
-        GX_ProcessCommandList(ctx->cmdBuffer + ctx->cmdBufferOffset, ctx->cmdBufferSize * sizeof(u32), GX_CMDLIST_FLUSH);
+        u8 flags = GX_CMDLIST_FLUSH;
+
+        if (ctx->initParams.flushAllLinearMem) {
+            extern u32 __ctru_linear_heap;
+            extern u32 __ctru_linear_heap_size;
+            ASSERT(R_SUCCEEDED(GSPGPU_FlushDataCache((void*)__ctru_linear_heap, __ctru_linear_heap_size)));
+            flags = 0;
+        }
+
+        GX_ProcessCommandList(ctx->cmdBuffer + ctx->cmdBufferOffset, ctx->cmdBufferSize * sizeof(u32), flags);
 
         // Set new offset.
         ctx->cmdBufferOffset += ctx->cmdBufferSize;
