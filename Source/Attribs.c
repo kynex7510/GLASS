@@ -1,7 +1,8 @@
 #include "Context.h"
 
+#include <string.h> // strncpy
+
 void glBindAttribLocation(GLuint program, GLuint index, const GLchar* name); // TODO
-void glGetActiveAttrib(GLuint program, GLuint index, GLsizei bufSize, GLsizei* length, GLint* size, GLenum* type, GLchar* name); // TODO
 GLint glGetAttribLocation(GLuint program, const GLchar* name); // TODO
 
 void glDisableVertexAttribArray(GLuint index) {
@@ -255,4 +256,57 @@ void glVertexAttribPointer(GLuint index, GLint size, GLenum type, GLboolean norm
     attrib->flags &= ~(ATTRIB_FLAG_FIXED);
 
     ctx->flags |= CONTEXT_FLAG_ATTRIBS;
+}
+
+void glGetActiveAttrib(GLuint program, GLuint index, GLsizei bufSize, GLsizei* length, GLint* size, GLenum* type, GLchar* name) {
+    ASSERT(size);
+    ASSERT(type);
+    ASSERT(name);
+
+    if (!OBJ_IS_PROGRAM(program)) {
+        GLASS_context_setError(GL_INVALID_OPERATION);
+        return;
+    }
+
+    if (bufSize < 0) {
+        GLASS_context_setError(GL_INVALID_VALUE);
+        return;
+    }
+
+    ProgramInfo* prog = (ProgramInfo*)program;
+    if (prog->flags & PROGRAM_FLAG_LINK_FAILED) {
+        if (length)
+            *length = 0;
+
+        if (bufSize)
+            name[bufSize - 1] = '\0';
+
+        return;
+    }
+
+    // Get shader.
+    ShaderInfo* shad = (ShaderInfo*)prog->linkedVertex;
+    ASSERT(shad);
+
+    if (index > shad->numOfActiveUniforms) {
+        index -= shad->numOfActiveUniforms;
+        shad = (ShaderInfo*)prog->linkedGeometry;
+    }
+
+    if (!shad || (index > shad->numOfActiveUniforms)) {
+        GLASS_context_setError(GL_INVALID_VALUE);
+        return;
+    }
+
+    // Get attribute data.
+    const ActiveAttribInfo* attrib = &shad->activeAttribs[index];
+    const size_t symLen = MIN(bufSize, strlen(attrib->symbol));
+
+    if (length)
+        *length = symLen;
+
+    *size = 1;
+    strncpy(name, attrib->symbol, symLen);
+    name[symLen] = '\0';
+    *type = GL_FLOAT_VEC4;
 }

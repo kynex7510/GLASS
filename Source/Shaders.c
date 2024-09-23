@@ -73,6 +73,7 @@ static void GLASS_freeUniformData(ShaderInfo* shader) {
     }
 
     glassVirtualFree(shader->constFloatUniforms);
+    glassVirtualFree(shader->activeAttribs);
     glassVirtualFree(shader->activeUniforms);
 }
 
@@ -171,28 +172,57 @@ static size_t GLASS_lenActiveUniforms(ProgramInfo* info) {
     size_t lenOfActiveUniforms = 0;
 
     if (OBJ_IS_SHADER(info->linkedVertex)) {
-        // Look in vertex shader.
         ShaderInfo* vshad = (ShaderInfo*)info->linkedVertex;
-        for (size_t i = 0; i < vshad->numOfActiveUniforms; ++i) {
-            const UniformInfo* uni = &vshad->activeUniforms[i];
-            const size_t len = strlen(uni->symbol);
-            if (len > lenOfActiveUniforms)
-                lenOfActiveUniforms = len;
-        }
+        if (vshad->activeUniformsMaxLen > lenOfActiveUniforms)
+            lenOfActiveUniforms = vshad->activeUniformsMaxLen;
 
-        // Look in geometry shader.
         if (OBJ_IS_SHADER(info->linkedGeometry)) {
             ShaderInfo* gshad = (ShaderInfo*)info->linkedGeometry;
-            for (size_t i = 0; i < gshad->numOfActiveUniforms; ++i) {
-                const UniformInfo* uni = &gshad->activeUniforms[i];
-                const size_t len = strlen(uni->symbol);
-                if (len > lenOfActiveUniforms)
-                    lenOfActiveUniforms = len;
-            }
+            if (gshad->activeUniformsMaxLen > lenOfActiveUniforms)
+                lenOfActiveUniforms = gshad->activeUniformsMaxLen;
         }
     }
 
     return lenOfActiveUniforms;
+}
+
+static size_t GLASS_numActiveAttribs(ProgramInfo* info) {
+    ASSERT(info);
+
+    size_t numOfActiveAttribs = 0;
+
+    if (OBJ_IS_SHADER(info->linkedVertex)) {
+        ShaderInfo* vshad = (ShaderInfo*)info->linkedVertex;
+        numOfActiveAttribs = vshad->numOfActiveAttribs;
+    }
+
+    if (OBJ_IS_SHADER(info->linkedGeometry)) {
+        ShaderInfo* gshad = (ShaderInfo*)info->linkedGeometry;
+        numOfActiveAttribs += gshad->numOfActiveAttribs;
+    }
+
+    return numOfActiveAttribs;
+}
+
+// TO CHECK
+static size_t GLASS_lenActiveAttribs(ProgramInfo* info) {
+    ASSERT(info);
+
+    size_t lenOfActiveAttribs = 0;
+
+    if (OBJ_IS_SHADER(info->linkedVertex)) {
+        ShaderInfo* vshad = (ShaderInfo*)info->linkedVertex;
+        if (vshad->activeAttribsMaxLen > lenOfActiveAttribs)
+            lenOfActiveAttribs = vshad->activeAttribsMaxLen;
+
+        if (OBJ_IS_SHADER(info->linkedGeometry)) {
+            ShaderInfo* gshad = (ShaderInfo*)info->linkedGeometry;
+            if (gshad->activeAttribsMaxLen > lenOfActiveAttribs)
+                lenOfActiveAttribs = gshad->activeAttribsMaxLen;
+        }
+    }
+
+    return lenOfActiveAttribs;
 }
 
 static size_t GLASS_lookupShader(const GLuint* shaders, size_t maxShaders, size_t index, bool isGeometry) {
@@ -475,6 +505,10 @@ static bool GLASS_loadUniforms(const DVLEInfo* info, ShaderInfo* out) {
     out->numOfConstFloatUniforms = 0;
     out->activeUniforms = NULL;
     out->numOfActiveUniforms = 0;
+    out->activeUniformsMaxLen = 0;
+    out->activeAttribs = NULL;
+    out->numOfActiveAttribs = 0;
+    out->activeAttribsMaxLen = 0;
 
     // Setup constant uniforms.
     size_t numOfConstFloatUniforms = 0;
@@ -484,8 +518,9 @@ static bool GLASS_loadUniforms(const DVLEInfo* info, ShaderInfo* out) {
         switch (constEntry->type) {
             case GLASS_UNI_BOOL:
             ASSERT(constEntry->ID < GLASS_NUM_BOOL_UNIFORMS);
-            if (constEntry->data.boolUniform)
+            if (constEntry->data.boolUniform) {
                 out->constBoolMask |= (1 << constEntry->ID);
+            }
             break;
         case GLASS_UNI_INT:
             ASSERT(constEntry->ID < GLASS_NUM_INT_UNIFORMS);
@@ -527,36 +562,62 @@ static bool GLASS_loadUniforms(const DVLEInfo* info, ShaderInfo* out) {
 
     ASSERT(numOfConstFloatUniforms == out->numOfConstFloatUniforms);
 
-    // Find number of input registers.
-    // A "uniform" is a "variable who obtains its initial value from an external environment"; but this is different
-    // from the GLSL definition (variables whose values are constant over a shaded surface).
-    size_t numOfInputRegs = 0;
+    // Find number of active attributes.
+    // Shader binaries do not differentiate between active uniforms and active attributes.
     for (size_t i = 0; i < info->numOfActiveUniforms; ++i) {
         const DVLE_uniformEntry_s* entry = &info->activeUniforms[i];
-        if (entry->startReg >= 0x00 && entry->startReg <= 0x0F)
-            ++numOfInputRegs;
+        if (entry->startReg >= 0x00 && entry->startReg <= 0x0F) {
+            ++out->numOfActiveAttribs;
+
+            // Update max symbol length.
+            const size_t symLen = strlen((char*)(out->symbolTable + entry->symbolOffset)) + 1;
+            if (symLen > out->activeAttribsMaxLen)
+                out->activeAttribsMaxLen = symLen;
+        }
     }
 
-    // Setup active uniforms.
-    out->numOfActiveUniforms = info->numOfActiveUniforms - numOfInputRegs;
-    out->activeUniforms = (UniformInfo*)glassVirtualAlloc(sizeof(UniformInfo) * out->numOfActiveUniforms);
-    if (!out->activeUniforms)
+    // Setup active attributes.
+    out->activeAttribs = (ActiveAttribInfo*)glassVirtualAlloc(sizeof(ActiveAttribInfo) * out->numOfActiveAttribs);
+    if (!out->activeAttribs)
         return false;
 
     size_t index = 0;
     for (size_t i = 0; i < info->numOfActiveUniforms; ++i) {
-        UniformInfo* uni = &out->activeUniforms[index];
+        const DVLE_uniformEntry_s* entry = &info->activeUniforms[i];
+        if (entry->startReg >= 0x10)
+            continue;
+
+        ASSERT(entry->startReg == entry->endReg);
+        ActiveAttribInfo* attrib = &out->activeAttribs[index++];
+        attrib->ID = entry->startReg;
+        attrib->symbol = out->symbolTable + entry->symbolOffset;
+    }
+
+    ASSERT(index == out->numOfActiveAttribs);
+
+    // Setup active uniforms.
+    out->numOfActiveUniforms = info->numOfActiveUniforms - out->numOfActiveAttribs;
+    out->activeUniforms = (UniformInfo*)glassVirtualAlloc(sizeof(UniformInfo) * out->numOfActiveUniforms);
+    if (!out->activeUniforms)
+        return false;
+
+    index = 0;
+    for (size_t i = 0; i < info->numOfActiveUniforms; ++i) {
         const DVLE_uniformEntry_s* entry = &info->activeUniforms[i];
 
         // Skip attributes.
-        if (entry->startReg >= 0x00 && entry->startReg < 0x0F)
+        if (entry->startReg >= 0x00 && entry->startReg <= 0x0F)
             continue;
 
-        ++index;
-
+        UniformInfo* uni = &out->activeUniforms[index++];
         uni->ID = entry->startReg;
         uni->count = (entry->endReg + 1) - entry->startReg;
         uni->symbol = out->symbolTable + entry->symbolOffset;
+
+        // Update max symbol length.
+        const size_t symLen = strlen(uni->symbol) + 1;
+        if (symLen > out->activeUniformsMaxLen)
+            out->activeUniformsMaxLen = symLen;
 
         // Handle bool.
         if (entry->startReg >= 0x78 && entry->startReg <= 0x87) {
@@ -799,9 +860,12 @@ void glGetProgramiv(GLuint program, GLenum pname, GLint* params) {
         case GL_ACTIVE_UNIFORM_MAX_LENGTH:
             *params = GLASS_lenActiveUniforms(info);
             break;
-            // TODO
         case GL_ACTIVE_ATTRIBUTES:
+            *params = GLASS_numActiveAttribs(info);
+            break;
         case GL_ACTIVE_ATTRIBUTE_MAX_LENGTH:
+            *params = GLASS_lenActiveAttribs(info);
+            break;
         default:
             GLASS_context_setError(GL_INVALID_ENUM);
     }
