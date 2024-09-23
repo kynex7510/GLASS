@@ -135,6 +135,11 @@ typedef struct {
     bool dirty; // Uniform dirty.
 } UniformInfo;
 
+typedef struct {
+    u8 ID;        // Attribute ID.
+    char* symbol; // Pointer to symbol.
+} ActiveAttribInfo;
+
 // Represents a constant float uniform.
 typedef struct {
     u8 ID;       // Constant ID.
@@ -151,14 +156,18 @@ typedef struct {
     u32 outSems[7];                     // Output register semantics.
     u32 outClock;                       // Output register clock.
     char* symbolTable;                  // This shader symbol table.
-    u32 sizeOfSymbolTable;              // Size of symbol table.
+    size_t sizeOfSymbolTable;           // Size of symbol table.
     u16 constBoolMask;                  // Constant bool uniform mask.
     u32 constIntData[4];                // Constant int uniform data.
     u16 constIntMask;                   // Constant int uniform mask.
     ConstFloatInfo* constFloatUniforms; // Constant uniforms.
-    u32 numOfConstFloatUniforms;        // Num of const uniforms.
+    size_t numOfConstFloatUniforms;     // Num of const uniforms.
     UniformInfo* activeUniforms;        // Active uniforms.
-    u32 numOfActiveUniforms;            // Num of active uniforms.
+    size_t numOfActiveUniforms;         // Num of active uniforms.
+    size_t activeUniformsMaxLen;        // Max length for active uniform symbols.
+    ActiveAttribInfo* activeAttribs;    // Active attributes.
+    size_t numOfActiveAttribs;          // Num of active attributes.
+    size_t activeAttribsMaxLen;         // Max length for active attribute symbols.
     u16 flags;                          // Shader flags.
     u16 refc;                           // Reference count.
 } ShaderInfo;

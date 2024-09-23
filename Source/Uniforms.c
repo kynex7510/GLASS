@@ -47,9 +47,9 @@ static UniformInfo* GLASS_getShaderUniform(const ProgramInfo* program, size_t in
 }
 
 void glGetActiveUniform(GLuint program, GLuint index, GLsizei bufSize, GLsizei* length, GLint* size, GLenum* type, GLchar* name) {
-    if (bufSize) {
-        ASSERT(name);
-    }
+    ASSERT(size);
+    ASSERT(type);
+    ASSERT(name);
 
     if (!OBJ_IS_PROGRAM(program)) {
         GLASS_context_setError(GL_INVALID_OPERATION);
@@ -62,34 +62,40 @@ void glGetActiveUniform(GLuint program, GLuint index, GLsizei bufSize, GLsizei* 
     }
 
     ProgramInfo* prog = (ProgramInfo*)program;
+    if (prog->flags & PROGRAM_FLAG_LINK_FAILED) {
+        if (length)
+            *length = 0;
+
+        if (bufSize)
+            name[bufSize - 1] = '\0';
+
+        return;
+    }
 
     // Get shader.
     ShaderInfo* shad = (ShaderInfo*)prog->linkedVertex;
-    if (!shad)
-        return;
+    ASSERT(shad);
 
     if (index > shad->numOfActiveUniforms) {
         index -= shad->numOfActiveUniforms;
         shad = (ShaderInfo*)prog->linkedGeometry;
     }
 
-    if (!shad)
-        return;
-
-    if (index > shad->numOfActiveUniforms) {
+    if (!shad || (index > shad->numOfActiveUniforms)) {
         GLASS_context_setError(GL_INVALID_VALUE);
         return;
     }
 
     // Get uniform data.
     const UniformInfo* uni = &shad->activeUniforms[index];
-    size_t symLength = MIN(bufSize, strlen(uni->symbol));
+    const size_t symLen = MIN(bufSize, strlen(uni->symbol));
 
     if (length)
-        *length = symLength;
+        *length = symLen;
 
     *size = uni->count;
-    strncpy(name, uni->symbol, symLength);
+    strncpy(name, uni->symbol, symLen);
+    name[symLen] = '\0';
 
     switch (uni->type) {
         case GLASS_UNI_BOOL:
