@@ -8,13 +8,10 @@
     (((format) == GL_DEPTH_COMPONENT16) || ((format) == GL_DEPTH_COMPONENT24) || ((format) == GL_DEPTH24_STENCIL8))
 
 void glBindFramebuffer(GLenum target, GLuint framebuffer) {
+    ASSERT(OBJ_IS_FRAMEBUFFER(framebuffer) || framebuffer == GLASS_INVALID_OBJECT);
+
     if (target != GL_FRAMEBUFFER) {
         GLASS_context_setError(GL_INVALID_ENUM);
-        return;
-    }
-
-    if (!OBJ_IS_FRAMEBUFFER(framebuffer) && framebuffer != GLASS_INVALID_OBJECT) {
-        GLASS_context_setError(GL_INVALID_OPERATION);
         return;
     }
 
@@ -33,13 +30,10 @@ void glBindFramebuffer(GLenum target, GLuint framebuffer) {
 }
 
 void glBindRenderbuffer(GLenum target, GLuint renderbuffer) {
+    ASSERT(OBJ_IS_RENDERBUFFER(renderbuffer) || renderbuffer == GLASS_INVALID_OBJECT);
+
     if (target != GL_RENDERBUFFER) {
         GLASS_context_setError(GL_INVALID_ENUM);
-        return;
-    }
-
-    if (!OBJ_IS_RENDERBUFFER(renderbuffer) && renderbuffer != GLASS_INVALID_OBJECT) {
-        GLASS_context_setError(GL_INVALID_OPERATION);
         return;
     }
 

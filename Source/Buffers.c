@@ -26,10 +26,7 @@ static BufferInfo* GLASS_getBoundBufferInfo(GLenum target) {
 }
 
 void glBindBuffer(GLenum target, GLuint buffer) {
-    if (!OBJ_IS_BUFFER(buffer) && buffer != GLASS_INVALID_OBJECT) {
-        GLASS_context_setError(GL_INVALID_OPERATION);
-        return;
-    }
+    ASSERT(OBJ_IS_BUFFER(buffer) || buffer == GLASS_INVALID_OBJECT);
 
     BufferInfo*info = (BufferInfo*)buffer;
     CtxCommon* ctx = GLASS_context_getCommon();
