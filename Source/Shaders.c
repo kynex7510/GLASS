@@ -884,7 +884,7 @@ void glLinkProgram(GLuint program) {
 
         // Unlink old geometry shader.
         if (OBJ_IS_SHADER(pinfo->linkedGeometry))
-        GLASS_decShaderRefc((ShaderInfo*)pinfo->linkedGeometry);
+            GLASS_decShaderRefc((ShaderInfo*)pinfo->linkedGeometry);
 
         // Link new geometry shader.
         pinfo->flags |= PROGRAM_FLAG_UPDATE_GEOMETRY;
