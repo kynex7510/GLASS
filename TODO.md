@@ -2,7 +2,6 @@
 
 ## Immediate term
 
-- Fix attributes from shaders
 - Implement direct buffer for drawElements
 - Implement textures
 
