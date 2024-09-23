@@ -526,16 +526,32 @@ static bool GLASS_loadUniforms(const DVLEInfo* info, ShaderInfo* out) {
 
     ASSERT(numOfConstFloatUniforms == out->numOfConstFloatUniforms);
 
+    // Find number of input registers.
+    // A "uniform" is a "variable who obtains its initial value from an external environment"; but this is different
+    // from the GLSL definition (variables whose values are constant over a shaded surface).
+    size_t numOfInputRegs = 0;
+    for (size_t i = 0; i < info->numOfActiveUniforms; ++i) {
+        const DVLE_uniformEntry_s* entry = &info->activeUniforms[i];
+        if (entry->startReg >= 0x00 && entry->startReg <= 0x0F)
+            ++numOfInputRegs;
+    }
+
     // Setup active uniforms.
-    out->activeUniforms = (UniformInfo*)GLASS_virtualAlloc(sizeof(UniformInfo) * info->numOfActiveUniforms);
+    out->numOfActiveUniforms = info->numOfActiveUniforms - numOfInputRegs;
+    out->activeUniforms = (UniformInfo*)GLASS_virtualAlloc(sizeof(UniformInfo) * out->numOfActiveUniforms);
     if (!out->activeUniforms)
         return false;
 
-    out->numOfActiveUniforms = info->numOfActiveUniforms;
-
+    size_t index = 0;
     for (size_t i = 0; i < info->numOfActiveUniforms; ++i) {
-        UniformInfo* uni = &out->activeUniforms[i];
+        UniformInfo* uni = &out->activeUniforms[index];
         const DVLE_uniformEntry_s* entry = &info->activeUniforms[i];
+
+        // Skip attributes.
+        if (entry->startReg >= 0x00 && entry->startReg < 0x0F)
+            continue;
+
+        ++index;
 
         uni->ID = entry->startReg;
         uni->count = (entry->endReg + 1) - entry->startReg;
@@ -579,10 +595,10 @@ static bool GLASS_loadUniforms(const DVLEInfo* info, ShaderInfo* out) {
             continue;
         }
 
-        // TODO: handle attributes.
         UNREACHABLE("Unknown uniform type!");
     }
 
+    ASSERT(index == out->numOfActiveUniforms);
     return true;
 }
 
