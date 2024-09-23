@@ -472,7 +472,9 @@ void GLASS_gpu_uploadAttributes(const AttributeInfo* attribs) {
     u32 format[2];
     u32 permutation[2];
     size_t attribCount = 0; // Also acts as an index.
-    u32 componentTable[GLASS_NUM_ATTRIB_REGS];
+
+    // Reg -> attribute table.
+    u32 regTable[GLASS_NUM_ATTRIB_REGS];
 
     format[0] = permutation[0] = permutation[1] = 0;
     format[1] = 0xFFF0000; // Fixed by default (ie. if disabled).
@@ -483,13 +485,8 @@ void GLASS_gpu_uploadAttributes(const AttributeInfo* attribs) {
         if (!(attrib->flags & ATTRIB_FLAG_ENABLED))
             continue;
 
-        // Handle fixed/non-fixed attributes.
-        if (attrib->flags & ATTRIB_FLAG_FIXED) {
-            u32 packed[3];
-            GLASS_utility_packFloatVector(attrib->components, packed);
-            GPUCMD_AddWrite(GPUREG_FIXEDATTRIB_INDEX, attribCount);
-            GPUCMD_AddIncrementalWrites(GPUREG_FIXEDATTRIB_DATA0, packed, 3);
-        } else {
+        if (!(attrib->flags & ATTRIB_FLAG_FIXED)) {
+            // Set buffer params.
             const GPU_FORMATS attribType = GLASS_utility_getAttribType(attrib->type);
 
             if (attribCount < 8) {
@@ -509,7 +506,7 @@ void GLASS_gpu_uploadAttributes(const AttributeInfo* attribs) {
             permutation[1] |= (regId << (4  * attribCount));
         }
         
-        componentTable[regId] = attribCount;
+        regTable[regId] = attribCount;
         ++attribCount;
     }
 
@@ -526,7 +523,22 @@ void GLASS_gpu_uploadAttributes(const AttributeInfo* attribs) {
     // Set buffers base.
     GPUCMD_AddWrite(GPUREG_ATTRIBBUFFERS_LOC, PHYSICAL_LINEAR_BASE >> 3);
 
-    // Setup attribute buffers.
+    // Step 2: setup fixed attributes.
+    // This must be set after initial configuration.
+    for (size_t regId = 0; regId < GLASS_NUM_ATTRIB_REGS; ++regId) {
+        const AttributeInfo* attrib = &attribs[regId];
+        if (!(attrib->flags & ATTRIB_FLAG_ENABLED))
+            continue;
+
+        if (attrib->flags & ATTRIB_FLAG_FIXED) {
+            u32 packed[3];
+            GLASS_utility_packFloatVector(attrib->components, packed);
+            GPUCMD_AddWrite(GPUREG_FIXEDATTRIB_INDEX, regTable[regId]);
+            GPUCMD_AddIncrementalWrites(GPUREG_FIXEDATTRIB_DATA0, packed, 3);
+        }
+    }
+
+    // Step 3: setup attribute buffers.
     for (size_t i = 0; i < GLASS_NUM_ATTRIB_BUFFERS; ++i) {
         u32 params[3] = {};
         AttributeBuffer* attribBuffer = &attribBuffers[i];
@@ -538,7 +550,7 @@ void GLASS_gpu_uploadAttributes(const AttributeInfo* attribs) {
             // Basically resolve every input register to its mapped vertex attribute.
             for (size_t j = 0; j < attribBuffer->numComponents; ++j) {
                 const u32 regId = attribBuffer->components[j];
-                const u32 attribIndex = componentTable[regId];
+                const u32 attribIndex = regTable[regId];
                 if (j < 8) {
                     permutation[0] = (attribIndex << (j * 4));
                 } else {
