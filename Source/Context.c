@@ -172,13 +172,13 @@ static void GLASS_context_cleanupCommon(CtxCommon* ctx) {
     GLASS_gpu_finalize(ctx);
 }
 
-void GLASS_context_initV1(CtxV1* ctx, const glassSettings* settings) {
+void GLASS_context_initV2(CtxV2* ctx, const glassSettings* settings) {
     ASSERT(ctx);
     GLASS_context_initCommon(&ctx->common, settings);
-    ctx->common.version = GLASS_VERSION_1_1;
+    ctx->common.version = GLASS_VERSION_2_0;
 }
 
-void GLASS_context_cleanupV1(CtxV1* ctx) {
+void GLASS_context_cleanupV2(CtxV2* ctx) {
     ASSERT(ctx);
     GLASS_context_cleanupCommon(&ctx->common);
 }

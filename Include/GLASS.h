@@ -3,8 +3,7 @@
 
 #include <3ds.h>
 
-#define GLASS_VERSION_1_1 0x11 // OpenGL ES 1.1
-// #define GLASS_VERSION_2_0 0x20 // OpenGL ES 2.0
+#define GLASS_VERSION_2_0 0x20 // OpenGL ES 2.0
 
 typedef void* glassCtx;
 typedef u32 glassVersion;

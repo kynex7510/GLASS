@@ -3,8 +3,6 @@
 
 #include "Vshader_shbin.h"
 
-#define GLASS_VERSION_2_0 GLASS_VERSION_1_1
-
 typedef struct {
     float x, y, z;
 } position;

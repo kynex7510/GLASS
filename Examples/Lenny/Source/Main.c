@@ -4,8 +4,6 @@
 #include "Vshader_shbin.h"
 #include "Lenny.h"
 
-#define GLASS_VERSION_2_0 GLASS_VERSION_1_1
-
 static GLint g_ProjLoc;
 static GLint g_ModelViewLoc;
 
