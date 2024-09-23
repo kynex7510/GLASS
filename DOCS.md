@@ -31,17 +31,17 @@ Note that GLASS only does error checking to a bare minimum (eg. anything specifi
 Internally, GLASS has to allocate various kinds of memory buffers to work. It's possible to customize allocation by redefining any of the following functions:
 
 ```c
-void* GLASS_virtualAlloc(size_t size);
-void GLASS_virtualFree(void* p);
-size_t GLASS_virtualSize(void* p);
+void* glassVirtualAlloc(size_t size);
+void glassVirtualFree(void* p);
+size_t glassVirtualSize(void* p);
 
-void* GLASS_linearAlloc(size_t size);
-void GLASS_linearFree(void* p);
-size_t GLASS_linearSize(void* p);
+void* glassLinearAlloc(size_t size);
+void glassLinearFree(void* p);
+size_t glassLinearSize(void* p);
 
-void* GLASS_vramAlloc(size_t size, vramAllocPos pos);
-void GLASS_vramFree(void* p);
-size_t GLASS_vramSize(void* p);
+void* glassVRAMAlloc(size_t size, vramAllocPos pos);
+void glassVRAMFree(void* p);
+size_t glassVRAMSize(void* p);
 ```
 
 - `*Alloc` allocates `size` bytes;

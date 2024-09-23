@@ -2,7 +2,6 @@
 
 ## Immediate term
 
-- Implement direct buffer for drawElements
 - Implement textures
 
 ## Short term
