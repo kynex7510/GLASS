@@ -724,16 +724,14 @@ void GLASS_gpu_drawArrays(GLenum mode, GLint first, GLsizei count) {
     GPUCMD_AddWrite(GPUREG_VTX_FUNC, 1);
 }
 
-void GLASS_gpu_drawElements(GLenum mode, GLsizei count, GLenum type, const GLvoid* indices) {
+void GLASS_gpu_drawElements(GLenum mode, GLsizei count, GLenum type, u32 physIndices) {
     const GPU_Primitive_t primitive = GLASS_utility_getDrawPrimitive(mode);
     const u32 gpuType = GLASS_utility_getDrawType(type);
-    const u32 physAddr = osConvertVirtToPhys(indices);
-    ASSERT(physAddr);
 
     GPUCMD_AddMaskedWrite(GPUREG_PRIMITIVE_CONFIG, 2, primitive != GPU_TRIANGLES ? primitive : GPU_GEOMETRY_PRIM);
 
     GPUCMD_AddWrite(GPUREG_RESTART_PRIMITIVE, 1);
-    GPUCMD_AddWrite(GPUREG_INDEXBUFFER_CONFIG, (physAddr - PHYSICAL_LINEAR_BASE) | (gpuType << 31));
+    GPUCMD_AddWrite(GPUREG_INDEXBUFFER_CONFIG, (physIndices - PHYSICAL_LINEAR_BASE) | (gpuType << 31));
 
     GPUCMD_AddWrite(GPUREG_NUMVERTICES, count);
     GPUCMD_AddWrite(GPUREG_VERTEX_OFFSET, 0);
