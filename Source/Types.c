@@ -8,7 +8,9 @@ GLuint GLASS_createObject(u32 type) {
         case GLASS_BUFFER_TYPE:
             objSize = sizeof(BufferInfo);
             break;
-            // case GLASS_TEXTURE_TYPE:
+        case GLASS_TEXTURE_TYPE:
+            objSize = sizeof(TextureInfo);
+            break;
         case GLASS_PROGRAM_TYPE:
             objSize = sizeof(ProgramInfo);
             break;

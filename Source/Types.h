@@ -20,7 +20,6 @@
 #define GLASS_UNI_INT 0x01
 #define GLASS_UNI_FLOAT 0x02
 
-#define GLASS_UNKNOWN_TYPE 0x00
 #define GLASS_BUFFER_TYPE 0x01
 #define GLASS_TEXTURE_TYPE 0x02
 #define GLASS_PROGRAM_TYPE 0x03
@@ -29,6 +28,8 @@
 #define GLASS_RENDERBUFFER_TYPE 0x06
 
 #define BUFFER_FLAG_BOUND DECL_FLAG(0)
+
+#define TEXTURE_FLAG_BOUND DECL_FLAG(0)
 
 #define RENDERBUFFER_FLAG_BOUND DECL_FLAG(0)
 
@@ -63,6 +64,7 @@
 #define CONTEXT_FLAG_CULL_FACE DECL_FLAG(13)
 #define CONTEXT_FLAG_ALPHA DECL_FLAG(14)
 #define CONTEXT_FLAG_BLEND DECL_FLAG(15)
+#define CONTEXT_FLAG_TEXTURE DECL_FLAG(16)
 #define CONTEXT_FLAG_ALL (~(0u))
 
 #define OBJ_IS_BUFFER(x) GLASS_checkObjectType((x), GLASS_BUFFER_TYPE)
@@ -78,6 +80,12 @@ typedef struct {
     GLenum usage; // Buffer usage type.
     u16 flags;    // Buffer flags.
 } BufferInfo;
+
+typedef struct {
+    u32 type;      // GL type (GLASS_TEXTURE_TYPE).
+    GLenum target; // Texture target.
+    u16 flags;     // Texture flags.
+} TextureInfo;
 
 typedef struct {
     u32 type;       // GL type (GLASS_RENDERBUFFER_TYPE).
@@ -194,6 +202,10 @@ typedef struct {
     /* Buffers */
     GLuint arrayBuffer;        // GL_ARRAY_BUFFER
     GLuint elementArrayBuffer; // GL_ELEMENT_ARRAY_BUFFER
+
+    /* Texture */
+    GLuint texture2d;      // GL_TEXTURE_2D
+    GLuint textureCubeMap; // GL_TEXTURE_CUBE_MAP
 
     /* Framebuffer */
     GLuint framebuffer;  // Bound framebuffer object.

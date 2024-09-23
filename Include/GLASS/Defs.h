@@ -92,6 +92,7 @@ typedef GLuint GLbitfield;
 #define GL_BLUE_BITS 0x0D54
 #define GL_ALPHA_BITS 0x0D55
 #define GL_DEPTH_BITS 0x0D56
+#define GL_TEXTURE_2D 0x0DE1
 
 #define GL_BYTE 0x1400
 #define GL_UNSIGNED_BYTE 0x1401
@@ -194,6 +195,7 @@ typedef GLuint GLbitfield;
 
 #define GL_INCR_WRAP 0x8507
 #define GL_DECR_WRAP 0x8508
+#define GL_TEXTURE_CUBE_MAP 0x8513
 #define GL_COMBINE 0x8570
 #define GL_COMBINE_RGB 0x8571
 #define GL_COMBINE_ALPHA 0x8572

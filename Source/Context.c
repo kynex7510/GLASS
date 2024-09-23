@@ -37,6 +37,10 @@ static void GLASS_context_initCommon(CtxCommon* ctx, const glassInitParams* init
     ctx->arrayBuffer = GLASS_INVALID_OBJECT;
     ctx->elementArrayBuffer = GLASS_INVALID_OBJECT;
 
+    // Texture.
+    ctx->texture2d = GLASS_INVALID_OBJECT;
+    ctx->textureCubeMap = GLASS_INVALID_OBJECT;
+
     // Framebuffer.
     ctx->framebuffer = GLASS_INVALID_OBJECT;
     ctx->renderbuffer = GLASS_INVALID_OBJECT;
