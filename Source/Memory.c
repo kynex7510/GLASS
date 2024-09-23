@@ -1,7 +1,8 @@
-#include "Memory.h"
 #include "Utility.h"
 
-#include <malloc.h>
+#include <stdlib.h> // malloc, free
+#include <string.h> // memset
+#include <malloc.h> // malloc_usable_size
 
 void* GLASS_virtualAllocDefault(size_t size) {
     void* p = malloc(size);

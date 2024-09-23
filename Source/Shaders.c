@@ -16,7 +16,8 @@
  * This should be evenly distributed.
  */
 #include "Context.h"
-#include "Memory.h"
+
+#include <string.h> // strlen, memset, memcpy
 
 #define DVLB_MIN_SIZE 0x08
 #define DVLB_MAGIC "\x44\x56\x4C\x42"

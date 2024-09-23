@@ -1,8 +1,8 @@
 #include "GPU.h"
 #include "Utility.h"
-#include "Memory.h"
 
 #include <stdlib.h> // qsort
+#include <string.h> // memcpy
 
 #define PHYSICAL_LINEAR_BASE 0x18000000
 #define GPU_MAX_ENTRIES 0x4000

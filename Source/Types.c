@@ -1,6 +1,5 @@
 #include "Types.h"
 #include "Utility.h"
-#include "Memory.h"
 
 GLuint GLASS_createObject(u32 type) {
     size_t objSize = 0;

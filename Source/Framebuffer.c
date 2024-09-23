@@ -1,6 +1,5 @@
 #include "Context.h"
 #include "Utility.h"
-#include "Memory.h"
 
 #define IS_COLOR_FORMAT(format) \
     (((format) == GL_RGBA8) || ((format) == GL_RGB5_A1) || ((format) == GL_RGB565) || ((format) == GL_RGBA4))

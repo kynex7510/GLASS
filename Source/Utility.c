@@ -1,7 +1,7 @@
 #include "Utility.h"
-#include "Memory.h"
 
 #include <stdlib.h> // abort
+#include <string.h> // memcpy
 
 #ifndef NDEBUG
 

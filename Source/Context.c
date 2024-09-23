@@ -1,6 +1,7 @@
 #include "Context.h"
-#include "Memory.h"
 #include "GPU.h"
+
+#include <string.h> // memset
 
 static CtxCommon* g_Context = NULL;
 static CtxCommon* g_OldCtx = NULL;

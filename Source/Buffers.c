@@ -1,5 +1,6 @@
 #include "Context.h"
-#include "Memory.h"
+
+#include <string.h> // memcpy
 
 static BufferInfo* GLASS_getBoundBufferInfo(GLenum target) {
     GLuint buffer = GLASS_INVALID_OBJECT;

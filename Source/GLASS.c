@@ -1,7 +1,8 @@
 #include "Utility.h"
 #include "Context.h"
-#include "Memory.h"
 #include "GPU.h"
+
+#include <string.h> // memcpy
 
 glassCtx glassCreateContext(glassVersion version) {
     glassInitParams initParams;
