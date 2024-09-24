@@ -86,4 +86,7 @@ void GLASS_utility_setIntUniform(UniformInfo* info, size_t offset, u32 vector);
 void GLASS_utility_getFloatUniform(const UniformInfo* info, size_t offset, u32* out);
 void GLASS_utility_setFloatUniform(UniformInfo* info, size_t offset, const u32* vectorData);
 
+GPU_TEXTURE_FILTER_PARAM GLASS_utility_getTexFilter(GLenum filter);
+GPU_TEXTURE_WRAP_PARAM GLASS_utility_getTexWrap(GLenum wrap);
+
 #endif /* _GLASS_UTILITY_H */

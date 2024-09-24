@@ -91,6 +91,8 @@ GLboolean glIsTexture(GLuint texture);
 void glTexImage2D(GLenum target, GLint level, GLint internalformat, GLsizei width, GLsizei height, GLint border, GLenum format, GLenum type, const GLvoid* data);
 void glTexParameterf(GLenum target, GLenum pname, GLfloat param);
 void glTexParameteri(GLenum target, GLenum pname, GLint param);
+void glTexParameterfv(GLenum target, GLenum pname, const GLfloat* params);
+void glTexParameteriv(GLenum target, GLenum pname, const GLint* params);
 void glTexSubImage2D(GLenum target, GLint level, GLint xoffset, GLint yoffset, GLsizei width, GLsizei height, GLenum format, GLenum type, const GLvoid* data);
 
 #if defined(__cplusplus)

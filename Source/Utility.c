@@ -658,3 +658,29 @@ void GLASS_utility_setFloatUniform(UniformInfo* info, size_t offset, const u32*v
     memcpy(&info->data.values[3 * offset], vector, 3 * sizeof(u32));
     info->dirty = true;
 }
+
+GPU_TEXTURE_FILTER_PARAM GLASS_utility_getTexFilter(GLenum filter) {
+    switch (filter) {
+        case GL_NEAREST:
+            return GPU_NEAREST;
+        case GL_LINEAR:
+            return GPU_LINEAR;
+    }
+
+    UNREACHABLE("Invalid texture filter!");
+}
+
+GPU_TEXTURE_WRAP_PARAM GLASS_utility_getTexWrap(GLenum wrap) {
+    switch (wrap) {
+        case GL_CLAMP_TO_EDGE:
+            return GPU_CLAMP_TO_EDGE;
+        case GL_CLAMP_TO_BORDER:
+            return GPU_CLAMP_TO_BORDER;
+        case GL_MIRRORED_REPEAT:
+            return GPU_MIRRORED_REPEAT;
+        case GL_REPEAT:
+            return GPU_REPEAT;
+    }
+
+    UNREACHABLE("Invalid texture wrap!");
+}

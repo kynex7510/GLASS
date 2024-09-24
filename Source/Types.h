@@ -16,6 +16,8 @@
 #define GLASS_NUM_INT_UNIFORMS 4
 #define GLASS_NUM_FLOAT_UNIFORMS 96
 #define GLASS_NUM_COMBINER_STAGES 6
+#define GLASS_NUM_TEXTURE_UNITS 4 // TODO: how to handle proctex?
+
 #define GLASS_UNI_BOOL 0x00
 #define GLASS_UNI_INT 0x01
 #define GLASS_UNI_FLOAT 0x02
@@ -82,10 +84,19 @@ typedef struct {
 } BufferInfo;
 
 typedef struct {
-    u32 type;      // GL type (GLASS_TEXTURE_TYPE).
-    GLenum target; // Texture target.
-    u16 flags;     // Texture flags.
+    u32 type;         // GL type (GLASS_TEXTURE_TYPE).
+    GLenum target;    // Texture target.
+    GLenum minFilter; // Min filter.
+    GLenum maxFilter; // Max filter.
+    GLenum wrapS;     // Wrap S.
+    GLenum wrapT;     // Wrap T.
+    u16 flags;        // Texture flags.
 } TextureInfo;
+
+typedef struct {
+    GLuint texture2d;      // GL_TEXTURE_2D
+    GLuint textureCubeMap; // GL_TEXTURE_CUBE_MAP
+} TextureUnit;
 
 typedef struct {
     u32 type;       // GL type (GLASS_RENDERBUFFER_TYPE).
@@ -213,8 +224,8 @@ typedef struct {
     GLuint elementArrayBuffer; // GL_ELEMENT_ARRAY_BUFFER
 
     /* Texture */
-    GLuint texture2d;      // GL_TEXTURE_2D
-    GLuint textureCubeMap; // GL_TEXTURE_CUBE_MAP
+    TextureUnit textureUnits[GLASS_NUM_TEXTURE_UNITS]; // Objects bound to texture units.
+    size_t activeTextureUnit;                          // Currently active texture unit.
 
     /* Framebuffer */
     GLuint framebuffer;  // Bound framebuffer object.
