@@ -1,9 +1,17 @@
 # Docs
 
-## Caveats
+## Differences from the standard
 
 - Fragment pipeline is not programmable;
-- No default objects are provided (framebuffer, textures, shader program).
+- No default objects are provided (framebuffer, textures, shader program);
+- `glBind*` functions will not create buffers when passing arbitrary buffer values, instead `glGen*` must be used for buffer creation;
+- Unlike the OpenGL specs which limit each shader type to 1 entry, `glShaderBinary` supports as much shader entries as are contained in the shader binary, and are loaded in the order they've been linked;
+- `glPolygonOffset`: the `factor` argument has no effect;
+- `glVertexAttribPointer`: the `normalized` argument must be set to `GL_FALSE`;
+- `glDrawArrays`: the `mode` argument must be one of `GL_TRIANGLES`, `GL_TRIANGLE_STRIP`, `GL_TRIANGLE_FAN`, `GL_GEOMETRY_PRIMITIVE_PICA`;
+- If the number of components of the uniform variable as defined in the shader does not match the size specified in the name of the command used to load its value, and the uniform variable is not of type `bool`, no error will be generated; the other components of the specified uniform variable will remain unchanged;
+- `glTexParameter`: `GL_TEXTURE_MIN_LOD`, `GL_TEXTURE_MAX_LOD`, `GL_TEXTURE_LOD_BIAS` are all valid parameters.
+- `glTexParameter`: `GL_CLAMP_TO_BORDER` is a valid wrapping value.
 
 ## Attributes
 
@@ -11,15 +19,13 @@ The GPU has 16 input registers, but at most 12 can be used at the same time: `gl
 
 When calling `glVertexAttribPointer`, the `stride` argument must match the size of the attribute buffer. Moreover, if a raw buffer is passed as the `pointer` argument, said buffer must be allocated on linear heap, and must be flushed before being used.
 
-## Differences from the standard
+## Textures
 
-- `glBind*` functions will not create buffers when passing arbitrary buffer values, instead `glGen*` must be used for buffer creation;
-- Unlike the OpenGL specs which limit each shader type to 1 entry, `glShaderBinary` supports as much shader entries as are contained in the shader binary, and are loaded in the order they've been linked;
-- `glPolygonOffset`: the `factor` argument has no effect;
-- `glVertexAttribPointer`: the `normalized` argument must be set to `GL_FALSE`;
-- `glDrawArrays`: the `mode` argument must be one of `GL_TRIANGLES`, `GL_TRIANGLE_STRIP`, `GL_TRIANGLE_FAN`, `GL_GEOMETRY_PRIMITIVE_PICA`;
-- If the number of components of the uniform variable as defined in the shader does not match the size specified in the name of the command used to load its value, and the uniform variable is not of type `bool`, no error will be generated; the other components of the specified uniform variable will remain unchanged;
-- `glTexParameter`: the extension `GL_CLAMP_TO_BORDER` is a valid wrapping value.
+3 texture units are available. Only `GL_TEXTURE0` can load cube maps, and only one target at time can be used.
+
+When specifying LOD values, they will be clamped in the range `[0, 15]`. When specifying a LOD bias, it will be clamped in the range `[-15.255, 15.255]`.
+
+`GL_NEAREST` and `GL_NEAREST_MIPMAP_NEAREST` are the same, the GPU decides to use one or the other based on the value of `GL_TEXTURE_MIN_LOD` (ie. whether the filter is active). Same goes for `GL_LINEAR` and `GL_LINEAR_MIPMAP_NEAREST`.
 
 ## Debugging
 

@@ -45,6 +45,7 @@ void GLASS_utility_abort(void) NORETURN;
 
 void* GLASS_utility_convertPhysToVirt(u32 addr);
 float GLASS_utility_f24tof32(u32 f);
+u32 GLASS_utility_f32tofixed13(float f);
 
 u32 GLASS_utility_makeClearColor(GLenum format, u32 color);
 u32 GLASS_utility_makeClearDepth(GLenum format, GLclampf factor, u8 stencil);
@@ -87,6 +88,7 @@ void GLASS_utility_getFloatUniform(const UniformInfo* info, size_t offset, u32* 
 void GLASS_utility_setFloatUniform(UniformInfo* info, size_t offset, const u32* vectorData);
 
 GPU_TEXTURE_FILTER_PARAM GLASS_utility_getTexFilter(GLenum filter);
+GPU_TEXTURE_FILTER_PARAM GLASS_utility_getMipFilter(GLenum minFilter);
 GPU_TEXTURE_WRAP_PARAM GLASS_utility_getTexWrap(GLenum wrap);
 
 #endif /* _GLASS_UTILITY_H */

@@ -40,8 +40,8 @@ static void GLASS_context_initCommon(CtxCommon* ctx, const glassInitParams* init
     // Texture.
     for (size_t i = 0; i < GLASS_NUM_TEXTURE_UNITS; ++i) {
         TextureUnit* unit = &ctx->textureUnits[i];
-        unit->texture2d = GLASS_INVALID_OBJECT;
-        unit->textureCubeMap = GLASS_INVALID_OBJECT;
+        unit->texture = GLASS_INVALID_OBJECT;
+        unit->dirty = true;
     }
 
     ctx->activeTextureUnit = 0;

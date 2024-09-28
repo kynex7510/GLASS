@@ -763,3 +763,65 @@ void GLASS_gpu_drawElements(GLenum mode, GLsizei count, GLenum type, u32 physInd
     GPUCMD_AddMaskedWrite(GPUREG_PRIMITIVE_CONFIG, 0x8, 0);
     GPUCMD_AddMaskedWrite(GPUREG_PRIMITIVE_CONFIG, 0x8, 0);
 }
+
+void GLASS_gpu_setTextureUnits(const TextureUnit* units) {
+    ASSERT(units);
+
+    const u32 setupCmds[3] = { 
+        GPUREG_TEXUNIT0_BORDER_COLOR,
+        GPUREG_TEXUNIT1_BORDER_COLOR,
+        GPUREG_TEXUNIT2_BORDER_COLOR
+    };
+
+    const u32 typeCmds[3] = {
+        GPUREG_TEXUNIT0_TYPE,
+        GPUREG_TEXUNIT1_TYPE,
+        GPUREG_TEXUNIT2_TYPE,
+    };
+
+    for (size_t i = 0; i < GLASS_NUM_TEXTURE_UNITS; ++i) {
+        const TextureUnit* unit = &units[i];
+        if (!unit->dirty)
+            continue;
+
+        const TextureInfo* tex = (TextureInfo*)unit->texture;
+        if (!tex)
+            continue;
+
+        const bool setupCubeMap = !i && (tex->target == GL_TEXTURE_CUBE_MAP);
+        u32 params[10] = {};
+
+        // Setup common info.
+        params[0] = tex->borderColor;
+        params[1] = ((u32)(tex->width & 0x3FF) << 16) | (tex->height & 0x3FF);
+
+        const GPU_TEXTURE_FILTER_PARAM minFilter = GLASS_utility_getTexFilter(tex->minFilter);
+        const GPU_TEXTURE_FILTER_PARAM magFilter = GLASS_utility_getTexFilter(tex->magFilter);
+        const GPU_TEXTURE_FILTER_PARAM mipFilter = GLASS_utility_getMipFilter(tex->minFilter);
+        const GPU_TEXTURE_WRAP_PARAM wrapS = GLASS_utility_getTexWrap(tex->wrapS);
+        const GPU_TEXTURE_WRAP_PARAM wrapT = GLASS_utility_getTexWrap(tex->wrapT);
+
+        params[2] = (GPU_TEXTURE_MIN_FILTER(minFilter) | GPU_TEXTURE_MAG_FILTER(magFilter) | GPU_TEXTURE_MIP_FILTER(mipFilter) | GPU_TEXTURE_WRAP_S(wrapS) | GPU_TEXTURE_WRAP_T(wrapT));
+        
+        if (false /* ETC1 check */)
+            params[2] |= GPU_TEXTURE_ETC1_PARAM;
+
+        if (!i) {
+            // TODO
+            params[2] |= GPU_TEXTURE_MODE(GPU_TEX_2D);
+            // TODO: Shadow
+        }
+
+        params[3] = GLASS_utility_f32tofixed13(tex->lodBias) | (((u32)tex->maxLod & 0x0F) << 16) | (((u32)tex->minLod & 0x0F) << 24);
+
+        if (setupCubeMap) {
+            // TODO
+        } else {
+            params[4] = 0; // address
+        }
+
+        GPUCMD_AddIncrementalWrites(setupCmds[i], params, setupCubeMap ? 10 : 5); // TODO
+        // TODO: Shadow
+		GPUCMD_AddWrite(typeCmds[i], 0); // TODO
+    }
+}

@@ -88,6 +88,11 @@ float GLASS_utility_f24tof32(u32 f) {
     return cast.val;
 }
 
+u32 GLASS_utility_f32tofixed13(float f) {
+    // TODO
+    return 0;
+}
+
 u32 GLASS_utility_makeClearColor(GLenum format, u32 color) {
     u32 cvt = 0;
 
@@ -416,8 +421,9 @@ GPU_TEVSRC GLASS_utility_getCombinerSrc(GLenum src) {
             return GPU_TEXTURE1;
         case GL_TEXTURE2:
             return GPU_TEXTURE2;
-        case GL_TEXTURE3:
-            return GPU_TEXTURE3;
+            // TODO: what constant to use?
+        //case GL_TEXTURE3:
+        //    return GPU_TEXTURE3;
         case GL_PREVIOUS_BUFFER_PICA:
             return GPU_PREVIOUS_BUFFER;
         case GL_CONSTANT:
@@ -662,12 +668,31 @@ void GLASS_utility_setFloatUniform(UniformInfo* info, size_t offset, const u32*v
 GPU_TEXTURE_FILTER_PARAM GLASS_utility_getTexFilter(GLenum filter) {
     switch (filter) {
         case GL_NEAREST:
+        case GL_NEAREST_MIPMAP_NEAREST:
+        case GL_NEAREST_MIPMAP_LINEAR:
             return GPU_NEAREST;
         case GL_LINEAR:
+        case GL_LINEAR_MIPMAP_NEAREST:
+        case GL_LINEAR_MIPMAP_LINEAR:
             return GPU_LINEAR;
     }
 
     UNREACHABLE("Invalid texture filter!");
+}
+
+GPU_TEXTURE_FILTER_PARAM GLASS_utility_getMipFilter(GLenum minFilter) {
+    switch (minFilter) {
+        case GL_NEAREST:
+        case GL_NEAREST_MIPMAP_NEAREST:
+        case GL_LINEAR:
+        case GL_LINEAR_MIPMAP_NEAREST:
+            return GPU_NEAREST;
+        case GL_NEAREST_MIPMAP_LINEAR:
+        case GL_LINEAR_MIPMAP_LINEAR:
+            return GPU_LINEAR;
+    }
+
+    UNREACHABLE("Invalid texture minification filter!");
 }
 
 GPU_TEXTURE_WRAP_PARAM GLASS_utility_getTexWrap(GLenum wrap) {

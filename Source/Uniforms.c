@@ -194,7 +194,7 @@ void GLASS_getUniformValues(GLuint program, GLint location, GLint* intParams, GL
 void glGetUniformfv(GLuint program, GLint location, GLfloat* params) { GLASS_getUniformValues(program, location, NULL, params); }
 void glGetUniformiv(GLuint program, GLint location, GLint* params) { GLASS_getUniformValues(program, location, params, NULL); }
 
-static size_t GLASS_extractUniformOffset(const char* name) {
+static INLINE size_t GLASS_extractUniformOffset(const char* name) {
     ASSERT(name);
 
     if (strstr(name, ".") || (strstr(name, "gl_") == name))
