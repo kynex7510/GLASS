@@ -103,7 +103,7 @@ void GLASS_gpu_flushAndRunCommands(CtxCommon* ctx) {
 
 static INLINE u16 GLASS_getGXControl(bool start, bool finished, GLenum format) {
     const u16 fillWidth = GLASS_utility_getPixelSizeForFB(format);
-    return (u16)start | ((u16)finished << 1) | (fillWidth << 8);
+    return (u16)(start) | ((u16)(finished) << 1) | (fillWidth << 8);
 }
 
 void GLASS_gpu_clearBuffers(RenderbufferInfo* colorBuffer, u32 clearColor, RenderbufferInfo* depthBuffer, u32 clearDepth) {
@@ -204,9 +204,9 @@ void GLASS_gpu_setViewport(GLint x, GLint y, GLsizei width, GLsizei height) {
     u32 data[4];
 
     data[0] = f32tof24(height / 2.0f);
-    data[1] = f32tof31(2.0f / height) << 1;
+    data[1] = (f32tof31(2.0f / height) << 1);
     data[2] = f32tof24(width / 2.0f);
-    data[3] = f32tof31(2.0f / width) << 1;
+    data[3] = (f32tof31(2.0f / width) << 1);
 
     GPUCMD_AddIncrementalWrites(GPUREG_VIEWPORT_WIDTH, data, 4);
     GPUCMD_AddWrite(GPUREG_VIEWPORT_XY, (y << 16) | (x & 0xFFFF));
@@ -569,7 +569,7 @@ void GLASS_gpu_uploadAttributes(const AttributeInfo* attribs) {
 
             params[0] = attribBuffer->physAddr - PHYSICAL_LINEAR_BASE;
             params[1] = permutation[0];
-            params[2] = permutation[1] | ((attribBuffer->stride & 0xFF) << 16) | ((attribBuffer->numComponents & 0xF) << 28);
+            params[2] = permutation[1] | ((attribBuffer->stride & 0xFF) << 16) | ((attribBuffer->numComponents & 0x0F) << 28);
         }
 
         GPUCMD_AddIncrementalWrites(GPUREG_ATTRIBBUFFER0_OFFSET + (i * 0x03), params, 3);
@@ -760,8 +760,8 @@ void GLASS_gpu_drawElements(GLenum mode, GLsizei count, GLenum type, u32 physInd
     }
 
     GPUCMD_AddWrite(GPUREG_VTX_FUNC, 1);
-    GPUCMD_AddMaskedWrite(GPUREG_PRIMITIVE_CONFIG, 0x8, 0);
-    GPUCMD_AddMaskedWrite(GPUREG_PRIMITIVE_CONFIG, 0x8, 0);
+    GPUCMD_AddMaskedWrite(GPUREG_PRIMITIVE_CONFIG, 0x08, 0);
+    GPUCMD_AddMaskedWrite(GPUREG_PRIMITIVE_CONFIG, 0x08, 0);
 }
 
 void GLASS_gpu_setTextureUnits(const TextureUnit* units) {
@@ -779,6 +779,8 @@ void GLASS_gpu_setTextureUnits(const TextureUnit* units) {
         GPUREG_TEXUNIT2_TYPE,
     };
 
+    u32 config = (1u << 16); // Clear cache.
+
     for (size_t i = 0; i < GLASS_NUM_TEXTURE_UNITS; ++i) {
         const TextureUnit* unit = &units[i];
         if (!unit->dirty)
@@ -787,6 +789,12 @@ void GLASS_gpu_setTextureUnits(const TextureUnit* units) {
         const TextureInfo* tex = (TextureInfo*)unit->texture;
         if (!tex)
             continue;
+
+        // DEBUG.
+        ASSERT(!i);
+
+        // Enable unit.
+        config |= (1u << i);
 
         const bool setupCubeMap = !i && (tex->target == GL_TEXTURE_CUBE_MAP);
         u32 params[10] = {};
@@ -824,4 +832,6 @@ void GLASS_gpu_setTextureUnits(const TextureUnit* units) {
         // TODO: Shadow
 		GPUCMD_AddWrite(typeCmds[i], 0); // TODO
     }
+
+    GPUCMD_AddWrite(GPUREG_TEXUNIT_CONFIG, config);
 }

@@ -415,8 +415,8 @@ static void GLASS_generateOutmaps(const DVLEInfo* info, ShaderInfo* out) {
         size_t maxSem = 0;
 
         // Set output register.
-        if (!(out->outMask & (1 << entry->regID))) {
-            out->outMask |= (1 << entry->regID);
+        if (!(out->outMask & (1u << entry->regID))) {
+            out->outMask |= (1u << entry->regID);
             ++out->outTotal;
         }
 
@@ -429,41 +429,41 @@ static void GLASS_generateOutmaps(const DVLEInfo* info, ShaderInfo* out) {
             case RESULT_NORMALQUAT:
                 sem = 0x04;
                 maxSem = 4;
-                out->outClock |= (1 << 24);
+                out->outClock |= (1u << 24);
                 break;
             case RESULT_COLOR:
                 sem = 0x08;
                 maxSem = 4;
-                out->outClock |= (1 << 1);
+                out->outClock |= (1u << 1);
                 break;
             case RESULT_TEXCOORD0:
                 sem = 0x0C;
                 maxSem = 2;
-                out->outClock |= (1 << 8);
+                out->outClock |= (1u << 8);
                 useTexcoords = true;
                 break;
             case RESULT_TEXCOORD0W:
                 sem = 0x10;
                 maxSem = 1;
-                out->outClock |= (1 << 16);
+                out->outClock |= (1u << 16);
                 useTexcoords = true;
                 break;
             case RESULT_TEXCOORD1:
                 sem = 0x0E;
                 maxSem = 2;
-                out->outClock |= (1 << 9);
+                out->outClock |= (1u << 9);
                 useTexcoords = true;
                 break;
             case RESULT_TEXCOORD2:
                 sem = 0x16;
                 maxSem = 2;
-                out->outClock |= (1 << 10);
+                out->outClock |= (1u << 10);
                 useTexcoords = true;
                 break;
             case RESULT_VIEW:
                 sem = 0x12;
                 maxSem = 3;
-                out->outClock |= (1 << 24);
+                out->outClock |= (1u << 24);
                 break;
             case RESULT_DUMMY:
                 continue;
@@ -473,14 +473,14 @@ static void GLASS_generateOutmaps(const DVLEInfo* info, ShaderInfo* out) {
 
         // Set register semantics.
         for (size_t i = 0, curSem = 0; i < 4 && curSem < maxSem; ++i) {
-            if (entry->mask & (1 << i)) {
+            if (entry->mask & (1u << i)) {
                 out->outSems[entry->regID] &= ~(0xFF << (i * 8));
                 out->outSems[entry->regID] |= ((sem++) << (i * 8));
 
                 // Check for position.z clock.
                 ++curSem;
                 if (entry->type == RESULT_POSITION && curSem == 3)
-                    out->outClock |= (1 << 0);
+                    out->outClock |= (1u << 0);
             }
         }
     }
@@ -519,13 +519,13 @@ static bool GLASS_loadUniforms(const DVLEInfo* info, ShaderInfo* out) {
             case GLASS_UNI_BOOL:
             ASSERT(constEntry->ID < GLASS_NUM_BOOL_UNIFORMS);
             if (constEntry->data.boolUniform) {
-                out->constBoolMask |= (1 << constEntry->ID);
+                out->constBoolMask |= (1u << constEntry->ID);
             }
             break;
         case GLASS_UNI_INT:
             ASSERT(constEntry->ID < GLASS_NUM_INT_UNIFORMS);
             out->constIntData[constEntry->ID] = constEntry->data.intUniform;
-            out->constIntMask |= (1 << constEntry->ID);
+            out->constIntMask |= (1u << constEntry->ID);
             break;
         case GLASS_UNI_FLOAT:
             ASSERT(constEntry->ID < GLASS_NUM_FLOAT_UNIFORMS);

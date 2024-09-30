@@ -104,10 +104,10 @@ u32 GLASS_utility_makeClearColor(GLenum format, u32 color) {
             cvt = color >> 8;
             break;
         case GL_RGBA4:
-            cvt = ((color >> 24) & 0xF) << 12;
-            cvt |= ((color >> 16) & 0xF) << 8;
-            cvt |= ((color >> 8) & 0xF) << 4;
-            cvt |= color & 0xF;
+            cvt = ((color >> 24) & 0x0F) << 12;
+            cvt |= ((color >> 16) & 0x0F) << 8;
+            cvt |= ((color >> 8) & 0x0F) << 4;
+            cvt |= color & 0x0F;
             break;
         case GL_RGB5_A1:
             cvt = ((color >> 24) & 0x1F) << 11;
@@ -613,9 +613,9 @@ void GLASS_utility_setBoolUniform(UniformInfo* info, size_t offset, bool enabled
     ASSERT(offset < info->count);
 
     if (enabled) {
-        info->data.mask |= (1 << offset);
+        info->data.mask |= (1u << offset);
     } else {
-        info->data.mask &= ~(1 << offset);
+        info->data.mask &= ~(1u << offset);
     }
 
     info->dirty = true;

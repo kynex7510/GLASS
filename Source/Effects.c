@@ -45,10 +45,10 @@ void glAlphaFunc(GLenum func, GLclampf ref) {
 void glBlendColor(GLclampf red, GLclampf green, GLclampf blue, GLclampf alpha) {
     CtxCommon* ctx = GLASS_context_getCommon();
 
-    u32 blendColor = (u32)(0xFF * CLAMP_FLOAT(red)) << 24;
-    blendColor |= (u32)(0xFF * CLAMP_FLOAT(green)) << 16;
-    blendColor |= (u32)(0xFF * CLAMP_FLOAT(blue)) << 8;
-    blendColor |= (u32)(0xFF * CLAMP_FLOAT(alpha));
+    u32 blendColor = ((u32)(0xFF * CLAMP_FLOAT(red)) << 24);
+    blendColor |= ((u32)(0xFF * CLAMP_FLOAT(green)) << 16);
+    blendColor |= ((u32)(0xFF * CLAMP_FLOAT(blue)) << 8);
+    blendColor |= ((u32)(0xFF * CLAMP_FLOAT(alpha)));
 
     if (ctx->blendColor != blendColor) {
         ctx->blendColor = blendColor;

@@ -6,7 +6,7 @@
 
 #include <stddef.h>
 
-#define DECL_FLAG(id) (u32)(1 << (id))
+#define DECL_FLAG(id) (u32)(1u << (id))
 
 #define GLASS_INVALID_OBJECT 0
 #define GLASS_NUM_ATTRIB_REGS 16
@@ -86,7 +86,7 @@ typedef struct {
 typedef struct {
     u32 type;         // GL type (GLASS_TEXTURE_TYPE).
     GLenum target;    // Texture target.
-    u32 borderColor;  // Border color (RGBA).
+    u32 borderColor;  // Border color (ABGR).
     u16 width;        // Texture width.
     u16 height;       // Texture height.
     GLenum minFilter; // Min filter.
