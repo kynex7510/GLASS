@@ -292,7 +292,6 @@ static SharedShaderData* GLASS_parseDVLP(const u8* data, size_t size) {
     memcpy(&numOfCodeWords, data + 0x0C, sizeof(u32));
     memcpy(&numOfOpDescs, data + 0x14, sizeof(u32));
 
-    // TODO: check code words limit.
     ASSERT(numOfCodeWords <= 512);
     ASSERT(numOfOpDescs <= 128);
     ASSERT((offsetToBlob + (numOfCodeWords * 4)) <= size);

@@ -224,7 +224,6 @@ static void GLASS_uploadShaderBinary(const ShaderInfo* shader) {
         GPUCMD_AddWrite((shader->flags & SHADER_FLAG_GEOMETRY) ? GPUREG_GSH_CODETRANSFER_CONFIG : GPUREG_VSH_CODETRANSFER_CONFIG, 0);
 
         // Write code.
-        // TODO: check code words limit.
         GPUCMD_AddWrites((shader->flags & SHADER_FLAG_GEOMETRY) ? GPUREG_GSH_CODETRANSFER_DATA : GPUREG_VSH_CODETRANSFER_DATA,
                         shader->sharedData->binaryCode,
                         shader->sharedData->numOfCodeWords < 512 ? shader->sharedData->numOfCodeWords : 512);
