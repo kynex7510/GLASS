@@ -28,7 +28,7 @@ static void invertComponents(C3D_Mtx* matrix) {
     }
 }
 
-static GLuint sceneInit() {
+static GLuint sceneInit(void) {
     // Load the vertex shader, create a shader program and bind it.
     GLuint prog = glCreateProgram();
     GLuint shad = glCreateShader(GL_VERTEX_SHADER);
