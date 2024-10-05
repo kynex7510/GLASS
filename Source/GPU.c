@@ -560,9 +560,9 @@ void GLASS_gpu_uploadAttributes(const AttributeInfo* attribs) {
                 const u32 regId = attribBuffer->components[j];
                 const u32 attribIndex = regTable[regId];
                 if (j < 8) {
-                    permutation[0] = (attribIndex << (j * 4));
+                    permutation[0] |= (attribIndex << (j * 4));
                 } else {
-                    permutation[1] = (attribIndex << (j * 4));
+                    permutation[1] |= (attribIndex << (j * 4));
                 }
             }
 
