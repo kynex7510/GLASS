@@ -5,9 +5,9 @@
 
 typedef struct {
     float x, y, z;
-} position;
+} Position;
 
-static const position g_VertexList[3] = {
+static const Position g_VertexList[3] = {
     {200.0f, 200.0f, 0.5f}, // Top
     {100.0f, 40.0f, 0.5f},  // Left
     {300.0f, 40.0f, 0.5f},  // Right
@@ -49,7 +49,7 @@ static GLuint sceneInit(void) {
     glBufferData(GL_ARRAY_BUFFER, sizeof(g_VertexList), g_VertexList, GL_STATIC_DRAW);
 
     // Configure attributes for use with the vertex shader.
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(position), NULL); // v0 = position
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Position), NULL); // v0 = position
     glEnableVertexAttribArray(0);
 
     glVertexAttrib3f(1, 1.0f, 1.0f, 1.0f); // v1 = color

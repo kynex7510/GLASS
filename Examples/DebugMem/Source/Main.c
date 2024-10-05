@@ -5,19 +5,19 @@
 
 typedef struct {
     float x, y, z;
-} position;
+} Position;
 
 typedef struct {
     float r, g, b, a;
-} color;
+} Color;
 
-static const position g_VertexList[3] = {
+static const Position g_VertexList[3] = {
     {200.0f, 200.0f, 0.5f}, // Top
     {100.0f, 40.0f, 0.5f},  // Left
     {300.0f, 40.0f, 0.5f},  // Right
 };
 
-static const color g_ColorList[3] =
+static const Color g_ColorList[3] =
 {
 	{ 1.0f, 0.0f, 0.0f, 1.0f },
 	{ 0.0f, 1.0f, 0.0f, 1.0f },
@@ -59,13 +59,13 @@ static void sceneInit(GLuint* vbos) {
     // Configure position attribute.
     glBindBuffer(GL_ARRAY_BUFFER, vbos[0]);
     glBufferData(GL_ARRAY_BUFFER, sizeof(g_VertexList), g_VertexList, GL_STATIC_DRAW);
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(position), NULL); // v0 = position
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Position), NULL); // v0 = position
     glEnableVertexAttribArray(0);
 
     // Configure color attribute.
     glBindBuffer(GL_ARRAY_BUFFER, vbos[1]);
     glBufferData(GL_ARRAY_BUFFER, sizeof(g_ColorList), g_ColorList, GL_STATIC_DRAW);
-    glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, sizeof(color), NULL); // v1 = color
+    glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, sizeof(Color), NULL); // v1 = color
     glEnableVertexAttribArray(1);
 
     // Compute the projection matrix.

@@ -4,9 +4,9 @@
 typedef struct {
 	float x, y, z;
 	float nx, ny, nz;
-} vertex;
+} Vertex;
 
-extern const vertex g_VertexList[3345];
-#define NUM_VERTICES (sizeof(g_VertexList)/sizeof(vertex))
+extern const Vertex g_VertexList[3345];
+#define NUM_VERTICES (sizeof(g_VertexList)/sizeof(Vertex))
 
 #endif /* _LENNY_H */
