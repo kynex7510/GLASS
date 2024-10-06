@@ -88,7 +88,7 @@ Lib/libGLASS.a: Release Lib
 	DEPSDIR=$(CURDIR)/Release --no-print-directory -C Release -f $(CURDIR)/Makefile
 
 Lib/libGLASSd.a: Debug Lib
-	@$(MAKE) BUILD=Debug OUTPUT=$(CURDIR)/$@ BUILD_CFLAGS="-g -Og" \
+	@$(MAKE) BUILD=Debug OUTPUT=$(CURDIR)/$@ BUILD_CFLAGS="-DGLASS_NO_MERCY=1 -g -Og" \
 	DEPSDIR=$(CURDIR)/Debug --no-print-directory -C Debug -f $(CURDIR)/Makefile
 
 #---------------------------------------------------------------------------------

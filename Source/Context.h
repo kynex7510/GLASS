@@ -3,6 +3,12 @@
 
 #include "Utility.h"
 
+#if defined(GLASS_NO_MERCY)
+#define GLASS_context_setError(err) UNREACHABLE(#err)
+#else
+void GLASS_context_setError(GLenum error);
+#endif // GLASS_NO_MERCY
+
 /* Common HAS to be the first member of subcontexts */
 
 typedef struct {
@@ -22,7 +28,6 @@ INLINE CtxV2* GLASS_context_getV2(void) {
 
 void GLASS_context_bind(CtxCommon* ctx);
 void GLASS_context_update(void);
-void GLASS_context_setError(GLenum error);
 void GLASS_context_setSwap(CtxCommon* ctx, bool swap);
 void GLASS_context_waitSwap(CtxCommon* ctx);
 
