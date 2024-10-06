@@ -243,6 +243,13 @@ void glStencilOp(GLenum sfail, GLenum dpfail, GLenum dppass) {
     }
 }
 
+static INLINE GLsizei GLASS_screenWidth(CtxCommon* ctx) {
+    if (ctx->settings.targetScreen == GFX_TOP)
+        return gfxIsWide() ? 800 : 400;
+
+    return 320;
+}
+
 void glViewport(GLint x, GLint y, GLsizei width, GLsizei height) {
     if (width < 0 || height < 0) {
         GLASS_context_setError(GL_INVALID_VALUE);
@@ -251,7 +258,8 @@ void glViewport(GLint x, GLint y, GLsizei width, GLsizei height) {
 
     CtxCommon* ctx = GLASS_context_getCommon();
     if (ctx->viewportX != x || ctx->viewportY != y || ctx->viewportW != width || ctx->viewportH != height) {
-        ctx->viewportX = x;
+        // Account for rotated screens.
+        ctx->viewportX = (GLASS_screenWidth(ctx) - (x + width));
         ctx->viewportY = y;
         ctx->viewportW = width;
         ctx->viewportH = height;

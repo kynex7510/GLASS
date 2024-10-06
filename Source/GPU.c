@@ -209,7 +209,7 @@ void GLASS_gpu_setViewport(GLint x, GLint y, GLsizei width, GLsizei height) {
     data[3] = f32tof31(2.0f / width) << 1;
 
     GPUCMD_AddIncrementalWrites(GPUREG_VIEWPORT_WIDTH, data, 4);
-    GPUCMD_AddWrite(GPUREG_VIEWPORT_XY, (y << 16) | (x & 0xFFFF));
+    GPUCMD_AddWrite(GPUREG_VIEWPORT_XY, (x << 16) | (y & 0xFFFF));
 }
 
 void GLASS_gpu_setScissorTest(GPU_SCISSORMODE mode, GLint x, GLint y, GLsizei width, GLsizei height) {
