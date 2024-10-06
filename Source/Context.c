@@ -397,11 +397,13 @@ void GLASS_context_update(void) {
     GLASS_gpu_disableCommands(g_Context);
 }
 
+#ifndef GLASS_NO_MERCY
 void GLASS_context_setError(GLenum error) {
     ASSERT(g_Context);
     if (g_Context->lastError == GL_NO_ERROR)
         g_Context->lastError = error;
 }
+#endif // GLASS_NO_MERCY
 
 void GLASS_context_setSwap(CtxCommon* ctx, bool swap) {
     ASSERT(ctx);

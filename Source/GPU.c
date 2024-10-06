@@ -209,13 +209,13 @@ void GLASS_gpu_setViewport(GLint x, GLint y, GLsizei width, GLsizei height) {
     data[3] = (f32tof31(2.0f / width) << 1);
 
     GPUCMD_AddIncrementalWrites(GPUREG_VIEWPORT_WIDTH, data, 4);
-    GPUCMD_AddWrite(GPUREG_VIEWPORT_XY, (y << 16) | (x & 0xFFFF));
+    GPUCMD_AddWrite(GPUREG_VIEWPORT_XY, (x << 16) | (y & 0xFFFF));
 }
 
 void GLASS_gpu_setScissorTest(GPU_SCISSORMODE mode, GLint x, GLint y, GLsizei width, GLsizei height) {
     GPUCMD_AddMaskedWrite(GPUREG_SCISSORTEST_MODE, 0x01, mode);
     GPUCMD_AddWrite(GPUREG_SCISSORTEST_POS, (y << 16) | (x & 0xFFFF));
-    GPUCMD_AddWrite(GPUREG_SCISSORTEST_DIM, ((height - y - 1) << 16) | ((width - x - 1) & 0xFFFF));
+    GPUCMD_AddWrite(GPUREG_SCISSORTEST_DIM, ((width - x - 1) << 16) | ((height - y - 1) & 0xFFFF));
 }
 
 static void GLASS_uploadShaderBinary(const ShaderInfo* shader) {

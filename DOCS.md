@@ -29,7 +29,9 @@ When specifying LOD values, they will be clamped in the range `[0, 15]`. When sp
 
 ## Debugging
 
-If GLASS doesn't work as intended, or is responsible for crashing applications, you can compile it in debug mode. Assertions will be enabled, and informations will be logged either under `sdmc:/GLASS.log`, or if GLASS is running under an emulator (eg. citra), they will be logged on the emulator console.
+If GLASS doesn't work as intended, or is responsible for crashing applications, you can compile it in debug mode. Assertions will be enabled, and informations will be logged either under `sdmc:/GLASS.log`, or if GLASS is running under an emulator, they will be logged on the emulator console.
+
+By default, GLASS in debug mode will abort whenever an OpenGL error is raised. This behaviour can be controlled with the `GLASS_NO_MERCY` macro.
 
 Note that GLASS only does error checking to a bare minimum (eg. anything specified by the OpenGL ES standard), for space and computation efficiency. It will not check for buffers to be valid, nor for certain parameters to be correct (thought most assertions catch these). Users of the library must take care when writing applications and make sure to follow the OpenGL ES documentation, or this documentation when the implementation deviates.
 
