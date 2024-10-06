@@ -18,7 +18,8 @@ When calling `glVertexAttribPointer`, the `stride` argument must match the size 
 - `glPolygonOffset`: the `factor` argument has no effect;
 - `glVertexAttribPointer`: the `normalized` argument must be set to `GL_FALSE`;
 - `glDrawArrays`: the `mode` argument must be one of `GL_TRIANGLES`, `GL_TRIANGLE_STRIP`, `GL_TRIANGLE_FAN`, `GL_GEOMETRY_PRIMITIVE_PICA`;
-- If the number of components of the uniform variable as defined in the shader does not match the size specified in the name of the command used to load its value, and the uniform variable is not of type `bool`, no error will be generated; the other components of the specified uniform variable will remain unchanged.
+- If the number of components of the uniform variable as defined in the shader does not match the size specified in the name of the command used to load its value, and the uniform variable is not of type `bool`, no error will be generated; the other components of the specified uniform variable will remain unchanged;
+- `glClear`: scissor test and buffer writemasks are ignored.
 
 ## Debugging
 
