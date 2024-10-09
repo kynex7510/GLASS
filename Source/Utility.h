@@ -96,6 +96,8 @@ void GLASS_utility_setIntUniform(UniformInfo* info, size_t offset, u32 vector);
 void GLASS_utility_getFloatUniform(const UniformInfo* info, size_t offset, u32* out);
 void GLASS_utility_setFloatUniform(UniformInfo* info, size_t offset, const u32* vectorData);
 
+GPU_TEXCOLOR GLASS_utility_getTexFormat(GLenum format, GLenum dataType);
+bool GLASS_utility_isValidTexCombination(GLenum format, GLenum dataType);
 GPU_TEXTURE_FILTER_PARAM GLASS_utility_getTexFilter(GLenum filter);
 GPU_TEXTURE_FILTER_PARAM GLASS_utility_getMipFilter(GLenum minFilter);
 GPU_TEXTURE_WRAP_PARAM GLASS_utility_getTexWrap(GLenum wrap);
