@@ -2,10 +2,10 @@
 #include "Utility.h"
 
 #define IS_COLOR_FORMAT(format) \
-    (((format) == GL_RGBA8) || ((format) == GL_RGB5_A1) || ((format) == GL_RGB565) || ((format) == GL_RGBA4))
+    (((format) == GL_RGBA8_OES) || ((format) == GL_RGB5_A1) || ((format) == GL_RGB565) || ((format) == GL_RGBA4))
 
 #define IS_DEPTH_FORMAT(format) \
-    (((format) == GL_DEPTH_COMPONENT16) || ((format) == GL_DEPTH_COMPONENT24) || ((format) == GL_DEPTH24_STENCIL8))
+    (((format) == GL_DEPTH_COMPONENT16) || ((format) == GL_DEPTH_COMPONENT24_OES) || ((format) == GL_DEPTH24_STENCIL8_OES))
 
 void glBindFramebuffer(GLenum target, GLuint framebuffer) {
     if (target != GL_FRAMEBUFFER) {
@@ -240,7 +240,7 @@ void glGenRenderbuffers(GLsizei n, GLuint* renderbuffers) {
 
 static GLint GLASS_getColorSize(GLenum format, GLenum color) {
     switch (format) {
-        case GL_RGBA8:
+        case GL_RGBA8_OES:
             return 8;
         case GL_RGB5_A1:
             return color == GL_RENDERBUFFER_ALPHA_SIZE ? 1 : 5;
@@ -263,8 +263,8 @@ static GLint GLASS_getDepthSize(GLenum format) {
     switch (format) {
         case GL_DEPTH_COMPONENT16:
             return 16;
-        case GL_DEPTH_COMPONENT24:
-        case GL_DEPTH24_STENCIL8:
+        case GL_DEPTH_COMPONENT24_OES:
+        case GL_DEPTH24_STENCIL8_OES:
             return 24;
     }
 
@@ -309,7 +309,7 @@ void glGetRenderbufferParameteriv(GLenum target, GLenum pname, GLint* params) {
             *params = GLASS_getDepthSize(info->format);
             break;
         case GL_RENDERBUFFER_STENCIL_SIZE:
-            *params = info->format == GL_DEPTH24_STENCIL8 ? 8 : 0;
+            *params = info->format == GL_DEPTH24_STENCIL8_OES ? 8 : 0;
             break;
         default:
             GLASS_context_setError(GL_INVALID_ENUM);

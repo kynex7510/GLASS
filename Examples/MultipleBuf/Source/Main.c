@@ -98,7 +98,7 @@ int main() {
     glGenRenderbuffers(1, &rb);
     glBindFramebuffer(GL_FRAMEBUFFER, fb);
     glBindRenderbuffer(GL_RENDERBUFFER, rb);
-    glRenderbufferStorage(GL_RENDERBUFFER, GL_RGBA8, 400, 240);
+    glRenderbufferStorage(GL_RENDERBUFFER, GL_RGBA8_OES, 400, 240);
     glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_RENDERBUFFER, rb);
 
     glViewport(0, 0, 400, 240);

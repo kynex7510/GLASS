@@ -647,8 +647,8 @@ void GLASS_gpu_setDepthMap(bool enabled, GLclampf nearVal, GLclampf farVal, GLfl
         case GL_DEPTH_COMPONENT16:
             offset = (units / 65535.0f);
             break;
-        case GL_DEPTH_COMPONENT24:
-        case GL_DEPTH24_STENCIL8:
+        case GL_DEPTH_COMPONENT24_OES:
+        case GL_DEPTH24_STENCIL8_OES:
             offset = (units / 16777215.0f);
             break;
     }
