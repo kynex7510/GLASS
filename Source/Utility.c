@@ -111,10 +111,10 @@ u32 GLASS_utility_makeClearColor(GLenum format, u32 color) {
     u32 cvt = 0;
 
     switch (format) {
-        case GL_RGBA8:
+        case GL_RGBA8_OES:
             cvt = color;
             break;
-        case GL_RGB8:
+        case GL_RGB8_OES:
             cvt = color >> 8;
             break;
         case GL_RGBA4:
@@ -149,10 +149,10 @@ u32 GLASS_utility_makeClearDepth(GLenum format, GLclampf factor, u8 stencil) {
         case GL_DEPTH_COMPONENT16:
             clearDepth = (u32)(0xFFFF * factor);
             break;
-        case GL_DEPTH_COMPONENT24:
+        case GL_DEPTH_COMPONENT24_OES:
             clearDepth = (u32)(0xFFFFFF * factor);
             break;
-        case GL_DEPTH24_STENCIL8:
+        case GL_DEPTH24_STENCIL8_OES:
             clearDepth = (((u32)(0xFFFFFF * factor) << 8) | stencil);
             break;
         default:
@@ -164,11 +164,11 @@ u32 GLASS_utility_makeClearDepth(GLenum format, GLclampf factor, u8 stencil) {
 
 size_t GLASS_utility_getBytesPerPixel(GLenum format) {
     switch (format) {
-        case GL_RGBA8:
-        case GL_DEPTH24_STENCIL8:
+        case GL_RGBA8_OES:
+        case GL_DEPTH24_STENCIL8_OES:
             return 4;
-        case GL_RGB8:
-        case GL_DEPTH_COMPONENT24:
+        case GL_RGB8_OES:
+        case GL_DEPTH_COMPONENT24_OES:
             return 3;
         case GL_RGB5_A1:
         case GL_RGB565:
@@ -182,7 +182,7 @@ size_t GLASS_utility_getBytesPerPixel(GLenum format) {
 
 size_t GLASS_utility_getPixelSizeForFB(GLenum format) {
     switch (format) {
-        case GL_RGBA8:
+        case GL_RGBA8_OES:
             return 2;
         case GL_RGB5_A1:
         case GL_RGB565:
@@ -196,11 +196,11 @@ size_t GLASS_utility_getPixelSizeForFB(GLenum format) {
 GLenum GLASS_utility_wrapFBFormat(GSPGPU_FramebufferFormat format) {
     switch (format) {
         case GSP_RGBA8_OES:
-            return GL_RGBA8;
+            return GL_RGBA8_OES;
         case GSP_BGR8_OES:
             // This is not supported by OpenGL framebuffers; however it's required
             // for correctly wrapping libctru framebuffer formats.
-            return GL_BGR8;
+            return GL_BGR8_PICA;
         case GSP_RGB565_OES:
             return GL_RGB565;
         case GSP_RGB5_A1_OES:
@@ -214,9 +214,9 @@ GLenum GLASS_utility_wrapFBFormat(GSPGPU_FramebufferFormat format) {
 
 GX_TRANSFER_FORMAT GLASS_utility_getTransferFormat(GLenum format) {
     switch (format) {
-        case GL_RGBA8:
+        case GL_RGBA8_OES:
             return GX_TRANSFER_FMT_RGBA8;
-        case GL_BGR8:
+        case GL_BGR8_PICA:
             return GX_TRANSFER_FMT_RGB8; // Misnomer.
         case GL_RGB565:
             return GX_TRANSFER_FMT_RGB565;
@@ -231,9 +231,9 @@ GX_TRANSFER_FORMAT GLASS_utility_getTransferFormat(GLenum format) {
 
 GPU_COLORBUF GLASS_utility_getRBFormat(GLenum format) {
     switch (format) {
-        case GL_RGBA8:
+        case GL_RGBA8_OES:
             return GPU_RB_RGBA8;
-        case GL_RGB8:
+        case GL_RGB8_OES:
             return GPU_RB_RGB8;
         case GL_RGB5_A1:
             return GPU_RB_RGBA5551;
@@ -243,9 +243,9 @@ GPU_COLORBUF GLASS_utility_getRBFormat(GLenum format) {
             return GPU_RB_RGBA4;
         case GL_DEPTH_COMPONENT16:
             return GPU_RB_DEPTH16;
-        case GL_DEPTH_COMPONENT24:
+        case GL_DEPTH_COMPONENT24_OES:
             return GPU_RB_DEPTH24;
-        case GL_DEPTH24_STENCIL8:
+        case GL_DEPTH24_STENCIL8_OES:
             return GPU_RB_DEPTH24_STENCIL8;
     }
 

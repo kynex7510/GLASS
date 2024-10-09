@@ -29,8 +29,8 @@
 #define DVLE_MAGIC "\x44\x56\x4C\x45"
 
 typedef struct {
-    u32 numOfDVLEs; // Number of DVLE entries.
-    u32* DVLETable; // Pointer to DVLE entries.
+    u32 numOfDVLEs;  // Number of DVLE entries.
+    u32 DVLETable[]; // DVLE entries.
 } DVLB;
 
 typedef struct {
@@ -259,7 +259,6 @@ static DVLB* GLASS_parseDVLB(const u8* data, size_t size) {
 
     if (dvlb) {
         dvlb->numOfDVLEs = numOfDVLEs;
-        dvlb->DVLETable = (u32*)((u8*)dvlb + sizeof(DVLB));
 
         // Fill table with offsets.
         for (size_t i = 0; i < numOfDVLEs; ++i) {
