@@ -50,13 +50,13 @@ Emulator GLASS_utility_detectEmulator(void) {
     if (g_Emu == -1) {
         // Detect citra.
         s64 check = 0;
-        if (R_SUCCEEDED(svcGetSystemInfo(&check, CITRA_TYPE, 0)) && check == 1) {
+        if (R_SUCCEEDED(svcGetSystemInfo(&check, CITRA_TYPE, 0)) && (check == 1)) {
             g_Emu = (int)Emu_Citra;
             return Emu_Citra;
         }
 
         // Detect panda.
-        if (R_SUCCEEDED(svcGetSystemInfo(&check, PANDA_TYPE, 0)) && check == 1) {
+        if (R_SUCCEEDED(svcGetSystemInfo(&check, PANDA_TYPE, 0)) && (check == 1)) {
             g_Emu = (int)Emu_Panda;
             return Emu_Panda;
         }
@@ -105,7 +105,18 @@ float GLASS_utility_f24tof32(u32 f) {
     return cast.val;
 }
 
-u32 GLASS_utility_f32tofixed13(float f) { UNREACHABLE("Unimplemented!"); }
+u32 GLASS_utility_f32tofixed13(float f) {
+    f = CLAMP(-15.255, 15.255, f);
+    u32 sign = 0;
+
+    if (f < 0.0f) {
+        f = -f;
+        sign |= (1u << 12);
+    }
+
+    const u32 i = ((u32)(f) & 0xF);
+    return (sign | (i << 8) | ((u32)((f - i) * 1000.0f) & 0xFF));
+}
 
 u32 GLASS_utility_makeClearColor(GLenum format, u32 color) {
     u32 cvt = 0;
@@ -733,7 +744,9 @@ static GPU_TEXCOLOR GLASS_getTexFormatImpl(GLenum format, GLenum dataType) {
     if (format == GL_ETC1_RGB8_OES)
         return GPU_ETC1;
 
-    // TODO: ETC1A4
+    if (format == GL_ETC1_ALPHA_RGB8_A4_PICA)
+        return GPU_ETC1A4;
+
     return (GPU_TEXCOLOR)-1;
 }
 

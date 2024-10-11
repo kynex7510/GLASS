@@ -216,12 +216,12 @@ void glVertexAttrib4fv(GLuint index, const GLfloat* v) {
 }
 
 void glVertexAttribPointer(GLuint index, GLint size, GLenum type, GLboolean normalized, GLsizei stride, const GLvoid* pointer) {
-    if (type != GL_BYTE && type != GL_UNSIGNED_BYTE && type != GL_SHORT && type != GL_FLOAT) {
+    if ((type != GL_BYTE) && (type != GL_UNSIGNED_BYTE) && (type != GL_SHORT) && (type != GL_FLOAT)) {
         GLASS_context_setError(GL_INVALID_ENUM);
         return;
     }
 
-    if (index >= GLASS_NUM_ATTRIB_REGS || size < 1 || size > 4 || stride < 0 || normalized != GL_FALSE) {
+    if ((index >= GLASS_NUM_ATTRIB_REGS) || (size < 1) || (size > 4) || (stride < 0) || (normalized != GL_FALSE)) {
         GLASS_context_setError(GL_INVALID_VALUE);
         return;
     }

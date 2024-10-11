@@ -49,7 +49,7 @@ void glBindBuffer(GLenum target, GLuint buffer) {
 }
 
 void glBufferData(GLenum target, GLsizeiptr size, const void* data, GLenum usage) {
-    if (usage != GL_STREAM_DRAW && usage != GL_STATIC_DRAW && usage != GL_DYNAMIC_DRAW) {
+    if ((usage != GL_STREAM_DRAW) && (usage != GL_STATIC_DRAW) && (usage != GL_DYNAMIC_DRAW)) {
         GLASS_context_setError(GL_INVALID_ENUM);
         return;
     }
@@ -89,7 +89,7 @@ void glBufferData(GLenum target, GLsizeiptr size, const void* data, GLenum usage
 void glBufferSubData(GLenum target, GLintptr offset, GLsizeiptr size, const void* data) {
     ASSERT(data);
 
-    if (offset < 0 || size < 0) {
+    if ((offset < 0) || (size < 0)) {
         GLASS_context_setError(GL_INVALID_VALUE);
         return;
     }

@@ -59,15 +59,15 @@ void glClear(GLbitfield mask) {
 
 void glClearColor(GLclampf red, GLclampf green, GLclampf blue, GLclampf alpha) {
     CtxCommon* ctx = GLASS_context_getCommon();
-    ctx->clearColor = (u32)(0xFF * CLAMP_FLOAT(red)) << 24;
-    ctx->clearColor |= (u32)(0xFF * CLAMP_FLOAT(green)) << 16;
-    ctx->clearColor |= (u32)(0xFF * CLAMP_FLOAT(blue)) << 8;
-    ctx->clearColor |= (u32)(0xFF * CLAMP_FLOAT(alpha));
+    ctx->clearColor = (u32)(0xFF * CLAMP(0.0f, 1.0f, red)) << 24;
+    ctx->clearColor |= (u32)(0xFF * CLAMP(0.0f, 1.0f, green)) << 16;
+    ctx->clearColor |= (u32)(0xFF * CLAMP(0.0f, 1.0f, blue)) << 8;
+    ctx->clearColor |= (u32)(0xFF * CLAMP(0.0f, 1.0f, alpha));
 }
 
 void glClearDepthf(GLclampf depth) {
     CtxCommon* ctx = GLASS_context_getCommon();
-    ctx->clearDepth = CLAMP_FLOAT(depth);
+    ctx->clearDepth = CLAMP(0.0f, 1.0f, depth);
 }
 
 void glClearStencil(GLint s) {
@@ -106,7 +106,7 @@ void glDrawElements(GLenum mode, GLsizei count, GLenum type, const GLvoid* indic
         return;
     }
 
-    if (type != GL_UNSIGNED_BYTE && type != GL_UNSIGNED_SHORT) {
+    if ((type != GL_UNSIGNED_BYTE) && (type != GL_UNSIGNED_SHORT)) {
         GLASS_context_setError(GL_INVALID_ENUM);
         return;
     }

@@ -39,7 +39,8 @@ void GLASS_utility_logImpl(const char* msg, size_t len);
 #endif // NDEBUG
 
 #define MIN(a, b) ((a) < (b) ? (a) : (b))
-#define CLAMP_FLOAT(f) ((f) < 0.0f ? 0.0f : ((f) > 1.0f ? 1.0f : (f)))
+#define MAX(a, b) ((a) > (b) ? (a) : (b))
+#define CLAMP(min, max, val) (MAX((min), MIN((max), (val))))
 
 typedef enum {
     Emu_None = 0,

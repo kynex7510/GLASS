@@ -45,10 +45,10 @@ void glAlphaFunc(GLenum func, GLclampf ref) {
 void glBlendColor(GLclampf red, GLclampf green, GLclampf blue, GLclampf alpha) {
     CtxCommon* ctx = GLASS_context_getCommon();
 
-    u32 blendColor = ((u32)(0xFF * CLAMP_FLOAT(red)) << 24);
-    blendColor |= ((u32)(0xFF * CLAMP_FLOAT(green)) << 16);
-    blendColor |= ((u32)(0xFF * CLAMP_FLOAT(blue)) << 8);
-    blendColor |= ((u32)(0xFF * CLAMP_FLOAT(alpha)));
+    u32 blendColor = ((u32)(0xFF * CLAMP(0.0f, 1.0f, red)) << 24);
+    blendColor |= ((u32)(0xFF * CLAMP(0.0f, 1.0f, green)) << 16);
+    blendColor |= ((u32)(0xFF * CLAMP(0.0f, 1.0f, blue)) << 8);
+    blendColor |= ((u32)(0xFF * CLAMP(0.0f, 1.0f, alpha)));
 
     if (ctx->blendColor != blendColor) {
         ctx->blendColor = blendColor;
@@ -64,7 +64,7 @@ void glBlendEquationSeparate(GLenum modeRGB, GLenum modeAlpha) {
   }
 
     CtxCommon* ctx = GLASS_context_getCommon();
-    if (ctx->blendEqRGB != modeRGB || ctx->blendEqAlpha != modeAlpha) {
+    if ((ctx->blendEqRGB != modeRGB) || (ctx->blendEqAlpha != modeAlpha)) {
         ctx->blendEqRGB = modeRGB;
         ctx->blendEqAlpha = modeAlpha;
         if (ctx->blendMode)
@@ -81,7 +81,7 @@ void glBlendFuncSeparate(GLenum srcRGB, GLenum dstRGB, GLenum srcAlpha, GLenum d
     }
 
     CtxCommon* ctx = GLASS_context_getCommon();
-    if (ctx->blendSrcRGB != srcRGB || ctx->blendDstRGB != dstRGB || ctx->blendSrcAlpha != srcAlpha || ctx->blendDstAlpha != dstAlpha) {
+    if ((ctx->blendSrcRGB != srcRGB) || (ctx->blendDstRGB != dstRGB) || (ctx->blendSrcAlpha != srcAlpha) || (ctx->blendDstAlpha != dstAlpha)) {
         ctx->blendSrcRGB = srcRGB;
         ctx->blendDstRGB = dstRGB;
         ctx->blendSrcAlpha = srcAlpha;
@@ -142,8 +142,8 @@ void glDepthMask(GLboolean flag) {
 
 void glDepthRangef(GLclampf nearVal, GLclampf farVal) {
     CtxCommon* ctx = GLASS_context_getCommon();
-    ctx->depthNear = CLAMP_FLOAT(nearVal);
-    ctx->depthFar = CLAMP_FLOAT(farVal);
+    ctx->depthNear = CLAMP(0.0f, 1.0f, nearVal);
+    ctx->depthFar = CLAMP(0.0f, 1.0f, farVal);
     if (ctx->depthTest)
         ctx->flags |= CONTEXT_FLAG_DEPTHMAP;
 }
@@ -192,13 +192,13 @@ static INLINE GLsizei GLASS_screenWidth(CtxCommon* ctx) {
 }
 
 void glScissor(GLint x, GLint y, GLsizei width, GLsizei height) {
-    if (width < 0 || height < 0) {
+    if ((width < 0) || (height < 0)) {
         GLASS_context_setError(GL_INVALID_VALUE);
         return;
     }
 
     CtxCommon* ctx = GLASS_context_getCommon();
-    if (ctx->scissorX != x || ctx->scissorY != y || ctx->scissorW != width || ctx->scissorH != height) {
+    if ((ctx->scissorX != x) || (ctx->scissorY != y) || (ctx->scissorW != width) || (ctx->scissorH != height)) {
         // Account for rotated screens.
         ctx->scissorX = (GLASS_screenWidth(ctx) - (x + width));
         ctx->scissorY = y;
@@ -217,7 +217,7 @@ void glStencilFunc(GLenum func, GLint ref, GLuint mask) {
     }
 
     CtxCommon* ctx = GLASS_context_getCommon();
-    if (ctx->stencilFunc != func || ctx->stencilRef != ref || ctx->stencilMask != mask) {
+    if ((ctx->stencilFunc != func) || (ctx->stencilRef != ref) || (ctx->stencilMask != mask)) {
         ctx->stencilFunc = func;
         ctx->stencilRef = ref;
         ctx->stencilMask = mask;
@@ -242,7 +242,7 @@ void glStencilOp(GLenum sfail, GLenum dpfail, GLenum dppass) {
     }
 
     CtxCommon* ctx = GLASS_context_getCommon();
-    if (ctx->stencilFail != sfail || ctx->stencilDepthFail != dpfail || ctx->stencilPass != dppass) {
+    if ((ctx->stencilFail != sfail) || (ctx->stencilDepthFail != dpfail) || (ctx->stencilPass != dppass)) {
         ctx->stencilFail = sfail;
         ctx->stencilDepthFail = dpfail;
         ctx->stencilPass = dppass;
@@ -252,13 +252,13 @@ void glStencilOp(GLenum sfail, GLenum dpfail, GLenum dppass) {
 }
 
 void glViewport(GLint x, GLint y, GLsizei width, GLsizei height) {
-    if (width < 0 || height < 0) {
+    if ((width < 0) || (height < 0)) {
         GLASS_context_setError(GL_INVALID_VALUE);
         return;
     }
 
     CtxCommon* ctx = GLASS_context_getCommon();
-    if (ctx->viewportX != x || ctx->viewportY != y || ctx->viewportW != width || ctx->viewportH != height) {
+    if ((ctx->viewportX != x) || (ctx->viewportY != y) || (ctx->viewportW != width) || (ctx->viewportH != height)) {
         // Account for rotated screens.
         ctx->viewportX = (GLASS_screenWidth(ctx) - (x + width));
         ctx->viewportY = y;

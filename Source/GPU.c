@@ -431,12 +431,12 @@ static void GLASS_extractAttribBuffersInfo(const AttributeInfo* attribs, Attribu
                 break;
             }
 
-            if (!attribBuffer->physAddr && firstEmpty == GLASS_NUM_ATTRIB_BUFFERS)
+            if (!attribBuffer->physAddr && (firstEmpty == GLASS_NUM_ATTRIB_BUFFERS))
                 firstEmpty = i;
         }
 
         // Initialize if not done yet.
-        if (!found && firstEmpty != GLASS_NUM_ATTRIB_BUFFERS) {
+        if (!found && (firstEmpty != GLASS_NUM_ATTRIB_BUFFERS)) {
             AttributeBuffer* attribBuffer = &attribBuffers[firstEmpty];
             attribBuffer->physAddr = attrib->physAddr;
             attribBuffer->stride = attrib->stride;

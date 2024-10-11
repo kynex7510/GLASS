@@ -68,7 +68,7 @@ static void GLASS_freeUniformData(ShaderInfo* shader) {
 
     for (size_t i = 0; i < shader->numOfActiveUniforms; ++i) {
         UniformInfo* uni = &shader->activeUniforms[i];
-        if (uni->type == GLASS_UNI_FLOAT || (uni->type == GLASS_UNI_INT && uni->count > 1))
+        if ((uni->type == GLASS_UNI_FLOAT) || ((uni->type == GLASS_UNI_INT) && (uni->count > 1)))
             glassVirtualFree(uni->data.values);
     }
 
@@ -477,7 +477,7 @@ static void GLASS_generateOutmaps(const DVLEInfo* info, ShaderInfo* out) {
 
                 // Check for position.z clock.
                 ++curSem;
-                if (entry->type == RESULT_POSITION && curSem == 3)
+                if ((entry->type == RESULT_POSITION) && (curSem == 3))
                     out->outClock |= (1u << 0);
             }
         }
@@ -564,7 +564,7 @@ static bool GLASS_loadUniforms(const DVLEInfo* info, ShaderInfo* out) {
     // Shader binaries do not differentiate between active uniforms and active attributes.
     for (size_t i = 0; i < info->numOfActiveUniforms; ++i) {
         const DVLE_uniformEntry_s* entry = &info->activeUniforms[i];
-        if (entry->startReg >= 0x00 && entry->startReg <= 0x0F) {
+        if ((entry->startReg >= 0x00) && (entry->startReg <= 0x0F)) {
             ++out->numOfActiveAttribs;
 
             // Update max symbol length.
@@ -604,7 +604,7 @@ static bool GLASS_loadUniforms(const DVLEInfo* info, ShaderInfo* out) {
         const DVLE_uniformEntry_s* entry = &info->activeUniforms[i];
 
         // Skip attributes.
-        if (entry->startReg >= 0x00 && entry->startReg <= 0x0F)
+        if ((entry->startReg >= 0x00) && (entry->startReg <= 0x0F))
             continue;
 
         UniformInfo* uni = &out->activeUniforms[index++];
@@ -618,7 +618,7 @@ static bool GLASS_loadUniforms(const DVLEInfo* info, ShaderInfo* out) {
             out->activeUniformsMaxLen = symLen;
 
         // Handle bool.
-        if (entry->startReg >= 0x78 && entry->startReg <= 0x87) {
+        if ((entry->startReg >= 0x78) && (entry->startReg <= 0x87)) {
             ASSERT(entry->endReg <= 0x87);
             uni->ID -= 0x78;
             uni->type = GLASS_UNI_BOOL;
@@ -627,7 +627,7 @@ static bool GLASS_loadUniforms(const DVLEInfo* info, ShaderInfo* out) {
         }
 
         // Handle int.
-        if (entry->startReg >= 0x70 && entry->startReg <= 0x73) {
+        if ((entry->startReg >= 0x70) && (entry->startReg <= 0x73)) {
             ASSERT(entry->endReg <= 0x73);
             uni->ID -= 0x70;
             uni->type = GLASS_UNI_INT;
@@ -644,7 +644,7 @@ static bool GLASS_loadUniforms(const DVLEInfo* info, ShaderInfo* out) {
         }
 
         // Handle float.
-        if (entry->startReg >= 0x10 && entry->startReg <= 0x6F) {
+        if ((entry->startReg >= 0x10) && (entry->startReg <= 0x6F)) {
             ASSERT(entry->endReg <= 0x6F);
             uni->ID -= 0x10;
             uni->type = GLASS_UNI_FLOAT;
@@ -973,7 +973,7 @@ void glShaderBinary(GLsizei n, const GLuint* shaders, GLenum binaryformat, const
         return;
     }
 
-    if (n < 0 || length < 0) {
+    if ((n < 0) || (length < 0)) {
         GLASS_context_setError(GL_INVALID_VALUE);
         return;
     }
@@ -1071,7 +1071,7 @@ glShaderBinary_skip:
 }
 
 void glUseProgram(GLuint program) {
-    if (!OBJ_IS_PROGRAM(program) && program != GLASS_INVALID_OBJECT) {
+    if (!OBJ_IS_PROGRAM(program) && (program != GLASS_INVALID_OBJECT)) {
         GLASS_context_setError(GL_INVALID_OPERATION);
         return;
     }

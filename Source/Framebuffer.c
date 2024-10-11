@@ -154,7 +154,7 @@ void glDeleteRenderbuffers(GLsizei n, const GLuint* renderbuffers) {
 }
 
 void glFramebufferRenderbuffer(GLenum target, GLenum attachment, GLenum renderbuffertarget, GLuint renderbuffer) {
-    if (target != GL_FRAMEBUFFER || renderbuffertarget != GL_RENDERBUFFER) {
+    if ((target != GL_FRAMEBUFFER) || (renderbuffertarget != GL_RENDERBUFFER)) {
         GLASS_context_setError(GL_INVALID_ENUM);
         return;
     }
@@ -331,12 +331,12 @@ GLboolean glIsRenderbuffer(GLuint renderbuffer) {
 }
 
 void glRenderbufferStorage(GLenum target, GLenum internalformat, GLsizei width, GLsizei height) {
-    if (target != GL_RENDERBUFFER || (!IS_COLOR_FORMAT(internalformat) && !IS_DEPTH_FORMAT(internalformat))) {
+    if ((target != GL_RENDERBUFFER) || (!IS_COLOR_FORMAT(internalformat) && !IS_DEPTH_FORMAT(internalformat))) {
         GLASS_context_setError(GL_INVALID_ENUM);
         return;
     }
 
-    if (width <= 0 || height <= 0 || width > 1024 || height > 1024) {
+    if ((width <= 0) || (height <= 0) || (width > GLASS_MAX_FB_WIDTH) || (height > GLASS_MAX_FB_HEIGHT)) {
         GLASS_context_setError(GL_INVALID_VALUE);
         return;
     }

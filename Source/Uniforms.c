@@ -205,7 +205,7 @@ static INLINE size_t GLASS_extractUniformOffset(const char* name) {
         return 0;
 
     const char* end = strstr(beg, "]");
-    if (!end || end[1] != '\0' || !(size_t)(end - beg))
+    if (!end || (end[1] != '\0') || ((size_t)(end - beg) == 0))
         return -1;
 
     return atoi(&beg[1]);
@@ -218,7 +218,7 @@ static GLint GLASS_lookupUniform(const ShaderInfo* shader, const char* name, siz
         if (strstr(name, uni->symbol) != name)
             continue;
 
-        if (!CHECK_OFFSET(uni->type, offset) || offset > uni->count)
+        if (!CHECK_OFFSET(uni->type, offset) || (offset > uni->count))
             break;
 
         // Make location.
@@ -252,7 +252,7 @@ GLint glGetUniformLocation(GLuint program, const GLchar* name) {
             ShaderInfo* gshad = (ShaderInfo*)prog->linkedGeometry;
             GLint loc = GLASS_lookupUniform(vshad, name, offset);
 
-            if (loc == -1 && gshad)
+            if ((loc == -1) && gshad)
                 loc = GLASS_lookupUniform(gshad, name, offset);
 
             return loc;
@@ -288,7 +288,7 @@ static void GLASS_setUniformValues(GLint location, const GLint* intValues, const
 
     // Get uniform.
     UniformInfo* uni = GLASS_getShaderUniform(prog, locIndex, locIsGeometry);
-    if (!uni || locOffset >= uni->count || (uni->count == 1 && numOfElements != 1)) {
+    if (!uni || (locOffset >= uni->count) || (uni->count == 1 && numOfElements != 1)) {
         GLASS_context_setError(GL_INVALID_OPERATION);
         return;
     }
