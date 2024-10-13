@@ -11,6 +11,8 @@ The GPU has 16 input registers, but at most 12 can be used at the same time: `gl
 
 When calling `glVertexAttribPointer`, the `stride` argument must match the size of the attribute buffer. Moreover, if a raw buffer is passed as the `pointer` argument, said buffer must be allocated on linear heap, and must be flushed before being used.
 
+In a vertex buffer, each component value must be aligned to its type size; `glVertexAttribPointer` fails with `GL_INVALID_OPERATION` if this is not the case.
+
 ## Differences from the standard
 
 - `glBind*` functions will not create buffers when passing arbitrary buffer values, instead `glGen*` must be used for buffer creation;
