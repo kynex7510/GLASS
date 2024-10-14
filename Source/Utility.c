@@ -663,10 +663,10 @@ void GLASS_utility_getFloatUniform(const UniformInfo* info, size_t offset, u32* 
     ASSERT(info->type == GLASS_UNI_FLOAT);
     ASSERT(info->count <= GLASS_NUM_FLOAT_UNIFORMS);
     ASSERT(offset < info->count);
-    memcpy(out, &info->data.values[3 * offset], sizeof(u32));
+    memcpy(out, &info->data.values[3 * offset], 3 * sizeof(u32));
 }
 
-void GLASS_utility_setFloatUniform(UniformInfo* info, size_t offset, const u32*vector) {
+void GLASS_utility_setFloatUniform(UniformInfo* info, size_t offset, const u32* vector) {
     ASSERT(info);
     ASSERT(info->type == GLASS_UNI_FLOAT);
     ASSERT(info->count <= GLASS_NUM_FLOAT_UNIFORMS);

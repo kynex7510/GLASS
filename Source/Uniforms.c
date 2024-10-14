@@ -152,7 +152,7 @@ void GLASS_getUniformValues(GLuint program, GLint location, GLint* intParams, GL
     // Handle int.
     if (uni->type == GLASS_UNI_INT) {
         u32 packed = 0;
-        u32 components[4] = {};
+        u32 components[4];
         GLASS_utility_getIntUniform(uni, locOffset, &packed);
         GLASS_utility_unpackIntVector(packed, components);
 
@@ -171,7 +171,7 @@ void GLASS_getUniformValues(GLuint program, GLint location, GLint* intParams, GL
 
     // Handle float.
     if (uni->type == GLASS_UNI_FLOAT) {
-        u32 packed[3] = {};
+        u32 packed[3];
         GLASS_utility_getFloatUniform(uni, locOffset, packed);
 
         if (floatParams)
@@ -321,7 +321,7 @@ static void GLASS_setUniformValues(GLint location, const GLint* intValues, const
         }
 
         for (size_t i = locOffset; i < MIN(uni->count, locOffset + numOfElements); ++i) {
-            u32 components[4] = {};
+            u32 components[4];
             u32 packed = 0;
 
             GLASS_utility_getIntUniform(uni, i, &packed);
@@ -345,8 +345,8 @@ static void GLASS_setUniformValues(GLint location, const GLint* intValues, const
         }
 
         for (size_t i = locOffset; i < MIN(uni->count, locOffset + numOfElements); ++i) {
-            float components[4] = {};
-            u32 packed[3] = {};
+            float components[4];
+            u32 packed[3];
 
             GLASS_utility_getFloatUniform(uni, i, packed);
             GLASS_utility_unpackFloatVector(packed, components);
