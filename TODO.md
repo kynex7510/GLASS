@@ -18,6 +18,7 @@
 
 - Add support for extensions
 - Optimize the whole library
+- Clean documentation
 
 ## Final goal
 
