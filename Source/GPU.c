@@ -2,7 +2,7 @@
 #include "Utility.h"
 
 #include <stdlib.h> // qsort
-#include <string.h> // memcpy
+#include <string.h> // memcpy, memset
 
 #define PHYSICAL_LINEAR_BASE 0x18000000
 #define GPU_MAX_ENTRIES 0x4000
@@ -23,7 +23,7 @@ void GLASS_gpu_init(CtxCommon* ctx) {
     ASSERT(ctx->cmdBuffer);
 
     ctx->gxQueue.maxEntries = GX_MAX_ENTRIES;
-    ctx->gxQueue.entries = glassVirtualAlloc(ctx->gxQueue.maxEntries * sizeof(gxCmdEntry_s));
+    ctx->gxQueue.entries = (gxCmdEntry_s*)glassVirtualAlloc(ctx->gxQueue.maxEntries * sizeof(gxCmdEntry_s));
     ASSERT(ctx->gxQueue.entries);
 }
 
@@ -146,7 +146,7 @@ void GLASS_gpu_bindFramebuffer(const FramebufferInfo* info, bool block32) {
     u32 height = 0;
     GLenum colorFormat = 0;
     GLenum depthFormat = 0;
-    u32 params[4] = {};
+    u32 params[4];
 
     if (info) {
         if (info->colorBuffer) {
@@ -291,7 +291,7 @@ void GLASS_gpu_bindShaders(const ShaderInfo* vertexShader, const ShaderInfo* geo
         const ShaderInfo* mainShader = geometryShader ? geometryShader : vertexShader;
         if (mainShader) {
             mergedOutTotal = mainShader->outTotal;
-            memcpy(mergedOutSems, mainShader->outSems, 7 * sizeof(u32));
+            memcpy(mergedOutSems, mainShader->outSems, sizeof(mainShader->outSems));
             mergedOutClock = mainShader->outClock;
             useTexcoords = mainShader->flags & SHADER_FLAG_USE_TEXCOORDS;
         }
@@ -461,7 +461,7 @@ static void GLASS_extractAttribBuffersInfo(const AttributeInfo* attribs, Attribu
             buffer[(j * 2) + 1] = attribBuffer->componentOffsets[j];
         }
 
-        qsort(buffer, attribBuffer->numComponents, sizeof(u32) * 2, GLASS_compareAttribOffsets);
+        qsort(buffer, attribBuffer->numComponents, sizeof(buffer), GLASS_compareAttribOffsets);
 
         // We don't need the offsets anymore.
         for (size_t j = 0; j < attribBuffer->numComponents; ++j)
@@ -474,7 +474,8 @@ void GLASS_gpu_uploadAttributes(const AttributeInfo* attribs) {
 
     // Extract attrib buffers info.
     // Each buffer comes with a list of input registers, ordered by their offset.
-    AttributeBuffer attribBuffers[GLASS_NUM_ATTRIB_BUFFERS] = {};
+    AttributeBuffer attribBuffers[GLASS_NUM_ATTRIB_BUFFERS];
+    memset(&attribBuffers, 0, sizeof(attribBuffers));
     GLASS_extractAttribBuffersInfo(attribs, attribBuffers);
 
     u32 format[2];
@@ -548,12 +549,14 @@ void GLASS_gpu_uploadAttributes(const AttributeInfo* attribs) {
 
     // Step 3: setup attribute buffers.
     for (size_t i = 0; i < GLASS_NUM_ATTRIB_BUFFERS; ++i) {
-        u32 params[3] = {};
+        u32 params[3];
+        memset(&params, 0, sizeof(params));
         AttributeBuffer* attribBuffer = &attribBuffers[i];
 
         if (attribBuffer->physAddr) {
             // Calculate permutation.
-            u32 permutation[2] = {};
+            u32 permutation[2];
+            memset(&permutation, 0, sizeof(permutation));
 
             // Basically resolve every input register to its mapped vertex attribute.
             for (size_t j = 0; j < attribBuffer->numComponents; ++j) {
