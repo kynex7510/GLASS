@@ -254,8 +254,7 @@ static DVLB* GLASS_parseDVLB(const u8* data, size_t size) {
     ASSERT((DVLB_MIN_SIZE + (numOfDVLEs * 4)) <= size);
 
     // Allocate DVLB.
-    const size_t sizeOfDVLB = sizeof(DVLB) + (numOfDVLEs * 4);
-    DVLB* dvlb = (DVLB*)glassVirtualAlloc(sizeOfDVLB);
+    DVLB* dvlb = (DVLB*)glassVirtualAlloc( sizeof(DVLB) + (numOfDVLEs * 4));
 
     if (dvlb) {
         dvlb->numOfDVLEs = numOfDVLEs;
@@ -297,8 +296,7 @@ static SharedShaderData* GLASS_parseDVLP(const u8* data, size_t size) {
     ASSERT((offsetToOpDescs + (numOfOpDescs * 8)) <= size);
 
     // Allocate data.
-    const size_t sizeOfData = sizeof(SharedShaderData) + (numOfCodeWords * sizeof(u32)) + (numOfOpDescs * sizeof(u32));
-    SharedShaderData* sharedData = (SharedShaderData*)glassVirtualAlloc(sizeOfData);
+    SharedShaderData* sharedData = (SharedShaderData*)glassVirtualAlloc(sizeof(SharedShaderData) + (numOfCodeWords * sizeof(u32)) + (numOfOpDescs * sizeof(u32)));
 
     if (sharedData) {
         sharedData->refc = 0;

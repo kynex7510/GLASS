@@ -215,6 +215,16 @@ void glVertexAttrib4fv(GLuint index, const GLfloat* v) {
     glVertexAttrib4f(index, v[0], v[1], v[2], v[3]);
 }
 
+static INLINE bool GLASS_isAttribPhysAddrAligned(GLenum type, u32 physAddr) {
+    if (type == GL_SHORT)
+        return (physAddr & 0x01) == 0;
+
+    if (type == GL_FLOAT)
+        return (physAddr & 0x03) == 0;
+
+    return true;
+}
+
 void glVertexAttribPointer(GLuint index, GLint size, GLenum type, GLboolean normalized, GLsizei stride, const GLvoid* pointer) {
     if ((type != GL_BYTE) && (type != GL_UNSIGNED_BYTE) && (type != GL_SHORT) && (type != GL_FLOAT)) {
         GLASS_context_setError(GL_INVALID_ENUM);
@@ -241,6 +251,11 @@ void glVertexAttribPointer(GLuint index, GLint size, GLenum type, GLboolean norm
     }
 
     ASSERT(physAddr);
+
+    if (!GLASS_isAttribPhysAddrAligned(type, physAddr + physOffset)) {
+        GLASS_context_setError(GL_INVALID_OPERATION);
+        return;
+    }
 
     // Set attribute values.
     attrib->type = type;

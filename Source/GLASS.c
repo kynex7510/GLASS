@@ -16,7 +16,7 @@ glassCtx glassCreateContextEx(const glassInitParams* initParams, const glassSett
         return NULL;
 
     if (initParams->version == GLASS_VERSION_2_0) {
-        CtxV2* ctx = glassVirtualAlloc(sizeof(CtxV2));
+        CtxV2* ctx = (CtxV2*)glassVirtualAlloc(sizeof(CtxV2));
         if (ctx) {
             GLASS_context_initV2(ctx, initParams, settings);
         }
@@ -48,7 +48,7 @@ void glassReadSettings(glassCtx wrapped, glassSettings* settings) {
     ASSERT(settings);
 
     const CtxCommon* ctx = (CtxCommon*)wrapped;
-    memcpy(settings, &ctx->settings, sizeof(glassSettings));
+    memcpy(settings, &ctx->settings, sizeof(ctx->settings));
 }
 
 void glassWriteSettings(glassCtx wrapped, const glassSettings* settings) {
@@ -57,7 +57,7 @@ void glassWriteSettings(glassCtx wrapped, const glassSettings* settings) {
 
     CtxCommon* ctx = (CtxCommon*)wrapped;
     GLASS_context_waitSwap(ctx);
-    memcpy(&ctx->settings, settings, sizeof(glassSettings));
+    memcpy(&ctx->settings, settings, sizeof(ctx->settings));
 }
 
 static void GLASS_swapBuffersCb(gxCmdQueue_s* queue) {

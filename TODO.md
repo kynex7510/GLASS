@@ -6,6 +6,7 @@
 
 ## Short term
 
+- Rewrite attribuffers algorithm with paddings
 - Add support for geometry shaders
 - Define an API for combiners
 

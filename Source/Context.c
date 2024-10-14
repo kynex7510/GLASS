@@ -29,7 +29,7 @@ static void GLASS_context_initCommon(CtxCommon* ctx, const glassInitParams* init
     ctx->cmdBufferSize = 0;
     ctx->cmdBufferOffset = 0;
     ctx->inSwap = 0;
-    memset(&ctx->gxQueue, 0, sizeof(gxCmdQueue_s));
+    memset(&ctx->gxQueue, 0, sizeof(ctx->gxQueue));
 
     GLASS_gpu_init(ctx);
 
