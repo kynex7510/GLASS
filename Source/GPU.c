@@ -1,20 +1,16 @@
 #include "GPU.h"
 #include "Utility.h"
 
-#include <stdlib.h> // qsort
 #include <string.h> // memcpy, memset
 
 #define PHYSICAL_LINEAR_BASE 0x18000000
 #define GPU_MAX_ENTRIES 0x4000
 #define GX_MAX_ENTRIES 32
 
-typedef struct {
-    u32 physAddr;                                    // Physical address to buffer.
-    GLsizei stride;                                  // Buffer stride.
-    GLsizei numComponents;                           // Number of components.
-    u32 components[GLASS_MAX_ENABLED_ATTRIBS];       // Buffer components (attributes), sorted by offset.
-    u32 componentOffsets[GLASS_MAX_ENABLED_ATTRIBS]; // Component offsets.
-} AttributeBuffer;
+#define PAD_4 12
+#define PAD_8 13
+#define PAD_12 14
+#define PAD_16 15
 
 void GLASS_gpu_init(CtxCommon* ctx) {
     ASSERT(ctx);
@@ -401,82 +397,43 @@ void GLASS_gpu_uploadUniforms(ShaderInfo* shader) {
         GLASS_uploadBoolUniformMask(shader, boolMask);
 }
 
-static int GLASS_compareAttribOffsets(const void *a, const void *b) {
-    const u32 v0 = ((u32*)a)[1];
-    const u32 v1 = ((u32*)b)[1];
-    if (v0 < v1) return -1;
-    if (v0 > v1) return 1;
-    return 0;
-}
+static size_t GLASS_insertPad(u32* permutation, size_t startIndex, size_t padSize) {
+    ASSERT(permutation);
 
-// We want to know which buffers to use, which components are applied to it, in which order, etc.
-static void GLASS_extractAttribBuffersInfo(const AttributeInfo* attribs, AttributeBuffer* attribBuffers) {
-    for (size_t regId = 0; regId < GLASS_NUM_ATTRIB_REGS; ++regId) {
-        const AttributeInfo* attrib = &attribs[regId];
-
-        if (!(attrib->flags & ATTRIB_FLAG_ENABLED) || (attrib->flags & ATTRIB_FLAG_FIXED))
-            continue;
-
-        // Find attribute buffer.
-        size_t firstEmpty = GLASS_NUM_ATTRIB_BUFFERS;
-        bool found = false;
-        for (size_t i = 0; i < GLASS_NUM_ATTRIB_BUFFERS; ++i) {
-            AttributeBuffer* attribBuffer = &attribBuffers[i];
-            if (attribBuffer->physAddr == attrib->physAddr) {
-                ASSERT(attribBuffer->stride == attrib->stride);
-                ASSERT(attribBuffer->numComponents < GLASS_MAX_ENABLED_ATTRIBS);
-                attribBuffer->components[attribBuffer->numComponents] = regId;
-                attribBuffer->componentOffsets[attribBuffer->numComponents++] = attrib->physOffset;
-                found = true;
-                break;
-            }
-
-            if (!attribBuffer->physAddr && firstEmpty == GLASS_NUM_ATTRIB_BUFFERS)
-                firstEmpty = i;
+    size_t index = startIndex;
+    size_t handled = 0;
+    while (handled < padSize) {
+        const size_t diff = padSize - handled;
+        u32 padValue = 0;
+        if (diff >= 16) {
+            padValue = PAD_16;
+            handled += 16;
+        } else if (diff >= 12) {
+            padValue = PAD_12;
+            handled += 12;
+        } else if (diff >= 8) {
+            padValue = PAD_8;
+            handled += 8;
+        } else {
+            padValue = PAD_4;
+            handled += 4;
         }
 
-        // Initialize if not done yet.
-        if (!found && firstEmpty != GLASS_NUM_ATTRIB_BUFFERS) {
-            AttributeBuffer* attribBuffer = &attribBuffers[firstEmpty];
-            attribBuffer->physAddr = attrib->physAddr;
-            attribBuffer->stride = attrib->stride;
-            attribBuffer->numComponents = 1;
-            attribBuffer->components[0] = regId;
-            attribBuffer->componentOffsets[0] = attrib->physOffset;
-            found = true;
+        if (index < 8) {
+            permutation[0] |= (padValue << (index * 4));
+        } else {
+            permutation[1] |= (padValue << (index * 4));
         }
 
-        ASSERT(found);
+        ++index;
+        ASSERT(index < 12); // We can have at most 12 components.
     }
 
-    // Sort each buffer components.
-    for (size_t i = 0; i < GLASS_NUM_ATTRIB_BUFFERS; ++i) {
-        AttributeBuffer* attribBuffer = &attribBuffers[i];
-        if (!attribBuffer->physAddr)
-            continue;
-
-        u32 buffer[GLASS_MAX_ENABLED_ATTRIBS * 2];
-        for (size_t j = 0; j < attribBuffer->numComponents; ++j) {
-            buffer[j * 2] = attribBuffer->components[j];
-            buffer[(j * 2) + 1] = attribBuffer->componentOffsets[j];
-        }
-
-        qsort(buffer, attribBuffer->numComponents, sizeof(buffer), GLASS_compareAttribOffsets);
-
-        // We don't need the offsets anymore.
-        for (size_t j = 0; j < attribBuffer->numComponents; ++j)
-            attribBuffer->components[j] = buffer[j * 2];
-    }
+    return index;
 }
 
 void GLASS_gpu_uploadAttributes(const AttributeInfo* attribs) {
     ASSERT(attribs);
-
-    // Extract attrib buffers info.
-    // Each buffer comes with a list of input registers, ordered by their offset.
-    AttributeBuffer attribBuffers[GLASS_NUM_ATTRIB_BUFFERS];
-    memset(&attribBuffers, 0, sizeof(attribBuffers));
-    GLASS_extractAttribBuffersInfo(attribs, attribBuffers);
 
     u32 format[2];
     u32 permutation[2];
@@ -548,33 +505,39 @@ void GLASS_gpu_uploadAttributes(const AttributeInfo* attribs) {
     }
 
     // Step 3: setup attribute buffers.
-    for (size_t i = 0; i < GLASS_NUM_ATTRIB_BUFFERS; ++i) {
+    size_t currentAttribBuffer = 0;
+    for (size_t regId = 0; regId < GLASS_NUM_ATTRIB_REGS; ++regId) {
+        const AttributeInfo* attrib = &attribs[regId];
+        if ((!(attrib->flags & ATTRIB_FLAG_ENABLED)) || (attrib->flags & ATTRIB_FLAG_FIXED))
+            continue;
+        
         u32 params[3];
         memset(&params, 0, sizeof(params));
-        AttributeBuffer* attribBuffer = &attribBuffers[i];
 
-        if (attribBuffer->physAddr) {
+        if (attrib->physAddr) {
             // Calculate permutation.
             u32 permutation[2];
             memset(&permutation, 0, sizeof(permutation));
 
-            // Basically resolve every input register to its mapped vertex attribute.
-            for (size_t j = 0; j < attribBuffer->numComponents; ++j) {
-                const u32 regId = attribBuffer->components[j];
-                const u32 attribIndex = regTable[regId];
-                if (j < 8) {
-                    permutation[0] |= (attribIndex << (j * 4));
-                } else {
-                    permutation[1] |= (attribIndex << (j * 4));
-                }
+            const size_t permIndex = GLASS_insertPad(permutation, 0, attrib->sizeOfPrePad);
+            const size_t attribIndex = regTable[regId];
+
+            if (permIndex < 8) {
+                permutation[0] |= (attribIndex << (permIndex * 4));
+            } else {
+                permutation[1] |= (attribIndex << (permIndex * 4));
             }
 
-            params[0] = attribBuffer->physAddr - PHYSICAL_LINEAR_BASE;
+            const size_t numPerms = GLASS_insertPad(permutation, permIndex + 1, attrib->sizeOfPostPad);
+
+            params[0] = attrib->physAddr - PHYSICAL_LINEAR_BASE;
             params[1] = permutation[0];
-            params[2] = permutation[1] | ((attribBuffer->stride & 0xFF) << 16) | ((attribBuffer->numComponents & 0xF) << 28);
+            params[2] = permutation[1] | ((attrib->bufferSize & 0xFF) << 16) | ((numPerms & 0xF) << 28);
         }
 
-        GPUCMD_AddIncrementalWrites(GPUREG_ATTRIBBUFFER0_OFFSET + (i * 0x03), params, 3);
+        GPUCMD_AddIncrementalWrites(GPUREG_ATTRIBBUFFER0_OFFSET + (currentAttribBuffer * 0x03), params, 3);
+        ++currentAttribBuffer;
+        ASSERT(currentAttribBuffer <= 12); // We can have at most 12 attribute buffers.
     }
 }
 

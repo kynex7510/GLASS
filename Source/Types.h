@@ -11,7 +11,6 @@
 #define GLASS_INVALID_OBJECT 0
 #define GLASS_NUM_ATTRIB_REGS 16
 #define GLASS_MAX_ENABLED_ATTRIBS 12
-#define GLASS_NUM_ATTRIB_BUFFERS 12
 #define GLASS_NUM_BOOL_UNIFORMS 16
 #define GLASS_NUM_INT_UNIFORMS 4
 #define GLASS_NUM_FLOAT_UNIFORMS 96
@@ -100,9 +99,12 @@ typedef struct {
     GLint count;           // Num of components.
     GLsizei stride;        // Buffer stride.
     GLuint boundBuffer;    // Bound array buffer.
-    u32 physAddr;          // Buffer physical address.
-    u32 physOffset;        // Physical offset to buffer.
+    u32 physAddr;          // Physical address to component data.
+    size_t bufferOffset;   // Offset to component data.
+    size_t bufferSize;     // Buffer size (actual stride).
     GLfloat components[4]; // Fixed attrib X-Y-Z-W.
+    size_t sizeOfPrePad;   // Size of padding preceeding component data.
+    size_t sizeOfPostPad;  // Size of padding succeeding component data. 
     u16 flags;             // Attribute flags.
 } AttributeInfo;
 

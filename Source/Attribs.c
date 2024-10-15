@@ -78,7 +78,7 @@ static bool GLASS_readInt(size_t index, GLenum pname, GLint* param) {
             *param = GL_FALSE;
             return true;
         case GL_VERTEX_ATTRIB_ARRAY_ENABLED:
-            *param = (attrib->flags & ATTRIB_FLAG_ENABLED) ? GL_TRUE : GL_FALSE;
+            *param = ((attrib->flags & ATTRIB_FLAG_ENABLED) ? GL_TRUE : GL_FALSE);
             return true;
     }
 
@@ -136,12 +136,12 @@ void glGetVertexAttribPointerv(GLuint index, GLenum pname, GLvoid** pointer) {
     CtxCommon* ctx = GLASS_context_getCommon();
     AttributeInfo* attrib = &ctx->attribs[index];
 
-    // Recover virtual address.
+    // Get virtual address.
     GLvoid* virtAddr = NULL;
 
     if (!(attrib->flags & ATTRIB_FLAG_FIXED)) {
         if (attrib->boundBuffer != GLASS_INVALID_OBJECT) {
-            virtAddr = (GLvoid*)attrib->physOffset;
+            virtAddr = (GLvoid*)attrib->bufferOffset;
         } else {
             virtAddr = GLASS_utility_convertPhysToVirt(attrib->physAddr);
             ASSERT(virtAddr);
@@ -166,7 +166,10 @@ static void GLASS_setFixedAttrib(GLuint reg, const GLfloat* params) {
     attrib->stride = sizeof(GLfloat) * 4;
     attrib->boundBuffer = GLASS_INVALID_OBJECT;
     attrib->physAddr = 0;
-    attrib->physOffset = 0;
+    attrib->bufferOffset = 0;
+    attrib->bufferSize = 0;
+    attrib->sizeOfPrePad = 0;
+    attrib->sizeOfPostPad = 0;
     attrib->flags |= ATTRIB_FLAG_FIXED;
 
     for (size_t i = 0; i < 4; ++i)
@@ -215,6 +218,20 @@ void glVertexAttrib4fv(GLuint index, const GLfloat* v) {
     glVertexAttrib4f(index, v[0], v[1], v[2], v[3]);
 }
 
+static INLINE size_t GLASS_sizeForAttribType(GLenum type) {
+    switch (type) {
+        case GL_BYTE:
+        case GL_UNSIGNED_BYTE:
+            return 1;
+        case GL_SHORT:
+            return 2;
+        case GL_FLOAT:
+            return 4;    
+    }
+
+    UNREACHABLE("Invalid attribute type!");
+}
+
 static INLINE bool GLASS_isAttribPhysAddrAligned(GLenum type, u32 physAddr) {
     if (type == GL_SHORT)
         return (physAddr & 0x01) == 0;
@@ -226,35 +243,65 @@ static INLINE bool GLASS_isAttribPhysAddrAligned(GLenum type, u32 physAddr) {
 }
 
 void glVertexAttribPointer(GLuint index, GLint size, GLenum type, GLboolean normalized, GLsizei stride, const GLvoid* pointer) {
-    if (type != GL_BYTE && type != GL_UNSIGNED_BYTE && type != GL_SHORT && type != GL_FLOAT) {
+    if ((type != GL_BYTE) && (type != GL_UNSIGNED_BYTE) && (type != GL_SHORT) && (type != GL_FLOAT)) {
         GLASS_context_setError(GL_INVALID_ENUM);
         return;
     }
 
-    if (index >= GLASS_NUM_ATTRIB_REGS || size < 1 || size > 4 || stride < 0 || normalized != GL_FALSE) {
+    if ((index >= GLASS_NUM_ATTRIB_REGS) || (size < 1) || (size > 4) || (stride < 0)) {
         GLASS_context_setError(GL_INVALID_VALUE);
+        return;
+    }
+
+    if (normalized != GL_FALSE) {
+        GLASS_context_setError(GL_INVALID_OPERATION);
         return;
     }
 
     CtxCommon* ctx = GLASS_context_getCommon();
     AttributeInfo* attrib = &ctx->attribs[index];
 
+    // Calculate buffer size.
+    const size_t componentDataSize = size * GLASS_sizeForAttribType(type);
+    const size_t bufferSize = (stride ? stride : componentDataSize);
+
     // Get vertex buffer physical address.
     u32 physAddr = 0;
-    u32 physOffset = 0;
+    size_t bufferOffset = 0;
     if (ctx->arrayBuffer != GLASS_INVALID_OBJECT) {
         const BufferInfo* binfo = (BufferInfo*)ctx->arrayBuffer;
         physAddr = osConvertVirtToPhys((void*)binfo->address);
-        physOffset = (u32)pointer;
+        ASSERT(physAddr);
+        bufferOffset = (size_t)pointer;
     } else {
         physAddr = osConvertVirtToPhys(pointer);
+        if (!physAddr) {
+            GLASS_context_setError(GL_INVALID_OPERATION);
+            return;
+        }
+
+        if (!ctx->initParams.flushAllLinearMem) {
+            ASSERT(R_SUCCEEDED(GSPGPU_FlushDataCache(pointer, bufferSize)));
+        }
     }
 
-    ASSERT(physAddr);
-
-    if (!GLASS_isAttribPhysAddrAligned(type, physAddr + physOffset)) {
+    // Check alignment.
+    if (!GLASS_isAttribPhysAddrAligned(type, physAddr + bufferOffset)) {
         GLASS_context_setError(GL_INVALID_OPERATION);
         return;
+    }
+
+    // Calculate padding.
+    if (bufferSize > componentDataSize) {
+        // If we have a bound buffer we might need padding at the start.
+        if ((ctx->arrayBuffer != GLASS_INVALID_OBJECT)) {
+            attrib->sizeOfPrePad = (size_t)pointer;
+        } else {
+            attrib->sizeOfPrePad = 0;
+        }
+
+        // If the component data is not at the end of the buffer, we need to add pads.
+        attrib->sizeOfPostPad = bufferSize - (attrib->sizeOfPrePad + componentDataSize);
     }
 
     // Set attribute values.
@@ -263,7 +310,8 @@ void glVertexAttribPointer(GLuint index, GLint size, GLenum type, GLboolean norm
     attrib->stride = stride;
     attrib->boundBuffer = ctx->arrayBuffer;
     attrib->physAddr = physAddr;
-    attrib->physOffset = physOffset;
+    attrib->bufferOffset = bufferOffset;
+    attrib->bufferSize = bufferSize;
     attrib->components[0] = 0.0f;
     attrib->components[1] = 0.0f;
     attrib->components[2] = 0.0f;

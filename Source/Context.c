@@ -69,11 +69,14 @@ static void GLASS_context_initCommon(CtxCommon* ctx, const glassInitParams* init
         attrib->stride = 0;
         attrib->boundBuffer = GLASS_INVALID_OBJECT;
         attrib->physAddr = 0;
-        attrib->physOffset = 0;
+        attrib->bufferOffset = 0;
+        attrib->bufferSize = 0;
         attrib->components[0] = 0.0f;
         attrib->components[1] = 0.0f;
         attrib->components[2] = 0.0f;
         attrib->components[3] = 1.0f;
+        attrib->sizeOfPrePad = 0;
+        attrib->sizeOfPostPad = 0;
         attrib->flags = ATTRIB_FLAG_FIXED;
     }
 

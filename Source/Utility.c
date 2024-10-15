@@ -624,9 +624,9 @@ void GLASS_utility_setBoolUniform(UniformInfo* info, size_t offset, bool enabled
     ASSERT(offset < info->count);
 
     if (enabled) {
-        info->data.mask |= (1 << offset);
+        info->data.mask |= (1u << offset);
     } else {
-        info->data.mask &= ~(1 << offset);
+        info->data.mask &= ~(1u << offset);
     }
 
     info->dirty = true;
