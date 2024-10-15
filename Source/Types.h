@@ -63,9 +63,12 @@ typedef struct {
     GLint count;           // Num of components.
     GLsizei stride;        // Buffer stride.
     GLuint boundBuffer;    // Bound array buffer.
-    u32 physAddr;          // Buffer physical address.
-    u32 physOffset;        // Physical offset to buffer.
+    u32 physAddr;          // Physical address to component data.
+    size_t bufferOffset;   // Offset to component data.
+    size_t bufferSize;     // Buffer size (actual stride).
     GLfloat components[4]; // Fixed attrib X-Y-Z-W.
+    size_t sizeOfPrePad;   // Size of padding preceeding component data.
+    size_t sizeOfPostPad;  // Size of padding succeeding component data. 
     u16 flags;             // Attribute flags.
 } AttributeInfo;
 

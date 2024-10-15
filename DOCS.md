@@ -7,7 +7,6 @@
 - `glBind*` functions will not create buffers when passing arbitrary buffer values, instead `glGen*` must be used for buffer creation.
 - Unlike the OpenGL specs which limit each shader type to 1 entry, `glShaderBinary` supports as much shader entries as are contained in the shader binary, and are loaded in the order they've been linked.
 - `glPolygonOffset`: the `factor` argument has no effect.
-- `glVertexAttribPointer`: the `normalized` argument must be set to `GL_FALSE`.
 - `glDrawArrays`: the `mode` argument must be one of `GL_TRIANGLES`, `GL_TRIANGLE_STRIP`, `GL_TRIANGLE_FAN`, `GL_GEOMETRY_PRIMITIVE_PICA`.
 - If the number of components of the uniform variable as defined in the shader does not match the size specified in the name of the command used to load its value, and the uniform variable is not of type `bool`, no error will be generated; the other components of the specified uniform variable will remain unchanged.
 - `glClear`: scissor test and buffer writemasks are ignored.
@@ -18,7 +17,7 @@
 
 The GPU has 16 input registers, but at most 12 can be used at the same time: `glEnableVertexAttribArray` will fail with `GL_INVALID_OPERATION` if all 12 are used. To use a different register first call `glDisableVertexAttribArray` to disable one of the used registers.
 
-When calling `glVertexAttribPointer`, the `stride` argument must match the size of the attribute buffer. Moreover, if a raw buffer is passed as the `pointer` argument, said buffer must be allocated on linear heap, and must be flushed before being used.
+When calling `glVertexAttribPointer`, the `normalized` argument must be set to `GL_FALSE`, otherwise the function fails with `GL_INVALID_OPERATION`; the same error is triggered if a raw buffer is passed as the `pointer` argument, and said buffer is not allocated on linear heap.
 
 In a vertex buffer, each component value must be aligned to its type size; `glVertexAttribPointer` fails with `GL_INVALID_OPERATION` if this is not the case.
 

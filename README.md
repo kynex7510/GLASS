@@ -4,7 +4,7 @@
 
 ## Credits
 
-The following projects were used as references:
+The following projects were used for reference:
 
 - **[citro3d](https://github.com/devkitPro/citro3d)**
 - **[picasso](https://github.com/devkitPro/picasso)**
@@ -16,5 +16,6 @@ Additionally, many thanks to:
 - **[oreo639](https://github.com/oreo639)**
 - **[Swiftloke](https://github.com/Swiftloke)**
 - **[PSI](https://github.com/PSI-Rockin)**
+- **[DeltaV](https://github.com/LiquidFenrir)**
 
 for providing informations about the GPU, graphics, and generally being helpful.
