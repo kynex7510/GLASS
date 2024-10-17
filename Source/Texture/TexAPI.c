@@ -11,6 +11,12 @@
 #define IS_WRAP(wrap) \
     (((wrap) == GL_CLAMP_TO_EDGE) || ((wrap) == GL_CLAMP_TO_BORDER) || ((wrap) == GL_MIRRORED_REPEAT) || ((wrap) == GL_REPEAT))
 
+#define IS_FORMAT(format) \
+    (((format) == GL_ALPHA) || ((format) == GL_LUMINANCE) || ((format) == GL_LUMINANCE_ALPHA) || ((format) == GL_RGB) || ((format) == GL_RGBA))
+
+#define IS_TYPE(type) \
+    (((type) == GL_UNSIGNED_BYTE) || ((type) == GL_UNSIGNED_SHORT_5_6_5) || ((type) == GL_UNSIGNED_SHORT_4_4_4_4) || ((type) == GL_UNSIGNED_SHORT_5_5_5_1) || ((type) == GL_UNSIGNED_NIBBLE_PICA) || ((type) == GL_UNSIGNED_BYTE_4_4_PICA))
+
 void glBindTexture(GLenum target, GLuint texture) {
     ASSERT(OBJ_IS_TEXTURE(texture) || texture == GLASS_INVALID_OBJECT);
 
@@ -114,7 +120,7 @@ GLboolean glIsTexture(GLuint texture) {
 }
 
 void glActiveTexture(GLenum texture) {
-    if (texture < GL_TEXTURE0 || texture > GL_TEXTURE2) {
+    if ((texture < GL_TEXTURE0) || (texture > GL_TEXTURE2)) {
         GLASS_context_setError(GL_INVALID_ENUM);
         return;
     }
@@ -138,10 +144,10 @@ static bool GLASS_setTexInt(TextureInfo* info, GLenum pname, GLint param) {
             info->wrapT = param;
             return true;
         case GL_TEXTURE_MIN_LOD:
-            info->minLod = param > 0 ? param : 0;
+            info->minLod = param;
             return true;
         case GL_TEXTURE_MAX_LOD:
-            info->maxLod = param > 0 ? param : 0;
+            info->maxLod = param;
             return true;
     }
 
@@ -177,7 +183,7 @@ static void GLASS_setTexParams(GLenum target, GLenum pname, const GLint* intPara
     TextureInfo* info = (TextureInfo*)unit->texture;
 
     // We don't support default textures, and only one target at time can be used.
-    if (!info || info->target != target) {
+    if (!info || (info->target != target)) {
         GLASS_context_setError(GL_INVALID_OPERATION);
         return;
     }
@@ -224,9 +230,45 @@ void glTexParameteriv(GLenum target, GLenum pname, const GLint* params) { GLASS_
 void glTexParameterf(GLenum target, GLenum pname, GLfloat param) { glTexParameterfv(target, pname, &param); }
 void glTexParameteri(GLenum target, GLenum pname, GLint param) { glTexParameteriv(target, pname, &param); }
 
-void glCompressedTexImage2D(GLenum target, GLint level, GLenum internalformat, GLsizei width, GLsizei height, GLint border, GLsizei imageSize, const GLvoid* data);
+void glTexImage2D(GLenum target, GLint level, GLint internalformat, GLsizei width, GLsizei height, GLint border, GLenum format, GLenum type, const GLvoid* data) {
+    /*
+
+    GL_INVALID_ENUM is generated if target is not GL_TEXTURE_2D, GL_TEXTURE_CUBE_MAP_POSITIVE_X,
+    GL_TEXTURE_CUBE_MAP_NEGATIVE_X, GL_TEXTURE_CUBE_MAP_POSITIVE_Y, GL_TEXTURE_CUBE_MAP_NEGATIVE_Y,
+    GL_TEXTURE_CUBE_MAP_POSITIVE_Z, or GL_TEXTURE_CUBE_MAP_NEGATIVE_Z.
+
+    GL_INVALID_VALUE is generated if target is one of the six cube map 2D image targets and the width and height
+    parameters are not equal.
+
+    GL_INVALID_VALUE may be generated if level is greater than log2(max) where max is the returned value of
+    GL_MAX_TEXTURE_SIZE when target is GL_TEXTURE_2D or GL_MAX_CUBE_MAP_TEXTURE_SIZE when target is not GL_TEXTURE_2D.
+
+    GL_INVALID_VALUE is greater than GL_MAX_TEXTURE_SIZE when target is GL_TEXTURE_2D or GL_MAX_CUBE_MAP_TEXTURE_SIZE when
+    target is not GL_TEXTURE_2D.
+
+    */
+    
+    if (!IS_FORMAT(format) || !IS_TYPE(type)) {
+        GLASS_context_setError(GL_INVALID_ENUM);
+        return;
+    }
+
+    if ((level < 0) || (width < 0) || (height < 0) || (border != 0)) {
+        GLASS_context_setError(GL_INVALID_VALUE);
+        return;
+    }
+    
+    if ((format != internalformat) || !GLASS_utility_isValidTexCombination(format, type)) {
+        GLASS_context_setError(GL_INVALID_OPERATION);
+        return;
+    }
+}
+
+void glCompressedTexImage2D(GLenum target, GLint level, GLenum internalformat, GLsizei width, GLsizei height, GLint border, GLsizei imageSize, const GLvoid* data) {
+    // TODO
+}
+
 void glCompressedTexSubImage2D(GLenum target, GLint level, GLint xoffset, GLint yoffset, GLsizei width, GLsizei height, GLenum format, GLsizei imageSize, const GLvoid* data);
 void glCopyTexImage2D(GLenum target, GLint level, GLenum internalformat, GLint x, GLint y, GLsizei width, GLsizei height, GLint border);
 void glCopyTexSubImage2D(GLenum target, GLint level, GLint xoffset, GLint yoffset, GLint x, GLint y, GLsizei width, GLsizei height);
-void glTexImage2D(GLenum target, GLint level, GLint internalformat, GLsizei width, GLsizei height, GLint border, GLenum format, GLenum type, const GLvoid* data);
 void glTexSubImage2D(GLenum target, GLint level, GLint xoffset, GLint yoffset, GLsizei width, GLsizei height, GLenum format, GLenum type, const GLvoid* data);

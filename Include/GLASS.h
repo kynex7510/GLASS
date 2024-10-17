@@ -1,8 +1,7 @@
 #ifndef _GLASS_H
 #define _GLASS_H
 
-#include <3ds.h>
-#include <stdio.h>
+#include "GLASS/Tex3DS.h"
 
 #define GLASS_VERSION_2_0 0x20 // OpenGL ES 2.0
 
@@ -21,16 +20,6 @@ typedef struct {
     gfx3dSide_t targetSide;          // Draw target side (default: GFX_LEFT).
     GX_TRANSFER_SCALE transferScale; // Anti-aliasing (default: GX_TRANSFER_SCALE_NO).
 } glassSettings;
-
-// Texture object.
-typedef struct {
-    u16 width;       // Texture width.
-    u16 height;      // Texture height.
-    GLenum format;   // Texture format.
-    GLenum dataType; // Texture data type.
-    size_t levels;   // MipMap levels.
-    u8* data[];      // Textures, 1 for each level.
-} glassTexture;
 
 #if defined(__cplusplus)
 extern "C" {
@@ -57,14 +46,6 @@ size_t glassLinearSize(void* p);
 void* glassVRAMAlloc(size_t size, vramAllocPos pos);
 void glassVRAMFree(void* p);
 size_t glassVRAMSize(void* p);
-
-glassTexture* glassLoadTexture(const u8* data, size_t size);
-glassTexture* glassLoadTextureFromFile(FILE* f);
-glassTexture* glassLoadTextureFromPath(const char* path);
-bool glassLoadCubeMap(const u8* data, size_t size, glassTexture** out);
-bool glassLoadCubeMapFromFile(FILE* f, glassTexture** out);
-bool glassLoadCubeMapFromPath(const char* path, glassTexture** out);
-void glassFreeTexture(glassTexture* tex);
 
 #if defined(__cplusplus)
 }

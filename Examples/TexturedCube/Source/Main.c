@@ -147,7 +147,27 @@ static void sceneInit(GLuint* vbo, GLuint* tex) {
 	glGenTextures(1, tex);
 	glActiveTexture(GL_TEXTURE0);
 	glBindTexture(GL_TEXTURE_2D, *tex);
-	//glTexImage2D(GL_TEXTURE_2D, Kitten_t3x_size, GL_RGB, 64, 64, 0, GL_RGB, 0, Kitten_t3x);
+
+	glassTexture* kittenTex;
+	glassLoadTexture(Kitten_t3x, Kitten_t3x_size, &kittenTex);
+	const bool isCompressed = glassIsTextureCompressed(kittenTex);
+
+	for (size_t i = 0; i < kittenTex->levels; ++i) {
+		const GLsizei width = kittenTex->width;
+		const GLsizei height = kittenTex->height;
+		const GLenum format = kittenTex->format;
+		const u8* data = glassGetTextureData(kittenTex, i);
+
+		if (isCompressed) {
+			const size_t size = glassGetTextureSize(kittenTex, i);
+			glCompressedTexImage2D(GL_TEXTURE_2D, i, format, width, height, 0, size, data);
+		} else {
+			const GLenum type = kittenTex->dataType;
+			glTexImage2D(GL_TEXTURE_2D, i, format, width, height, 0, format, type, data);
+		}
+	}
+
+	glassDestroyTexture(kittenTex);
 }
 
 static void sceneRender(float angleX, float angleY) {
@@ -186,19 +206,14 @@ int main() {
     glGenRenderbuffers(1, &rb);
     glBindFramebuffer(GL_FRAMEBUFFER, fb);
     glBindRenderbuffer(GL_RENDERBUFFER, rb);
-    glRenderbufferStorage(GL_RENDERBUFFER, GL_RGBA8, 400, 240);
+    glRenderbufferStorage(GL_RENDERBUFFER, GL_RGBA8_OES, 400, 240);
     glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_RENDERBUFFER, rb);
 
-    glViewport(0, 0, 200, 120);
+    glViewport(0, 0, 400, 240);
     glClearColor(104 / 256.0f, 176 / 256.0f, 216 / 256.0f, 1.0f);
 
 	// Enable culling.
 	glEnable(GL_CULL_FACE);
-
-	//
-	//glEnable(GL_SCISSOR_TEST);
-	//glScissor(200, 0, 200, 120);
-	//
 
     // Initialize the scene.
 	GLuint vbo;

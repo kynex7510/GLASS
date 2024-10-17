@@ -107,10 +107,10 @@ void GLASS_gpu_clearBuffers(RenderbufferInfo* colorBuffer, u32 clearColor, Rende
     size_t depthBufferSize = 0;
 
     if (colorBuffer)
-        colorBufferSize = colorBuffer->width * colorBuffer->height * GLASS_utility_getBytesPerPixel(colorBuffer->format);
+        colorBufferSize = (colorBuffer->width * colorBuffer->height * GLASS_utility_getRBBytesPerPixel(colorBuffer->format));
 
     if (depthBuffer)
-        depthBufferSize = depthBuffer->width * depthBuffer->height * GLASS_utility_getBytesPerPixel(depthBuffer->format);
+        depthBufferSize = (depthBuffer->width * depthBuffer->height * GLASS_utility_getRBBytesPerPixel(depthBuffer->format));
 
     if (colorBufferSize && depthBufferSize) {
         const bool colorFirst = (u32)colorBuffer->address < (u32)depthBuffer->address;

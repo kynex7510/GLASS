@@ -59,7 +59,7 @@ u32 GLASS_utility_f32tofixed13(float f);
 
 u32 GLASS_utility_makeClearColor(GLenum format, u32 color);
 u32 GLASS_utility_makeClearDepth(GLenum format, GLclampf factor, u8 stencil);
-size_t GLASS_utility_getBytesPerPixel(GLenum format);
+size_t GLASS_utility_getRBBytesPerPixel(GLenum format);
 size_t GLASS_utility_getPixelSizeForFB(GLenum format);
 
 GLenum GLASS_utility_wrapFBFormat(GSPGPU_FramebufferFormat format);
@@ -98,7 +98,10 @@ void GLASS_utility_getFloatUniform(const UniformInfo* info, size_t offset, u32* 
 void GLASS_utility_setFloatUniform(UniformInfo* info, size_t offset, const u32* vectorData);
 
 GPU_TEXCOLOR GLASS_utility_getTexFormat(GLenum format, GLenum dataType);
+GLenum GLASS_utility_getTexDataType(GPU_TEXCOLOR format);
 bool GLASS_utility_isValidTexCombination(GLenum format, GLenum dataType);
+GLenum GLASS_utility_wrapTexFormat(GPU_TEXCOLOR format);
+size_t GLASS_utility_getTexBitsPerPixel(GPU_TEXCOLOR format);
 GPU_TEXTURE_FILTER_PARAM GLASS_utility_getTexFilter(GLenum filter);
 GPU_TEXTURE_FILTER_PARAM GLASS_utility_getMipFilter(GLenum minFilter);
 GPU_TEXTURE_WRAP_PARAM GLASS_utility_getTexWrap(GLenum wrap);

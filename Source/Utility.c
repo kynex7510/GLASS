@@ -173,7 +173,7 @@ u32 GLASS_utility_makeClearDepth(GLenum format, GLclampf factor, u8 stencil) {
     return clearDepth;
 }
 
-size_t GLASS_utility_getBytesPerPixel(GLenum format) {
+size_t GLASS_utility_getRBBytesPerPixel(GLenum format) {
     switch (format) {
         case GL_RGBA8_OES:
         case GL_DEPTH24_STENCIL8_OES:
@@ -751,14 +751,99 @@ static GPU_TEXCOLOR GLASS_getTexFormatImpl(GLenum format, GLenum dataType) {
 }
 
 GPU_TEXCOLOR GLASS_utility_getTexFormat(GLenum format, GLenum dataType) {
-    GPU_TEXCOLOR format = GLASS_getTexFormatImpl(format, dataType);
-    if (format != (GPU_TEXCOLOR)-1)
-        return format;
+    GPU_TEXCOLOR texFmt = GLASS_getTexFormatImpl(format, dataType);
+    if (texFmt != (GPU_TEXCOLOR)-1)
+        return texFmt;
 
     UNREACHABLE("Invalid texture format!");
 }
 
+GLenum GLASS_utility_getTexDataType(GPU_TEXCOLOR format) {
+    switch (format) {
+        case GPU_A8:
+        case GPU_L8:
+        case GPU_LA8:
+        case GPU_RGB8:
+        case GPU_RGBA8:
+        case GPU_HILO8:
+            return GL_UNSIGNED_BYTE;
+        case GPU_RGB565:
+            return GL_UNSIGNED_SHORT_5_6_5;
+        case GPU_RGBA4:
+            return GL_UNSIGNED_SHORT_4_4_4_4;
+        case GPU_RGBA5551:
+            return GL_UNSIGNED_SHORT_5_5_5_1;
+        case GPU_A4:
+        case GPU_L4:
+            return GL_UNSIGNED_NIBBLE_PICA;
+        case GPU_LA4:
+            return GL_UNSIGNED_BYTE_4_4_PICA;
+        // Compressed texture don't have a data type.
+        case GPU_ETC1:
+        case GPU_ETC1A4:
+            return 0;
+    }
+
+    UNREACHABLE("Invalid GPU texture format!");
+}
+
 bool GLASS_utility_isValidTexCombination(GLenum format, GLenum dataType) { return GLASS_getTexFormatImpl(format, dataType) != (GPU_TEXCOLOR)-1; }
+
+GLenum GLASS_utility_wrapTexFormat(GPU_TEXCOLOR format) {
+    switch (format) {
+        case GPU_A8:
+        case GPU_A4:
+            return GL_ALPHA;
+        case GPU_L8:
+        case GPU_L4:
+            return GL_LUMINANCE;
+        case GPU_LA8:
+        case GPU_LA4:
+            return GL_LUMINANCE_ALPHA;
+        case GPU_RGB8:
+        case GPU_RGB565:
+            return GL_RGB;
+        case GPU_RGBA8:
+        case GPU_RGBA5551:
+        case GPU_RGBA4:
+            return GL_RGBA;
+        case GPU_HILO8:
+            return GL_HILO8_PICA;
+            break;
+        case GPU_ETC1:
+            return GL_ETC1_RGB8_OES;
+        case GPU_ETC1A4:
+            return GL_ETC1_ALPHA_RGB8_A4_PICA;
+    }
+
+    UNREACHABLE("Invalid GPU texture format!");
+}
+
+size_t GLASS_utility_getTexBitsPerPixel(GPU_TEXCOLOR format) {
+    switch (format) {
+        case GPU_RGBA8:
+			return 32;
+		case GPU_RGB8:
+			return 24;
+		case GPU_RGBA5551:
+		case GPU_RGB565:
+		case GPU_RGBA4:
+		case GPU_LA8:
+		case GPU_HILO8:
+			return 16;
+		case GPU_L8:
+		case GPU_A8:
+		case GPU_LA4:
+		case GPU_ETC1A4:
+			return 8;
+		case GPU_L4:
+		case GPU_A4:
+		case GPU_ETC1:
+			return 4;
+    }
+
+    UNREACHABLE("Invalid GPU texture format!");
+}
 
 GPU_TEXTURE_FILTER_PARAM GLASS_utility_getTexFilter(GLenum filter) {
     switch (filter) {
