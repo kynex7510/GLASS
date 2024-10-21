@@ -8,12 +8,10 @@
 
 // Sub-texture object.
 typedef struct {
-    u16 width;    // Sub-texture width.
-    u16 height;   // Sub-texture height.
-    float top;    // Sub-texture top.
-    float bottom; // Sub-texture bottom.
-    float left;   // Sub-texture left.
-    float right;  // Sub-texture right.
+    GLfloat xFactor; // Sub-texture X factor.
+    GLfloat yFactor; // Sub-texture Y factor.
+    GLsizei width;   // Sub-texture width.
+    GLsizei height;  // Sub-texture height.
 } glassSubTexture;
 
 // Texture object.

@@ -845,6 +845,8 @@ size_t GLASS_utility_getTexBitsPerPixel(GPU_TEXCOLOR format) {
     UNREACHABLE("Invalid GPU texture format!");
 }
 
+size_t GLASS_utility_calculateTexSize(u16 width, u16 height, GPU_TEXCOLOR format) { return ((width * height * GLASS_utility_getTexBitsPerPixel(format)) >> 3); }
+
 GPU_TEXTURE_FILTER_PARAM GLASS_utility_getTexFilter(GLenum filter) {
     switch (filter) {
         case GL_NEAREST:

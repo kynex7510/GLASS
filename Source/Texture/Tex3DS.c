@@ -32,7 +32,7 @@ typedef struct {
 
 static size_t GLASS_getTexDataOffset(const glassTexture* tex, size_t level) {
     ASSERT(tex);
-    ASSERT(level <= 10);
+    ASSERT(level <= GLASS_NUM_TEX_LEVELS);
 
     if (level > 0) {
         // Basically rewrite the offset in terms of the previous level dimensions:
@@ -53,28 +53,47 @@ static INLINE size_t GLASS_getTexDataAllocSize(const glassTexture* tex) {
 
 static INLINE u8* GLASS_getTexDataPtr(const glassTexture* tex, size_t level) {
     ASSERT(tex);
-    return ((u8*)&tex->subTextures[tex->numOfSubTextures]) + GLASS_getTexDataOffset(tex, level);
+    return (((u8*)&tex->subTextures[tex->numOfSubTextures]) + GLASS_getTexDataOffset(tex, level));
+}
+
+static GLenum GLASS_readTexHeader(TexStream* stream, GPU_TEXTURE_MODE_PARAM type, glassTexture* out) {
+    ASSERT(stream);
+    ASSERT(out);
+    ASSERT((type == GPU_TEX_2D) || (type == GPU_TEX_CUBE_MAP));
+
+    RawHeader header;
+    stream->read(stream, &header, sizeof(RawHeader));
+    if (header.type != type)
+        return GL_INVALID_OPERATION;
+
+    out->width = (1 << (header.widthLog2 + 3));
+    out->height = (1 << (header.heightLog2 + 3));
+    out->format = GLASS_utility_wrapTexFormat(header.format);
+    out->dataType = GLASS_utility_getTexDataType(header.format);
+    out->levels = (header.mipmapLevels + 1); // Add one for base level.
+
+    if (type == GPU_TEX_2D) {
+        out->numOfSubTextures = header.numSubTextures;
+    } else {
+        // It doesn't make sense for a cubemap to have sub-textures.
+        ASSERT(header.numSubTextures == 0);
+        out->numOfSubTextures = 0; 
+    }
+
+    return 0;
 }
 
 static GLenum GLASS_loadTextureImpl(TexStream* stream, glassTexture** out) {
     ASSERT(stream);
     ASSERT(out);
-
-    // Read texture header.
-    RawHeader header;
-    stream->read(stream, &header, sizeof(RawHeader));
-    if (header.type != GPU_TEX_2D)
-        return GL_INVALID_OPERATION;
-
-    // Create texture object.
+    
+    // Parse header.
     glassTexture dummy;
-    dummy.width = (1 << (header.widthLog2 + 3));
-    dummy.height = (1 << (header.heightLog2 + 3));
-    dummy.format = GLASS_utility_wrapTexFormat(header.format);
-    dummy.dataType = GLASS_utility_getTexDataType(header.format);
-    dummy.levels = header.mipmapLevels;
-    dummy.numOfSubTextures = header.numSubTextures;
+    GLenum ret = GLASS_readTexHeader(stream, GPU_TEX_2D, &dummy);
+    if (ret)
+        return ret;
 
+    // Allocate texture object.
     const size_t dataSize = GLASS_getTexDataAllocSize(&dummy);
     const size_t subTexSize = (sizeof(glassSubTexture) * dummy.numOfSubTextures);
     glassTexture* tex = glassVirtualAlloc(sizeof(glassTexture) + subTexSize + dataSize);
@@ -83,17 +102,16 @@ static GLenum GLASS_loadTextureImpl(TexStream* stream, glassTexture** out) {
 
     memcpy(tex, &dummy, sizeof(glassTexture));
 
+    // Load sub-texture info.
     for (size_t i = 0; i < tex->numOfSubTextures; ++i) {
         RawSubTexture raw;
         stream->read(stream, &raw, sizeof(RawSubTexture));
 
         glassSubTexture* subTex = &tex->subTextures[i];
+        subTex->xFactor = (raw.left / 1024.0f);
+        subTex->yFactor = (1.0f - (raw.top / 1024.0f)); // TODO: make sure this is right.
         subTex->width = raw.width;
         subTex->height = raw.height;
-        subTex->top = raw.top / 1024.0f;
-        subTex->bottom = raw.bottom / 1024.0f;
-        subTex->left = raw.left / 1024.0f;
-        subTex->right = raw.right / 1024.0f;
     }
 
     // Load texture data.
@@ -108,24 +126,13 @@ static GLenum GLASS_loadCubeMapImpl(TexStream* stream, glassTexture** outs) {
     ASSERT(stream);
     ASSERT(outs);
 
-    // Read texture header.
-    RawHeader header;
-    stream->read(stream, &header, sizeof(RawHeader));
-    if (header.type != GPU_TEX_CUBE_MAP)
-        return GL_INVALID_OPERATION;
-
-    // Create texture objects.
+    // Parse header.
     glassTexture dummy;
-    dummy.width = (1 << (header.widthLog2 + 3));
-    dummy.height = (1 << (header.heightLog2 + 3));
-    dummy.format = GLASS_utility_wrapTexFormat(header.format);
-    dummy.dataType = GLASS_utility_getTexDataType(header.format);
-    dummy.levels = header.mipmapLevels;
+    GLenum ret = GLASS_readTexHeader(stream, GPU_TEX_CUBE_MAP, &dummy);
+    if (ret)
+        return ret;
 
-    // TODO: does it make sense for a cubemap to have subtextures?
-    ASSERT(header.numSubTextures == 0);
-    dummy.numOfSubTextures = 0; 
-
+    // Allocate texture objects.
     const size_t dataSize = GLASS_getTexDataAllocSize(&dummy);
     glassTexture* texs[6];
 
@@ -254,24 +261,17 @@ GLenum glassLoadCubeMapFromPath(const char* path, glassTexture** out) {
     return ret;
 }
 
-void glassDestroyTexture(glassTexture* tex) {
-    if (tex)
-        glassVirtualFree(tex);
-}
+void glassDestroyTexture(glassTexture* tex) { glassVirtualFree(tex); }
 
 const size_t glassGetTextureSize(const glassTexture* tex, size_t level) {
-    if (tex && (level < (tex->levels - 1))) {
-        const u16 width = (tex->width >> level);
-        const u16 height = (tex->height >> level);
-        const size_t bpp = GLASS_utility_getTexBitsPerPixel(GLASS_utility_getTexFormat(tex->format, tex->dataType));
-        return ((width * height * bpp) >> 3);
-    }
+    if (tex && (level < tex->levels))
+        return GLASS_utility_calculateTexSize(tex->width >> level, tex->height >> level, GLASS_utility_getTexFormat(tex->format, tex->dataType));
 
     return 0;
 }
 
 const u8* glassGetTextureData(const glassTexture* tex, size_t level) {
-    if (tex && (level < (tex->levels - 1)))
+    if (tex && (level < tex->levels))
         return GLASS_getTexDataPtr(tex, level);
 
     return NULL;

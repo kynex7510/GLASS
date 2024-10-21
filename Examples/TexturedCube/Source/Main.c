@@ -152,18 +152,18 @@ static void sceneInit(GLuint* vbo, GLuint* tex) {
 	glassLoadTexture(Kitten_t3x, Kitten_t3x_size, &kittenTex);
 	const bool isCompressed = glassIsTextureCompressed(kittenTex);
 
-	for (size_t i = 0; i < kittenTex->levels; ++i) {
-		const GLsizei width = kittenTex->width;
-		const GLsizei height = kittenTex->height;
+	for (size_t level = 0; level < kittenTex->levels; ++level) {
+		const GLsizei width = (kittenTex->width >> level);
+		const GLsizei height = (kittenTex->height >> level);
 		const GLenum format = kittenTex->format;
-		const u8* data = glassGetTextureData(kittenTex, i);
+		const u8* data = glassGetTextureData(kittenTex, level);
 
 		if (isCompressed) {
-			const size_t size = glassGetTextureSize(kittenTex, i);
-			glCompressedTexImage2D(GL_TEXTURE_2D, i, format, width, height, 0, size, data);
+			const size_t size = glassGetTextureSize(kittenTex, level);
+			glCompressedTexImage2D(GL_TEXTURE_2D, level, format, width, height, 0, size, data);
 		} else {
 			const GLenum type = kittenTex->dataType;
-			glTexImage2D(GL_TEXTURE_2D, i, format, width, height, 0, format, type, data);
+			glTexImage2D(GL_TEXTURE_2D, level, format, width, height, 0, format, type, data);
 		}
 	}
 
