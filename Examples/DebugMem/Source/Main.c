@@ -17,11 +17,10 @@ static const Position g_VertexList[3] = {
     {300.0f, 40.0f, 0.5f},  // Right
 };
 
-static const Color g_ColorList[3] =
-{
-	{ 1.0f, 0.0f, 0.0f, 1.0f },
-	{ 0.0f, 1.0f, 0.0f, 1.0f },
-	{ 0.0f, 0.0f, 1.0f, 1.0f },
+static const Color g_ColorList[3] = {
+    { 1.0f, 0.0f, 0.0f, 1.0f },
+    { 0.0f, 1.0f, 0.0f, 1.0f },
+    { 0.0f, 0.0f, 1.0f, 1.0f },
 };
 
 static GLint g_ProjLoc;
@@ -114,8 +113,8 @@ int main() {
 
         // Respond to user input.
         u32 kDown = hidKeysDown();
-		if (kDown & KEY_START)
-			break; // break in order to return to hbmenu.
+        if (kDown & KEY_START)
+            break; // break in order to return to hbmenu.
 
         // Render the scene.
         glClear(GL_COLOR_BUFFER_BIT);

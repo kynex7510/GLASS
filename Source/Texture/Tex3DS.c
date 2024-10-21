@@ -14,17 +14,17 @@ typedef struct {
 
 typedef struct __attribute__((packed)) {
     u16 numSubTextures;
-	u8 widthLog2 : 3;
-	u8 heightLog2 : 3;
-	u8 type : 1;
-	u8 format;
-	u8 mipmapLevels;
+    u8 widthLog2 : 3;
+    u8 heightLog2 : 3;
+    u8 type : 1;
+    u8 format;
+    u8 mipmapLevels;
 } RawHeader;
 
 typedef struct {
-	u16 width;
+    u16 width;
     u16 height;
-	u16 left;
+    u16 left;
     u16 top;
     u16 right;
     u16 bottom;
@@ -116,7 +116,7 @@ static GLenum GLASS_loadTextureImpl(TexStream* stream, glassTexture** out) {
 
     // Load texture data.
     u8* data = GLASS_getTexDataPtr(tex, 0);
-	ASSERT(decompress(data, dataSize, stream->read, (void*)stream, 0));
+    ASSERT(decompress(data, dataSize, stream->read, (void*)stream, 0));
 
     *out = tex;
     return 0;
@@ -150,11 +150,11 @@ static GLenum GLASS_loadCubeMapImpl(TexStream* stream, glassTexture** outs) {
 
     // Load texture data.
     decompressIOVec iov[6];
-	
+    
     for (size_t i = 0; i < 6; ++i) {
-		iov[i].data = GLASS_getTexDataPtr(texs[i], 0);
-		iov[i].size = dataSize;
-	}
+        iov[i].data = GLASS_getTexDataPtr(texs[i], 0);
+        iov[i].size = dataSize;
+    }
 
     ASSERT(decompressV(iov, 6, stream->read, (void*)stream, 0));
 

@@ -795,7 +795,7 @@ void GLASS_gpu_setTextureUnits(const TextureUnit* units) {
 
         GPUCMD_AddIncrementalWrites(setupCmds[i], params, setupCubeMap ? 10 : 5); // TODO
         // TODO: Shadow
-		GPUCMD_AddWrite(typeCmds[i], 0); // TODO
+        GPUCMD_AddWrite(typeCmds[i], 0); // TODO
     }
 
     GPUCMD_AddWrite(GPUREG_TEXUNIT_CONFIG, config);

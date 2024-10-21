@@ -71,8 +71,8 @@ int main() {
 
         // Respond to user input.
         u32 kDown = hidKeysDown();
-		if (kDown & KEY_START)
-			break; // break in order to return to hbmenu.
+        if (kDown & KEY_START)
+            break; // break in order to return to hbmenu.
 
         // Render the scene.
         glClear(GL_COLOR_BUFFER_BIT);

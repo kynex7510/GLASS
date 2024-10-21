@@ -20,72 +20,72 @@ static GLint g_MaterialLoc;
 static C3D_Mtx g_Proj;
 
 static C3D_Mtx g_Material = {{
-	{ { 0.0f, 0.2f, 0.2f, 0.2f } }, // Ambient
-	{ { 0.0f, 0.4f, 0.4f, 0.4f } }, // Diffuse
-	{ { 0.0f, 0.8f, 0.8f, 0.8f } }, // Specular
-	{ { 1.0f, 0.0f, 0.0f, 0.0f } }, // Emission
+    { { 0.0f, 0.2f, 0.2f, 0.2f } }, // Ambient
+    { { 0.0f, 0.4f, 0.4f, 0.4f } }, // Diffuse
+    { { 0.0f, 0.8f, 0.8f, 0.8f } }, // Specular
+    { { 1.0f, 0.0f, 0.0f, 0.0f } }, // Emission
 }};
 
 static const Vertex g_VertexList[] = {
-	// First face (PZ)
-	// First triangle
-	{ {-0.5f, -0.5f, +0.5f}, {0.0f, 0.0f}, {0.0f, 0.0f, +1.0f} },
-	{ {+0.5f, -0.5f, +0.5f}, {1.0f, 0.0f}, {0.0f, 0.0f, +1.0f} },
-	{ {+0.5f, +0.5f, +0.5f}, {1.0f, 1.0f}, {0.0f, 0.0f, +1.0f} },
-	// Second triangle
-	{ {+0.5f, +0.5f, +0.5f}, {1.0f, 1.0f}, {0.0f, 0.0f, +1.0f} },
-	{ {-0.5f, +0.5f, +0.5f}, {0.0f, 1.0f}, {0.0f, 0.0f, +1.0f} },
-	{ {-0.5f, -0.5f, +0.5f}, {0.0f, 0.0f}, {0.0f, 0.0f, +1.0f} },
+    // First face (PZ)
+    // First triangle
+    { {-0.5f, -0.5f, +0.5f}, {0.0f, 0.0f}, {0.0f, 0.0f, +1.0f} },
+    { {+0.5f, -0.5f, +0.5f}, {1.0f, 0.0f}, {0.0f, 0.0f, +1.0f} },
+    { {+0.5f, +0.5f, +0.5f}, {1.0f, 1.0f}, {0.0f, 0.0f, +1.0f} },
+    // Second triangle
+    { {+0.5f, +0.5f, +0.5f}, {1.0f, 1.0f}, {0.0f, 0.0f, +1.0f} },
+    { {-0.5f, +0.5f, +0.5f}, {0.0f, 1.0f}, {0.0f, 0.0f, +1.0f} },
+    { {-0.5f, -0.5f, +0.5f}, {0.0f, 0.0f}, {0.0f, 0.0f, +1.0f} },
 
-	// Second face (MZ)
-	// First triangle
-	{ {-0.5f, -0.5f, -0.5f}, {0.0f, 0.0f}, {0.0f, 0.0f, -1.0f} },
-	{ {-0.5f, +0.5f, -0.5f}, {1.0f, 0.0f}, {0.0f, 0.0f, -1.0f} },
-	{ {+0.5f, +0.5f, -0.5f}, {1.0f, 1.0f}, {0.0f, 0.0f, -1.0f} },
-	// Second triangle
-	{ {+0.5f, +0.5f, -0.5f}, {1.0f, 1.0f}, {0.0f, 0.0f, -1.0f} },
-	{ {+0.5f, -0.5f, -0.5f}, {0.0f, 1.0f}, {0.0f, 0.0f, -1.0f} },
-	{ {-0.5f, -0.5f, -0.5f}, {0.0f, 0.0f}, {0.0f, 0.0f, -1.0f} },
+    // Second face (MZ)
+    // First triangle
+    { {-0.5f, -0.5f, -0.5f}, {0.0f, 0.0f}, {0.0f, 0.0f, -1.0f} },
+    { {-0.5f, +0.5f, -0.5f}, {1.0f, 0.0f}, {0.0f, 0.0f, -1.0f} },
+    { {+0.5f, +0.5f, -0.5f}, {1.0f, 1.0f}, {0.0f, 0.0f, -1.0f} },
+    // Second triangle
+    { {+0.5f, +0.5f, -0.5f}, {1.0f, 1.0f}, {0.0f, 0.0f, -1.0f} },
+    { {+0.5f, -0.5f, -0.5f}, {0.0f, 1.0f}, {0.0f, 0.0f, -1.0f} },
+    { {-0.5f, -0.5f, -0.5f}, {0.0f, 0.0f}, {0.0f, 0.0f, -1.0f} },
 
-	// Third face (PX)
-	// First triangle
-	{ {+0.5f, -0.5f, -0.5f}, {0.0f, 0.0f}, {+1.0f, 0.0f, 0.0f} },
-	{ {+0.5f, +0.5f, -0.5f}, {1.0f, 0.0f}, {+1.0f, 0.0f, 0.0f} },
-	{ {+0.5f, +0.5f, +0.5f}, {1.0f, 1.0f}, {+1.0f, 0.0f, 0.0f} },
-	// Second triangle
-	{ {+0.5f, +0.5f, +0.5f}, {1.0f, 1.0f}, {+1.0f, 0.0f, 0.0f} },
-	{ {+0.5f, -0.5f, +0.5f}, {0.0f, 1.0f}, {+1.0f, 0.0f, 0.0f} },
-	{ {+0.5f, -0.5f, -0.5f}, {0.0f, 0.0f}, {+1.0f, 0.0f, 0.0f} },
+    // Third face (PX)
+    // First triangle
+    { {+0.5f, -0.5f, -0.5f}, {0.0f, 0.0f}, {+1.0f, 0.0f, 0.0f} },
+    { {+0.5f, +0.5f, -0.5f}, {1.0f, 0.0f}, {+1.0f, 0.0f, 0.0f} },
+    { {+0.5f, +0.5f, +0.5f}, {1.0f, 1.0f}, {+1.0f, 0.0f, 0.0f} },
+    // Second triangle
+    { {+0.5f, +0.5f, +0.5f}, {1.0f, 1.0f}, {+1.0f, 0.0f, 0.0f} },
+    { {+0.5f, -0.5f, +0.5f}, {0.0f, 1.0f}, {+1.0f, 0.0f, 0.0f} },
+    { {+0.5f, -0.5f, -0.5f}, {0.0f, 0.0f}, {+1.0f, 0.0f, 0.0f} },
 
-	// Fourth face (MX)
-	// First triangle
-	{ {-0.5f, -0.5f, -0.5f}, {0.0f, 0.0f}, {-1.0f, 0.0f, 0.0f} },
-	{ {-0.5f, -0.5f, +0.5f}, {1.0f, 0.0f}, {-1.0f, 0.0f, 0.0f} },
-	{ {-0.5f, +0.5f, +0.5f}, {1.0f, 1.0f}, {-1.0f, 0.0f, 0.0f} },
-	// Second triangle
-	{ {-0.5f, +0.5f, +0.5f}, {1.0f, 1.0f}, {-1.0f, 0.0f, 0.0f} },
-	{ {-0.5f, +0.5f, -0.5f}, {0.0f, 1.0f}, {-1.0f, 0.0f, 0.0f} },
-	{ {-0.5f, -0.5f, -0.5f}, {0.0f, 0.0f}, {-1.0f, 0.0f, 0.0f} },
+    // Fourth face (MX)
+    // First triangle
+    { {-0.5f, -0.5f, -0.5f}, {0.0f, 0.0f}, {-1.0f, 0.0f, 0.0f} },
+    { {-0.5f, -0.5f, +0.5f}, {1.0f, 0.0f}, {-1.0f, 0.0f, 0.0f} },
+    { {-0.5f, +0.5f, +0.5f}, {1.0f, 1.0f}, {-1.0f, 0.0f, 0.0f} },
+    // Second triangle
+    { {-0.5f, +0.5f, +0.5f}, {1.0f, 1.0f}, {-1.0f, 0.0f, 0.0f} },
+    { {-0.5f, +0.5f, -0.5f}, {0.0f, 1.0f}, {-1.0f, 0.0f, 0.0f} },
+    { {-0.5f, -0.5f, -0.5f}, {0.0f, 0.0f}, {-1.0f, 0.0f, 0.0f} },
 
-	// Fifth face (PY)
-	// First triangle
-	{ {-0.5f, +0.5f, -0.5f}, {0.0f, 0.0f}, {0.0f, +1.0f, 0.0f} },
-	{ {-0.5f, +0.5f, +0.5f}, {1.0f, 0.0f}, {0.0f, +1.0f, 0.0f} },
-	{ {+0.5f, +0.5f, +0.5f}, {1.0f, 1.0f}, {0.0f, +1.0f, 0.0f} },
-	// Second triangle
-	{ {+0.5f, +0.5f, +0.5f}, {1.0f, 1.0f}, {0.0f, +1.0f, 0.0f} },
-	{ {+0.5f, +0.5f, -0.5f}, {0.0f, 1.0f}, {0.0f, +1.0f, 0.0f} },
-	{ {-0.5f, +0.5f, -0.5f}, {0.0f, 0.0f}, {0.0f, +1.0f, 0.0f} },
+    // Fifth face (PY)
+    // First triangle
+    { {-0.5f, +0.5f, -0.5f}, {0.0f, 0.0f}, {0.0f, +1.0f, 0.0f} },
+    { {-0.5f, +0.5f, +0.5f}, {1.0f, 0.0f}, {0.0f, +1.0f, 0.0f} },
+    { {+0.5f, +0.5f, +0.5f}, {1.0f, 1.0f}, {0.0f, +1.0f, 0.0f} },
+    // Second triangle
+    { {+0.5f, +0.5f, +0.5f}, {1.0f, 1.0f}, {0.0f, +1.0f, 0.0f} },
+    { {+0.5f, +0.5f, -0.5f}, {0.0f, 1.0f}, {0.0f, +1.0f, 0.0f} },
+    { {-0.5f, +0.5f, -0.5f}, {0.0f, 0.0f}, {0.0f, +1.0f, 0.0f} },
 
-	// Sixth face (MY)
-	// First triangle
-	{ {-0.5f, -0.5f, -0.5f}, {0.0f, 0.0f}, {0.0f, -1.0f, 0.0f} },
-	{ {+0.5f, -0.5f, -0.5f}, {1.0f, 0.0f}, {0.0f, -1.0f, 0.0f} },
-	{ {+0.5f, -0.5f, +0.5f}, {1.0f, 1.0f}, {0.0f, -1.0f, 0.0f} },
-	// Second triangle
-	{ {+0.5f, -0.5f, +0.5f}, {1.0f, 1.0f}, {0.0f, -1.0f, 0.0f} },
-	{ {-0.5f, -0.5f, +0.5f}, {0.0f, 1.0f}, {0.0f, -1.0f, 0.0f} },
-	{ {-0.5f, -0.5f, -0.5f}, {0.0f, 0.0f}, {0.0f, -1.0f, 0.0f} },
+    // Sixth face (MY)
+    // First triangle
+    { {-0.5f, -0.5f, -0.5f}, {0.0f, 0.0f}, {0.0f, -1.0f, 0.0f} },
+    { {+0.5f, -0.5f, -0.5f}, {1.0f, 0.0f}, {0.0f, -1.0f, 0.0f} },
+    { {+0.5f, -0.5f, +0.5f}, {1.0f, 1.0f}, {0.0f, -1.0f, 0.0f} },
+    // Second triangle
+    { {+0.5f, -0.5f, +0.5f}, {1.0f, 1.0f}, {0.0f, -1.0f, 0.0f} },
+    { {-0.5f, -0.5f, +0.5f}, {0.0f, 1.0f}, {0.0f, -1.0f, 0.0f} },
+    { {-0.5f, -0.5f, -0.5f}, {0.0f, 0.0f}, {0.0f, -1.0f, 0.0f} },
 };
 
 #define NUM_VERTICES (sizeof(g_VertexList)/sizeof(Vertex))
@@ -116,78 +116,78 @@ static void sceneInit(GLuint* vbo, GLuint* tex) {
     // Get the location of the uniforms.
     g_ProjLoc = glGetUniformLocation(prog, "projection");
     g_ModelViewLoc = glGetUniformLocation(prog, "modelView");
-	g_LightVecLoc = glGetUniformLocation(prog, "lightVec");
-	g_LightHalfVecLoc = glGetUniformLocation(prog, "lightHalfVec");
-	g_LightClrLoc = glGetUniformLocation(prog, "lightClr");
-	g_MaterialLoc = glGetUniformLocation(prog, "material");
+    g_LightVecLoc = glGetUniformLocation(prog, "lightVec");
+    g_LightHalfVecLoc = glGetUniformLocation(prog, "lightHalfVec");
+    g_LightClrLoc = glGetUniformLocation(prog, "lightClr");
+    g_MaterialLoc = glGetUniformLocation(prog, "material");
 
     // Create the VBO (vertex buffer object).
     glGenBuffers(1, vbo);
     glBindBuffer(GL_ARRAY_BUFFER, *vbo);
     glBufferData(GL_ARRAY_BUFFER, sizeof(g_VertexList), g_VertexList, GL_STATIC_DRAW);
 
-	// Configure attributes for use with the vertex shader.
-	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)(offsetof(Vertex, position))); // // v0 = position
-	glEnableVertexAttribArray(0);
+    // Configure attributes for use with the vertex shader.
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)(offsetof(Vertex, position))); // // v0 = position
+    glEnableVertexAttribArray(0);
 
-	glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)(offsetof(Vertex, texcoord))); // v1 = texcoord
-	glEnableVertexAttribArray(1);
+    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)(offsetof(Vertex, texcoord))); // v1 = texcoord
+    glEnableVertexAttribArray(1);
 
-	glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)(offsetof(Vertex, normal))); // v2 = normal
-	glEnableVertexAttribArray(2);
+    glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)(offsetof(Vertex, normal))); // v2 = normal
+    glEnableVertexAttribArray(2);
 
-	// Compute the projection matrix.
-	Mtx_PerspTilt(&g_Proj, C3D_AngleFromDegrees(80.0f), C3D_AspectRatioTop, 0.01f, 1000.0f, false);
+    // Compute the projection matrix.
+    Mtx_PerspTilt(&g_Proj, C3D_AngleFromDegrees(80.0f), C3D_AspectRatioTop, 0.01f, 1000.0f, false);
 
     // Citro3D components are inverted.
     invertComponents(&g_Proj);
-	invertComponents(&g_Material);
+    invertComponents(&g_Material);
 
-	// Load texture.
-	glGenTextures(1, tex);
-	glActiveTexture(GL_TEXTURE0);
-	glBindTexture(GL_TEXTURE_2D, *tex);
+    // Load texture.
+    glGenTextures(1, tex);
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, *tex);
 
-	glassTexture* kittenTex;
-	glassLoadTexture(Kitten_t3x, Kitten_t3x_size, &kittenTex);
-	const bool isCompressed = glassIsTextureCompressed(kittenTex);
+    glassTexture* kittenTex;
+    glassLoadTexture(Kitten_t3x, Kitten_t3x_size, &kittenTex);
+    const bool isCompressed = glassIsTextureCompressed(kittenTex);
 
-	for (size_t level = 0; level < kittenTex->levels; ++level) {
-		const GLsizei width = (kittenTex->width >> level);
-		const GLsizei height = (kittenTex->height >> level);
-		const GLenum format = kittenTex->format;
-		const u8* data = glassGetTextureData(kittenTex, level);
+    for (size_t level = 0; level < kittenTex->levels; ++level) {
+        const GLsizei width = (kittenTex->width >> level);
+        const GLsizei height = (kittenTex->height >> level);
+        const GLenum format = kittenTex->format;
+        const u8* data = glassGetTextureData(kittenTex, level);
 
-		if (isCompressed) {
-			const size_t size = glassGetTextureSize(kittenTex, level);
-			glCompressedTexImage2D(GL_TEXTURE_2D, level, format, width, height, 0, size, data);
-		} else {
-			const GLenum type = kittenTex->dataType;
-			glTexImage2D(GL_TEXTURE_2D, level, format, width, height, 0, format, type, data);
-		}
-	}
+        if (isCompressed) {
+            const size_t size = glassGetTextureSize(kittenTex, level);
+            glCompressedTexImage2D(GL_TEXTURE_2D, level, format, width, height, 0, size, data);
+        } else {
+            const GLenum type = kittenTex->dataType;
+            glTexImage2D(GL_TEXTURE_2D, level, format, width, height, 0, format, type, data);
+        }
+    }
 
-	glassDestroyTexture(kittenTex);
+    glassDestroyTexture(kittenTex);
 }
 
 static void sceneRender(float angleX, float angleY) {
-	// Calculate the modelView matrix.
-	C3D_Mtx modelView;
-	Mtx_Identity(&modelView);
-	Mtx_Translate(&modelView, 0.0f, 0.0f, -2.0f + 0.5f * sinf(angleX), true);
-	Mtx_RotateX(&modelView, angleX, true);
-	Mtx_RotateY(&modelView, angleY, true);
-	invertComponents(&modelView);
+    // Calculate the modelView matrix.
+    C3D_Mtx modelView;
+    Mtx_Identity(&modelView);
+    Mtx_Translate(&modelView, 0.0f, 0.0f, -2.0f + 0.5f * sinf(angleX), true);
+    Mtx_RotateX(&modelView, angleX, true);
+    Mtx_RotateY(&modelView, angleY, true);
+    invertComponents(&modelView);
 
-	// Update the uniforms.
+    // Update the uniforms.
     glUniformMatrix4fv(g_ProjLoc, 1, GL_FALSE, g_Proj.m);
-	glUniformMatrix4fv(g_ModelViewLoc, 1, GL_FALSE, modelView.m);
-	glUniformMatrix4fv(g_MaterialLoc, 1, GL_FALSE, g_Material.m);
-	glUniform4f(g_LightVecLoc, 0.0f, 0.0f, -1.0f, 0.0f);
-	glUniform4f(g_LightHalfVecLoc, 0.0f, 0.0f, -1.0f, 0.0f);
-	glUniform4f(g_LightClrLoc, 1.0f, 1.0f, 1.0f, 1.0f);
+    glUniformMatrix4fv(g_ModelViewLoc, 1, GL_FALSE, modelView.m);
+    glUniformMatrix4fv(g_MaterialLoc, 1, GL_FALSE, g_Material.m);
+    glUniform4f(g_LightVecLoc, 0.0f, 0.0f, -1.0f, 0.0f);
+    glUniform4f(g_LightHalfVecLoc, 0.0f, 0.0f, -1.0f, 0.0f);
+    glUniform4f(g_LightClrLoc, 1.0f, 1.0f, 1.0f, 1.0f);
 
-	// Draw the VBO.
+    // Draw the VBO.
     glDrawArrays(GL_TRIANGLES, 0, NUM_VERTICES);
 }
 
@@ -212,28 +212,28 @@ int main() {
     glViewport(0, 0, 400, 240);
     glClearColor(104 / 256.0f, 176 / 256.0f, 216 / 256.0f, 1.0f);
 
-	// Enable culling.
-	glEnable(GL_CULL_FACE);
+    // Enable culling.
+    glEnable(GL_CULL_FACE);
 
     // Initialize the scene.
-	GLuint vbo;
-	GLuint tex;
+    GLuint vbo;
+    GLuint tex;
     sceneInit(&vbo, &tex);
 
     // Main loop.
-	float angleX = 0.0f, angleY = 0.0f;
+    float angleX = 0.0f, angleY = 0.0f;
 
     while (aptMainLoop()) {
         hidScanInput();
 
         // Respond to user input.
         u32 kDown = hidKeysDown();
-		if (kDown & KEY_START)
-			break; // break in order to return to hbmenu.
+        if (kDown & KEY_START)
+            break; // break in order to return to hbmenu.
 
-		// Rotate the cube each frame
-		angleX += M_PI / 180;
-		angleY += M_PI / 360;
+        // Rotate the cube each frame
+        angleX += M_PI / 180;
+        angleY += M_PI / 360;
 
         // Render the scene.
         glClear(GL_COLOR_BUFFER_BIT);
@@ -243,7 +243,7 @@ int main() {
     }
 
     // Deinitialize graphics.
-	glDeleteTextures(1, &tex);
+    glDeleteTextures(1, &tex);
     glDeleteBuffers(1, &vbo);
     glDeleteRenderbuffers(1, &rb);
     glDeleteFramebuffers(1, &fb);

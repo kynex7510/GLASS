@@ -822,24 +822,24 @@ GLenum GLASS_utility_wrapTexFormat(GPU_TEXCOLOR format) {
 size_t GLASS_utility_getTexBitsPerPixel(GPU_TEXCOLOR format) {
     switch (format) {
         case GPU_RGBA8:
-			return 32;
-		case GPU_RGB8:
-			return 24;
-		case GPU_RGBA5551:
-		case GPU_RGB565:
-		case GPU_RGBA4:
-		case GPU_LA8:
-		case GPU_HILO8:
-			return 16;
-		case GPU_L8:
-		case GPU_A8:
-		case GPU_LA4:
-		case GPU_ETC1A4:
-			return 8;
-		case GPU_L4:
-		case GPU_A4:
-		case GPU_ETC1:
-			return 4;
+            return 32;
+        case GPU_RGB8:
+            return 24;
+        case GPU_RGBA5551:
+        case GPU_RGB565:
+        case GPU_RGBA4:
+        case GPU_LA8:
+        case GPU_HILO8:
+            return 16;
+        case GPU_L8:
+        case GPU_A8:
+        case GPU_LA4:
+        case GPU_ETC1A4:
+            return 8;
+        case GPU_L4:
+        case GPU_A4:
+        case GPU_ETC1:
+            return 4;
     }
 
     UNREACHABLE("Invalid GPU texture format!");

@@ -53,16 +53,16 @@ static GLuint sceneInit(void) {
 static void sceneRender(float iod, float angleY) {
     // Compute the projection matrix.
     C3D_Mtx proj;
-	Mtx_PerspStereoTilt(&proj, C3D_AngleFromDegrees(40.0f), C3D_AspectRatioTop, 0.01f, 1000.0f, iod, 2.0f, false);
+    Mtx_PerspStereoTilt(&proj, C3D_AngleFromDegrees(40.0f), C3D_AspectRatioTop, 0.01f, 1000.0f, iod, 2.0f, false);
 
     C3D_FVec objPos = FVec4_New(0.0f, 0.0f, -3.0f, 1.0f);
 
-	// Calculate the modelView matrix
-	C3D_Mtx modelView;
-	Mtx_Identity(&modelView);
-	Mtx_Translate(&modelView, objPos.x, objPos.y, objPos.z, true);
-	Mtx_RotateY(&modelView, C3D_Angle(angleY), true);
-	Mtx_Scale(&modelView, 2.0f, 2.0f, 2.0f);
+    // Calculate the modelView matrix
+    C3D_Mtx modelView;
+    Mtx_Identity(&modelView);
+    Mtx_Translate(&modelView, objPos.x, objPos.y, objPos.z, true);
+    Mtx_RotateY(&modelView, C3D_Angle(angleY), true);
+    Mtx_Scale(&modelView, 2.0f, 2.0f, 2.0f);
 
     // Update the uniforms.
     invertComponents(&proj);
@@ -108,15 +108,15 @@ int main() {
         // Respond to user input.
         u32 kDown = hidKeysDown();
         u32 kHeld = hidKeysHeld();
-		if (kDown & KEY_START)
-			break; // break in order to return to hbmenu.
+        if (kDown & KEY_START)
+            break; // break in order to return to hbmenu.
 
         float slider = osGet3DSliderState();
-		float iod = slider/3;
+        float iod = slider/3;
 
-		// Rotate the model
-		if (!(kHeld & KEY_A))
-			angleY += 1.0f/256;
+        // Rotate the model
+        if (!(kHeld & KEY_A))
+            angleY += 1.0f/256;
 
         // Render the scene.
         glClear(GL_COLOR_BUFFER_BIT);
