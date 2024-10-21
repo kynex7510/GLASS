@@ -38,7 +38,7 @@ static void GLASS_context_initCommon(CtxCommon* ctx, const glassInitParams* init
     ctx->elementArrayBuffer = GLASS_INVALID_OBJECT;
 
     // Texture.
-    for (size_t i = 0; i < GLASS_NUM_TEXTURE_UNITS; ++i) {
+    for (size_t i = 0; i < GLASS_NUM_TEX_UNITS; ++i) {
         TextureUnit* unit = &ctx->textureUnits[i];
         unit->texture = GLASS_INVALID_OBJECT;
         unit->dirty = true;

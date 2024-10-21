@@ -171,8 +171,8 @@ typedef struct {
     GLuint elementArrayBuffer; // GL_ELEMENT_ARRAY_BUFFER
 
     /* Texture */
-    TextureUnit textureUnits[GLASS_NUM_TEXTURE_UNITS]; // Texture units.
-    size_t activeTextureUnit;                          // Currently active texture unit.    
+    TextureUnit textureUnits[GLASS_NUM_TEX_UNITS]; // Texture units.
+    size_t activeTextureUnit;                      // Currently active texture unit.    
 
     /* Framebuffer */
     GLuint framebuffer;  // Bound framebuffer object.

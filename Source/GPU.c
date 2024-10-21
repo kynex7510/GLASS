@@ -746,7 +746,7 @@ void GLASS_gpu_setTextureUnits(const TextureUnit* units) {
 
     u32 config = (1u << 16); // Clear cache.
 
-    for (size_t i = 0; i < GLASS_NUM_TEXTURE_UNITS; ++i) {
+    for (size_t i = 0; i < GLASS_NUM_TEX_UNITS; ++i) {
         const TextureUnit* unit = &units[i];
         if (!unit->dirty)
             continue;

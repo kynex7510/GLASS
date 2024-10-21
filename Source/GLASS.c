@@ -35,7 +35,7 @@ void glassDestroyContext(glassCtx wrapped) {
     if (ctx->initParams.version == GLASS_VERSION_2_0) {
         GLASS_context_cleanupV2((CtxV2*)ctx);
     } else {
-        UNREACHABLE("Invalid constext version!");
+        UNREACHABLE("Invalid context version!");
     }
 
     glassVirtualFree(ctx);

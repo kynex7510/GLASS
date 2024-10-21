@@ -25,6 +25,8 @@ In a vertex buffer, each component value must be aligned to its type size; `glVe
 
 3 texture units are available. Only `GL_TEXTURE0` can load cube maps, and only one target at time can be used.
 
+A texture width and height must be at least 8, and must not be more than 1024. This implies that there are at most 8 mipmap levels, with the highest possible one being 8x8 (and not 1x1 as described by the standard).
+
 When specifying LOD values, they will be clamped in the range `[0, 15]`. When specifying a LOD bias, it will be clamped in the range `[-15.255, 15.255]`.
 
 `GL_NEAREST` and `GL_NEAREST_MIPMAP_NEAREST` are the same, the GPU decides to use one or the other based on the value of `GL_TEXTURE_MIN_LOD` (ie. whether the filter is active). Same goes for `GL_LINEAR` and `GL_LINEAR_MIPMAP_NEAREST`.
@@ -48,7 +50,7 @@ size_t glassVRAMSize(void* p);
 ```
 
 - `*Alloc` allocates `size` bytes.
-- `*Free` frees the memory pointed by `p`.
+- `*Free` frees the memory pointed by `p` (null pointers are ignored).
 - `*Size` returns the usuable size for the memory pointed by `p`.
 
 By redefining any of the functions above, you will override default memory management routines. This is useful for tracking, controlling and customizing allocations.
