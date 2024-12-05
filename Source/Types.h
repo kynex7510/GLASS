@@ -24,6 +24,8 @@ typedef struct {
 typedef struct {
     u32 type;         // GL type (GLASS_TEXTURE_TYPE).
     GLenum target;    // Texture target.
+    GLenum format;    // Texture format.
+    GLenum dataType;  // Texture data type.
     u32 borderColor;  // Border color (ABGR).
     u16 width;        // Texture width.
     u16 height;       // Texture height.
@@ -35,6 +37,7 @@ typedef struct {
     u8 maxLod;        // Max level of details.
     u16 flags;        // Texture flags.
     float lodBias;    // LOD bias.
+    u8* data[6];      // Texture data.
 } TextureInfo;
 
 typedef struct {

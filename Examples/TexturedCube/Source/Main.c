@@ -150,12 +150,13 @@ static void sceneInit(GLuint* vbo, GLuint* tex) {
 
     glassTexture* kittenTex;
     glassLoadTexture(Kitten_t3x, Kitten_t3x_size, &kittenTex);
+
+    const GLsizei width = kittenTex->width;
+    const GLsizei height = kittenTex->height;
+    const GLenum format = kittenTex->format;
     const bool isCompressed = glassIsTextureCompressed(kittenTex);
 
     for (size_t level = 0; level < kittenTex->levels; ++level) {
-        const GLsizei width = (kittenTex->width >> level);
-        const GLsizei height = (kittenTex->height >> level);
-        const GLenum format = kittenTex->format;
         const u8* data = glassGetTextureData(kittenTex, level);
 
         if (isCompressed) {

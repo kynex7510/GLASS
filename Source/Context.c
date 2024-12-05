@@ -113,6 +113,15 @@ static void GLASS_context_initCommon(CtxCommon* ctx, const glassInitParams* init
         combiner->alphaScale = 1.0f;
         combiner->color = 0xFFFFFFFF;
     }
+
+    //
+    CombinerInfo* combiner = &ctx->combiners[0];
+    combiner->rgbSrc[0] = GL_TEXTURE0;
+    combiner->alphaSrc[0] = GL_TEXTURE0;
+    combiner->rgbFunc = GL_MODULATE;
+    combiner->alphaFunc = GL_MODULATE;
+    //
+
     ctx->flags |= CONTEXT_FLAG_COMBINERS;
 
     // Fragment.
@@ -317,12 +326,6 @@ void GLASS_context_update(void) {
         g_Context->flags &= ~CONTEXT_FLAG_ATTRIBS;
     }
 
-    // Handle combiners.
-    if (g_Context->flags & CONTEXT_FLAG_COMBINERS) {
-        GLASS_gpu_setCombiners(g_Context->combiners);
-        g_Context->flags &= ~CONTEXT_FLAG_COMBINERS;
-    }
-
     // Handle fragment.
     if (g_Context->flags & CONTEXT_FLAG_FRAGMENT) {
         GLASS_gpu_setFragOp(g_Context->fragMode, g_Context->blendMode);
@@ -395,6 +398,18 @@ void GLASS_context_update(void) {
         }
 
         g_Context->flags &= ~CONTEXT_FLAG_BLEND;
+    }
+
+    // Handle textures.
+    if (g_Context->flags & CONTEXT_FLAG_TEXTURE) {
+        GLASS_gpu_setTextureUnits(g_Context->textureUnits);
+        g_Context->flags &= ~CONTEXT_FLAG_TEXTURE;
+    }
+
+    // Handle combiners.
+    if (g_Context->flags & CONTEXT_FLAG_COMBINERS) {
+        GLASS_gpu_setCombiners(g_Context->combiners);
+        g_Context->flags &= ~CONTEXT_FLAG_COMBINERS;
     }
 
     GLASS_gpu_disableCommands(g_Context);

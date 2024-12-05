@@ -277,7 +277,10 @@ const u8* glassGetTextureData(const glassTexture* tex, size_t level) {
     return NULL;
 }
 
-const u8* glassGetSubTextureData(const glassTexture* tex, const glassSubTexture* subTex, size_t level); // TODO
+const u8* glassGetSubTextureData(const glassTexture* tex, const glassSubTexture* subTex, size_t level) {
+    // TODO
+    return NULL;
+}
 
 bool glassIsTextureCompressed(const glassTexture* tex) {
     if (tex)

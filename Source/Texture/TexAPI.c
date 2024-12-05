@@ -1,6 +1,6 @@
 #include "Context.h"
 
-#include <stdint.h> // INT32_MAX
+#include <string.h>
 
 #define IS_MAG_FILTER(filter) \
     (((filter) == GL_NEAREST) || ((filter) == GL_LINEAR))
@@ -17,6 +17,9 @@
 #define IS_TYPE(type) \
     (((type) == GL_UNSIGNED_BYTE) || ((type) == GL_UNSIGNED_SHORT_5_6_5) || ((type) == GL_UNSIGNED_SHORT_4_4_4_4) || ((type) == GL_UNSIGNED_SHORT_5_5_5_1) || ((type) == GL_UNSIGNED_NIBBLE_PICA) || ((type) == GL_UNSIGNED_BYTE_4_4_PICA))
 
+#define IS_COMPRESSED_FORMAT(format) \
+    (((format) == GL_ETC1_RGB8_OES) || ((format) == GL_ETC1_ALPHA_RGB8_A4_PICA))
+
 void glBindTexture(GLenum target, GLuint texture) {
     ASSERT(OBJ_IS_TEXTURE(texture) || texture == GLASS_INVALID_OBJECT);
 
@@ -26,8 +29,8 @@ void glBindTexture(GLenum target, GLuint texture) {
     }
 
     // Check for previous binding.
-    TextureInfo* info = (TextureInfo*)texture;
-    if (info && (info->flags & TEXTURE_FLAG_BOUND) && (info->target != target)) {
+    TextureInfo* tex = (TextureInfo*)texture;
+    if (tex && (tex->flags & TEXTURE_FLAG_BOUND) && (tex->target != target)) {
         GLASS_context_setError(GL_INVALID_OPERATION);
         return;
     }
@@ -49,9 +52,9 @@ void glBindTexture(GLenum target, GLuint texture) {
         ctx->flags |= CONTEXT_FLAG_TEXTURE;
     }
 
-    if (info) {
-        info->target = target;
-        info->flags |= TEXTURE_FLAG_BOUND;
+    if (tex) {
+        tex->target = target;
+        tex->flags |= TEXTURE_FLAG_BOUND;
     }
 }
 
@@ -72,10 +75,10 @@ void glDeleteTextures(GLsizei n, const GLuint* textures) {
         if (!OBJ_IS_TEXTURE(name))
             continue;
 
-        TextureInfo* info = (TextureInfo*)name;
+        TextureInfo* tex = (TextureInfo*)name;
 
         // Unbind if bound.
-        for (size_t i = 0; i < GLASS_NUM_TEXTURE_UNITS; ++i) {
+        for (size_t i = 0; i < GLASS_NUM_TEX_UNITS; ++i) {
             TextureUnit* unit = &ctx->textureUnits[i];
             if (unit->texture == name) {
                 unit->texture = GLASS_INVALID_OBJECT;
@@ -85,7 +88,7 @@ void glDeleteTextures(GLsizei n, const GLuint* textures) {
         }
 
         // Delete texture.
-        glassVirtualFree(info);
+        glassVirtualFree(tex);
     }
 }
 
@@ -104,16 +107,16 @@ void glGenTextures(GLsizei n, GLuint* textures) {
             return;
         }
 
-        TextureInfo* info = (TextureInfo*)name;
-        info->flags = 0;
+        TextureInfo* tex = (TextureInfo*)name;
+        tex->flags = 0;
         textures[i] = name;
     }
 }
 
 GLboolean glIsTexture(GLuint texture) {
     if (OBJ_IS_TEXTURE(texture)) {
-        const TextureInfo* info = (TextureInfo*)texture;
-        return info->flags & TEXTURE_FLAG_BOUND;
+        const TextureInfo* tex = (TextureInfo*)texture;
+        return tex->flags & TEXTURE_FLAG_BOUND;
     }
 
     return GL_FALSE;
@@ -129,40 +132,40 @@ void glActiveTexture(GLenum texture) {
     ctx->activeTextureUnit = (texture - GL_TEXTURE0);
 }
 
-static bool GLASS_setTexInt(TextureInfo* info, GLenum pname, GLint param) {
+static bool GLASS_setTexInt(TextureInfo* tex, GLenum pname, GLint param) {
     switch (pname) {
         case GL_TEXTURE_MIN_FILTER:
-            info->minFilter = param;
+            tex->minFilter = param;
             return true;
         case GL_TEXTURE_MAG_FILTER:
-            info->magFilter = param;
+            tex->magFilter = param;
             return true;
         case GL_TEXTURE_WRAP_S:
-            info->wrapS = param;
+            tex->wrapS = param;
             return true;
         case GL_TEXTURE_WRAP_T:
-            info->wrapT = param;
+            tex->wrapT = param;
             return true;
         case GL_TEXTURE_MIN_LOD:
-            info->minLod = param;
+            tex->minLod = param;
             return true;
         case GL_TEXTURE_MAX_LOD:
-            info->maxLod = param;
+            tex->maxLod = param;
             return true;
     }
 
     return false;
 }
 
-static bool GLASS_setTexFloats(TextureInfo* info, GLenum pname, const GLfloat* params) {
+static bool GLASS_setTexFloats(TextureInfo* tex, GLenum pname, const GLfloat* params) {
     ASSERT(params);
 
     switch (pname) {
         case GL_TEXTURE_BORDER_COLOR:
-            info->borderColor = (((u32)(params[3] * 0xFF) << 24) | ((u32)(params[2] * 0xFF) << 16) | ((u32)(params[1] * 0xFF) << 8) | (u32)(params[0] * 0xFF));
+            tex->borderColor = (((u32)(params[3] * 0xFF) << 24) | ((u32)(params[2] * 0xFF) << 16) | ((u32)(params[1] * 0xFF) << 8) | (u32)(params[0] * 0xFF));
             return true;
         case GL_TEXTURE_LOD_BIAS:
-            info->lodBias = params[0];
+            tex->lodBias = params[0];
             return true;
     }
 
@@ -173,17 +176,17 @@ static INLINE bool GLASS_validateTexParam(GLenum pname, GLenum param) {
     const bool invalidMinFilter = ((pname == GL_TEXTURE_MIN_FILTER) && !IS_MIN_FILTER(param));
     const bool invalidMagFilter = ((pname == GL_TEXTURE_MAG_FILTER) && !IS_MAG_FILTER(param));
     const bool invalidWrap = (((pname == GL_TEXTURE_WRAP_S) || (pname == GL_TEXTURE_WRAP_T)) && !IS_WRAP(param));
-    return !invalidMinFilter && !invalidMagFilter && !invalidWrap;
+    return (!invalidMinFilter && !invalidMagFilter && !invalidWrap);
 }
 
 static void GLASS_setTexParams(GLenum target, GLenum pname, const GLint* intParams, const GLfloat* floatParams) {
     // Get texture.
     CtxCommon* ctx = GLASS_context_getCommon();
     const TextureUnit* unit = &ctx->textureUnits[ctx->activeTextureUnit];
-    TextureInfo* info = (TextureInfo*)unit->texture;
+    TextureInfo* tex = (TextureInfo*)unit->texture;
 
     // We don't support default textures, and only one target at time can be used.
-    if (!info || (info->target != target)) {
+    if (!tex || (tex->target != target)) {
         GLASS_context_setError(GL_INVALID_OPERATION);
         return;
     }
@@ -198,28 +201,27 @@ static void GLASS_setTexParams(GLenum target, GLenum pname, const GLint* intPara
             return;
         }
 
-        if (!GLASS_setTexInt(info, pname, param)) {
+        if (!GLASS_setTexInt(tex, pname, param)) {
             GLfloat floatParams[4];
 
             // Integer color components are interpreted linearly such that the most positive integer maps to 1.0
             // and the most negative integer maps to -1.0.
             if (pname == GL_TEXTURE_BORDER_COLOR) {
                 for (size_t i = 0; i < 4; ++i) {
-                    floatParams[i] = (GLfloat)(intParams[i]) / INT32_MAX;
+                    floatParams[i] = (GLfloat)(intParams[i]) / 0x7FFFFFFF;
                 }
             } else {
                 // Only other choice is lod bias.
                 floatParams[0] = (GLfloat)intParams[0];
             }
 
-            if (!GLASS_setTexFloats(info, pname, floatParams))
+            if (!GLASS_setTexFloats(tex, pname, floatParams))
                 GLASS_context_setError(GL_INVALID_ENUM);
         }
 
-    }
-    else if (floatParams) {
-        if (!GLASS_setTexFloats(info, pname, floatParams)) {
-            if (!GLASS_validateTexParam(pname, floatParams[0]) || !GLASS_setTexInt(info, pname, floatParams[0]))
+    } else if (floatParams) {
+        if (!GLASS_setTexFloats(tex, pname, floatParams)) {
+            if (!GLASS_validateTexParam(pname, floatParams[0]) || !GLASS_setTexInt(tex, pname, floatParams[0]))
                 GLASS_context_setError(GL_INVALID_ENUM);
         }
     }
@@ -230,31 +232,110 @@ void glTexParameteriv(GLenum target, GLenum pname, const GLint* params) { GLASS_
 void glTexParameterf(GLenum target, GLenum pname, GLfloat param) { glTexParameterfv(target, pname, &param); }
 void glTexParameteri(GLenum target, GLenum pname, GLint param) { glTexParameteriv(target, pname, &param); }
 
-void glTexImage2D(GLenum target, GLint level, GLint internalformat, GLsizei width, GLsizei height, GLint border, GLenum format, GLenum type, const GLvoid* data) {
-    /*
+static bool GLASS_checkTexArgs(GLenum target, GLint level, GLsizei width, GLsizei height, GLint border) {
+    if ((target != GL_TEXTURE_2D) && (width != height))
+        return false;
 
-    GL_INVALID_ENUM is generated if target is not GL_TEXTURE_2D, GL_TEXTURE_CUBE_MAP_POSITIVE_X,
-    GL_TEXTURE_CUBE_MAP_NEGATIVE_X, GL_TEXTURE_CUBE_MAP_POSITIVE_Y, GL_TEXTURE_CUBE_MAP_NEGATIVE_Y,
-    GL_TEXTURE_CUBE_MAP_POSITIVE_Z, or GL_TEXTURE_CUBE_MAP_NEGATIVE_Z.
+    if ((width > GLASS_MAX_TEX_SIZE) || (height > GLASS_MAX_TEX_SIZE))
+        return false;
 
-    GL_INVALID_VALUE is generated if target is one of the six cube map 2D image targets and the width and height
-    parameters are not equal.
+    if ((level < 0) || (width < 0) || (height < 0) || (border != 0))
+        return false;
 
-    GL_INVALID_VALUE may be generated if level is greater than log2(max) where max is the returned value of
-    GL_MAX_TEXTURE_SIZE when target is GL_TEXTURE_2D or GL_MAX_CUBE_MAP_TEXTURE_SIZE when target is not GL_TEXTURE_2D.
+    if (level >= GLASS_NUM_TEX_LEVELS)
+        return false;
 
-    GL_INVALID_VALUE is greater than GL_MAX_TEXTURE_SIZE when target is GL_TEXTURE_2D or GL_MAX_CUBE_MAP_TEXTURE_SIZE when
-    target is not GL_TEXTURE_2D.
+    return true;
+}
 
-    */
-    
-    if (!IS_FORMAT(format) || !IS_TYPE(type)) {
-        GLASS_context_setError(GL_INVALID_ENUM);
+// To clear up confusion: all parameters are for the texture as a whole, except 
+static void GLASS_setTex(GLenum target, size_t level, GLsizei width, GLsizei height, GLenum format, GLenum type, const u8* data, size_t dataSize) {
+    CtxCommon* ctx = GLASS_context_getCommon();
+    TextureUnit* unit = &ctx->textureUnits[ctx->activeTextureUnit];
+    TextureInfo* tex = (TextureInfo*)unit->texture;
+
+    // We don't support default textures.
+    // TODO: do we need to enforce the check on the target?
+    if (!tex) {
+        GLASS_context_setError(GL_INVALID_OPERATION);
         return;
     }
 
-    if ((level < 0) || (width < 0) || (height < 0) || (border != 0)) {
+    // Only texture0 supports cube maps.
+    const bool hasCubeMap = (target != GL_TEXTURE_2D);
+    if (hasCubeMap && ctx->activeTextureUnit) {
+        GLASS_context_setError(GL_INVALID_OPERATION);
+        return;
+    }
+    
+    size_t dataIndex;
+    switch (target) {
+        case GL_TEXTURE_2D:
+        case GL_TEXTURE_CUBE_MAP_POSITIVE_X:
+            dataIndex = 0;
+            break;
+        case GL_TEXTURE_CUBE_MAP_NEGATIVE_X:
+            dataIndex = 1;
+            break;
+        case GL_TEXTURE_CUBE_MAP_POSITIVE_Y:
+            dataIndex = 2;
+            break;
+        case GL_TEXTURE_CUBE_MAP_NEGATIVE_Y:
+            dataIndex = 3;
+            break;
+        case GL_TEXTURE_CUBE_MAP_POSITIVE_Z:
+            dataIndex = 4;
+            break;
+        case GL_TEXTURE_CUBE_MAP_NEGATIVE_Z:
+            dataIndex = 5;
+            break;
+        default:
+            GLASS_context_setError(GL_INVALID_ENUM);
+            return;
+    }
+
+    //
+
+    u8* p = glassLinearAlloc(dataSize);
+    if (!p) {
+        GLASS_context_setError(GL_OUT_OF_MEMORY);
+        return;
+    }
+
+    memcpy(p, data, dataSize);
+
+    // DEFAULT VALUES
+    tex->borderColor = 0;
+    tex->minFilter = GL_NEAREST_MIPMAP_LINEAR;
+    tex->magFilter = GL_LINEAR;
+    tex->wrapS = GL_REPEAT;
+    tex->wrapT = GL_REPEAT;
+
+    tex->minLod = 0;
+    tex->lodBias = 0;
+    //
+
+    tex->width = width;
+    tex->height = height;
+    tex->format = format;
+    tex->dataType = type;
+    tex->data[dataIndex] = p;
+
+    unit->dirty = true;
+
+    ctx->flags |= CONTEXT_FLAG_TEXTURE;
+
+    //
+}
+
+void glTexImage2D(GLenum target, GLint level, GLint internalformat, GLsizei width, GLsizei height, GLint border, GLenum format, GLenum type, const GLvoid* data) {
+    if (!GLASS_checkTexArgs(target, level, width, height, border)) {
         GLASS_context_setError(GL_INVALID_VALUE);
+        return;
+    }
+    
+    if (!IS_FORMAT(format) || !IS_TYPE(type)) {
+        GLASS_context_setError(GL_INVALID_ENUM);
         return;
     }
     
@@ -262,12 +343,30 @@ void glTexImage2D(GLenum target, GLint level, GLint internalformat, GLsizei widt
         GLASS_context_setError(GL_INVALID_OPERATION);
         return;
     }
+
+    const size_t dataSize = GLASS_utility_calculateTexSize(width >> level, height >> level, GLASS_utility_getTexFormat(format, type));    
+    GLASS_setTex(target, level, width, height, format, type, (const u8*)data, dataSize);    
 }
 
 void glCompressedTexImage2D(GLenum target, GLint level, GLenum internalformat, GLsizei width, GLsizei height, GLint border, GLsizei imageSize, const GLvoid* data) {
-    // TODO
+    /*
+    GL_INVALID_OPERATION is generated if parameter combinations are not supported by the specific compressed internal
+    format as specified in the specific texture compression extension.
+    */
+    if (!GLASS_checkTexArgs(target, level, width, height, border)) {
+        GLASS_context_setError(GL_INVALID_VALUE);
+        return;
+    }
+    
+    if (!IS_COMPRESSED_FORMAT(internalformat)) {
+        GLASS_context_setError(GL_INVALID_ENUM);
+        return;
+    }
+
+    GLASS_setTex(target, level, width, height, internalformat, 0, (const u8*)data, imageSize);
 }
 
+// TODO
 void glCompressedTexSubImage2D(GLenum target, GLint level, GLint xoffset, GLint yoffset, GLsizei width, GLsizei height, GLenum format, GLsizei imageSize, const GLvoid* data);
 void glCopyTexImage2D(GLenum target, GLint level, GLenum internalformat, GLint x, GLint y, GLsizei width, GLsizei height, GLint border);
 void glCopyTexSubImage2D(GLenum target, GLint level, GLint xoffset, GLint yoffset, GLint x, GLint y, GLsizei width, GLsizei height);

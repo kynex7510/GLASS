@@ -744,7 +744,7 @@ void GLASS_gpu_setTextureUnits(const TextureUnit* units) {
         GPUREG_TEXUNIT2_TYPE,
     };
 
-    u32 config = (1u << 16); // Clear cache.
+    u32 config = (1u << 12);
 
     for (size_t i = 0; i < GLASS_NUM_TEX_UNITS; ++i) {
         const TextureUnit* unit = &units[i];
@@ -761,7 +761,7 @@ void GLASS_gpu_setTextureUnits(const TextureUnit* units) {
         // Enable unit.
         config |= (1u << i);
 
-        const bool setupCubeMap = !i && (tex->target == GL_TEXTURE_CUBE_MAP);
+        const bool setupCubeMap = (i == 0) && (tex->target == GL_TEXTURE_CUBE_MAP);
         u32 params[10] = {};
 
         // Setup common info.
@@ -770,33 +770,55 @@ void GLASS_gpu_setTextureUnits(const TextureUnit* units) {
 
         const GPU_TEXTURE_FILTER_PARAM minFilter = GLASS_utility_getTexFilter(tex->minFilter);
         const GPU_TEXTURE_FILTER_PARAM magFilter = GLASS_utility_getTexFilter(tex->magFilter);
-        const GPU_TEXTURE_FILTER_PARAM mipFilter = GLASS_utility_getMipFilter(tex->minFilter);
+        const GPU_TEXTURE_FILTER_PARAM mipFilter = 0; // GLASS_utility_getMipFilter(tex->minFilter);
         const GPU_TEXTURE_WRAP_PARAM wrapS = GLASS_utility_getTexWrap(tex->wrapS);
         const GPU_TEXTURE_WRAP_PARAM wrapT = GLASS_utility_getTexWrap(tex->wrapT);
 
         params[2] = (GPU_TEXTURE_MIN_FILTER(minFilter) | GPU_TEXTURE_MAG_FILTER(magFilter) | GPU_TEXTURE_MIP_FILTER(mipFilter) | GPU_TEXTURE_WRAP_S(wrapS) | GPU_TEXTURE_WRAP_T(wrapT));
         
-        if (false /* ETC1 check */)
+        if (tex->format == GL_ETC1_RGB8_OES)
             params[2] |= GPU_TEXTURE_ETC1_PARAM;
 
-        if (!i) {
-            // TODO
-            params[2] |= GPU_TEXTURE_MODE(GPU_TEX_2D);
+        if (i == 0) {
+            params[2] |= GPU_TEXTURE_MODE(tex->target == GL_TEXTURE_CUBE_MAP ? GPU_TEX_CUBE_MAP : GPU_TEX_2D);
             // TODO: Shadow
         }
+        //
+        params[2] = 2;
+        //
 
         params[3] = GLASS_utility_f32tofixed13(tex->lodBias) | (((u32)tex->maxLod & 0x0F) << 16) | (((u32)tex->minLod & 0x0F) << 24);
+        params[4] = osConvertVirtToPhys(tex->data[0]) >> 3;
+
+        //
+        FILE* f = fopen("sdmc:/GLASS.bin", "wb");
+        fwrite(tex->data[0], 1024, 1, f);
+        fclose(f);
+        //
 
         if (setupCubeMap) {
-            // TODO
-        } else {
-            params[4] = 0; // address
+            params[5] = (u32)tex->data[1];
+            params[6] = (u32)tex->data[2];
+            params[7] = (u32)tex->data[3];
+            params[8] = (u32)tex->data[4];
+            params[9] = (u32)tex->data[5];
         }
 
         GPUCMD_AddIncrementalWrites(setupCmds[i], params, setupCubeMap ? 10 : 5); // TODO
-        // TODO: Shadow
-        GPUCMD_AddWrite(typeCmds[i], 0); // TODO
+
+        GPUCMD_AddWrite(typeCmds[i], GLASS_utility_getTexFormat(tex->format, tex->dataType)); // TODO
     }
 
     GPUCMD_AddWrite(GPUREG_TEXUNIT_CONFIG, config);
+    GPUCMD_AddWrite(GPUREG_TEXUNIT_CONFIG, config | (1u << 16)); // Clear cache.
+
+    // TODO: shadow
+        GPUCMD_AddWrite(GPUREG_TEXUNIT0_SHADOW, 1);
+        //
+
+    //
+    GPUCMD_AddMaskedWrite(GPUREG_TEXENV_UPDATE_BUFFER, 0x7, 0);
+    GPUCMD_AddWrite(GPUREG_TEXENV_BUFFER_COLOR, 0xFFFFFFFF);
+    GPUCMD_AddWrite(GPUREG_FOG_COLOR, 0);
+    //
 }
