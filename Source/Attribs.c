@@ -218,7 +218,7 @@ void glVertexAttrib4fv(GLuint index, const GLfloat* v) {
     glVertexAttrib4f(index, v[0], v[1], v[2], v[3]);
 }
 
-static INLINE size_t GLASS_sizeForAttribType(GLenum type) {
+static size_t GLASS_sizeForAttribType(GLenum type) {
     switch (type) {
         case GL_BYTE:
         case GL_UNSIGNED_BYTE:
@@ -232,7 +232,7 @@ static INLINE size_t GLASS_sizeForAttribType(GLenum type) {
     UNREACHABLE("Invalid attribute type!");
 }
 
-static INLINE bool GLASS_isAttribPhysAddrAligned(GLenum type, u32 physAddr) {
+static bool GLASS_isAttribPhysAddrAligned(GLenum type, u32 physAddr) {
     if (type == GL_SHORT)
         return (physAddr & 0x01) == 0;
 

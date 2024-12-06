@@ -97,7 +97,7 @@ void GLASS_gpu_flushAndRunCommands(CtxCommon* ctx) {
     GLASS_gpu_runQueue(ctx, false);
 }
 
-static INLINE u16 GLASS_getGXControl(bool start, bool finished, GLenum format) {
+static u16 GLASS_getGXControl(bool start, bool finished, GLenum format) {
     const u16 fillWidth = GLASS_utility_getPixelSizeForFB(format);
     return (u16)(start) | ((u16)(finished) << 1) | (fillWidth << 8);
 }
@@ -308,12 +308,12 @@ void GLASS_gpu_bindShaders(const ShaderInfo* vertexShader, const ShaderInfo* geo
     GPUCMD_AddWrite(GPUREG_GSH_INPUTBUFFER_CONFIG, 0xA0000000);
 }
 
-static INLINE void GLASS_uploadBoolUniformMask(const ShaderInfo* shader, u16 mask) {
+static void GLASS_uploadBoolUniformMask(const ShaderInfo* shader, u16 mask) {
     const u32 reg = (shader->flags & SHADER_FLAG_GEOMETRY) ? GPUREG_GSH_BOOLUNIFORM : GPUREG_VSH_BOOLUNIFORM;
     GPUCMD_AddWrite(reg, 0x7FFF0000 | mask);
 }
 
-static INLINE void GLASS_uploadConstIntUniforms(const ShaderInfo* shader) {
+static void GLASS_uploadConstIntUniforms(const ShaderInfo* shader) {
     const u32 reg = (shader->flags & SHADER_FLAG_GEOMETRY) ? GPUREG_GSH_INTUNIFORM_I0 : GPUREG_VSH_INTUNIFORM_I0;
 
     for (size_t i = 0; i < 4; ++i) {
@@ -324,7 +324,7 @@ static INLINE void GLASS_uploadConstIntUniforms(const ShaderInfo* shader) {
     }
 }
 
-static INLINE void GLASS_uploadConstFloatUniforms(const ShaderInfo* shader) {
+static void GLASS_uploadConstFloatUniforms(const ShaderInfo* shader) {
     const u32 idReg = (shader->flags & SHADER_FLAG_GEOMETRY) ? GPUREG_GSH_FLOATUNIFORM_CONFIG : GPUREG_VSH_FLOATUNIFORM_CONFIG;
     const u32 dataReg = (shader->flags & SHADER_FLAG_GEOMETRY) ? GPUREG_GSH_FLOATUNIFORM_DATA : GPUREG_VSH_FLOATUNIFORM_DATA;
 
@@ -342,7 +342,7 @@ void GLASS_gpu_uploadConstUniforms(const ShaderInfo* shader) {
     GLASS_uploadConstFloatUniforms(shader);
 }
 
-static INLINE void GLASS_uploadIntUniform(const ShaderInfo* shader, UniformInfo* info) {
+static void GLASS_uploadIntUniform(const ShaderInfo* shader, UniformInfo* info) {
     const u32 reg = (shader->flags & SHADER_FLAG_GEOMETRY) ? GPUREG_GSH_INTUNIFORM_I0 : GPUREG_VSH_INTUNIFORM_I0;
 
     if (info->count == 1) {
@@ -352,7 +352,7 @@ static INLINE void GLASS_uploadIntUniform(const ShaderInfo* shader, UniformInfo*
     }
 }
 
-static INLINE void GLASS_uploadFloatUniform(const ShaderInfo* shader, UniformInfo* info) {
+static void GLASS_uploadFloatUniform(const ShaderInfo* shader, UniformInfo* info) {
     const u32 idReg = (shader->flags & SHADER_FLAG_GEOMETRY) ? GPUREG_GSH_FLOATUNIFORM_CONFIG : GPUREG_VSH_FLOATUNIFORM_CONFIG;
     const u32 dataReg = (shader->flags & SHADER_FLAG_GEOMETRY) ? GPUREG_GSH_FLOATUNIFORM_DATA : GPUREG_VSH_FLOATUNIFORM_DATA;
 

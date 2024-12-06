@@ -8,7 +8,6 @@
 
 #define NORETURN __attribute__((noreturn))
 #define WEAK __attribute__((weak))
-#define INLINE inline __attribute__((always_inline))
 
 #ifndef NDEBUG
 

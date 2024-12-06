@@ -185,7 +185,7 @@ static bool GLASS_setTexFloats(TextureInfo* tex, GLenum pname, const GLfloat* pa
     return false;
 }
 
-static INLINE bool GLASS_validateTexParam(GLenum pname, GLenum param) {
+static bool GLASS_validateTexParam(GLenum pname, GLenum param) {
     const bool invalidMinFilter = ((pname == GL_TEXTURE_MIN_FILTER) && !IS_MIN_FILTER(param));
     const bool invalidMagFilter = ((pname == GL_TEXTURE_MAG_FILTER) && !IS_MAG_FILTER(param));
     const bool invalidWrap = (((pname == GL_TEXTURE_WRAP_S) || (pname == GL_TEXTURE_WRAP_T)) && !IS_WRAP(param));

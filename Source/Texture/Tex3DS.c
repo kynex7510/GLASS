@@ -46,12 +46,12 @@ static size_t GLASS_getTexDataOffset(const glassTexture* tex, size_t level) {
     return 0;
 }
 
-static INLINE size_t GLASS_getTexDataAllocSize(const glassTexture* tex) {
+static size_t GLASS_getTexDataAllocSize(const glassTexture* tex) {
     ASSERT(tex);
     return GLASS_getTexDataOffset(tex, tex->levels);
 }
 
-static INLINE u8* GLASS_getTexDataPtr(const glassTexture* tex, size_t level) {
+static u8* GLASS_getTexDataPtr(const glassTexture* tex, size_t level) {
     ASSERT(tex);
     return (((u8*)&tex->subTextures[tex->numOfSubTextures]) + GLASS_getTexDataOffset(tex, level));
 }
@@ -181,7 +181,7 @@ static ssize_t GLASS_texStreamReadFile(void* userdata, void* out, size_t size) {
     return actualSize;
 }
 
-static INLINE void GLASS_getMemTexStream(TexStream* stream, const u8* data, size_t size) {
+static void GLASS_getMemTexStream(TexStream* stream, const u8* data, size_t size) {
     ASSERT(stream);
     stream->handle = (void*)data;
     stream->offset = 0;
@@ -189,7 +189,7 @@ static INLINE void GLASS_getMemTexStream(TexStream* stream, const u8* data, size
     stream->read = GLASS_texStreamReadMem;
 }
 
-static INLINE void GLASS_getFileTexStream(TexStream* stream, FILE* f) {
+static void GLASS_getFileTexStream(TexStream* stream, FILE* f) {
     ASSERT(stream);
     ASSERT(fseek(f, 0, SEEK_END) == 0);
     stream->handle = (void*)f;
