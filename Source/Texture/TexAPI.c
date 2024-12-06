@@ -37,7 +37,6 @@ void glBindTexture(GLenum target, GLuint texture) {
 
     // Only texture0 supports cube maps.
     CtxCommon* ctx = GLASS_context_getCommon();
-    TextureUnit* unit = &ctx->textureUnits[ctx->activeTextureUnit];
     const bool hasCubeMap = (target == GL_TEXTURE_CUBE_MAP);
 
     if (hasCubeMap && ctx->activeTextureUnit) {
@@ -46,9 +45,8 @@ void glBindTexture(GLenum target, GLuint texture) {
     }
 
     // Bind texture to context.
-    if (unit->texture != texture) {
-        unit->texture = texture;
-        unit->dirty = true;
+    if (texture != ctx->textureUnits[ctx->activeTextureUnit]) {
+        ctx->textureUnits[ctx->activeTextureUnit] = texture;
         ctx->flags |= CONTEXT_FLAG_TEXTURE;
     }
 
@@ -79,10 +77,8 @@ void glDeleteTextures(GLsizei n, const GLuint* textures) {
 
         // Unbind if bound.
         for (size_t i = 0; i < GLASS_NUM_TEX_UNITS; ++i) {
-            TextureUnit* unit = &ctx->textureUnits[i];
-            if (unit->texture == name) {
-                unit->texture = GLASS_INVALID_OBJECT;
-                unit->dirty = true;
+            if (ctx->textureUnits[i] == name) {
+                ctx->textureUnits[i] = GLASS_INVALID_OBJECT;
                 ctx->flags |= CONTEXT_FLAG_TEXTURE;
             }
         }
@@ -108,7 +104,24 @@ void glGenTextures(GLsizei n, GLuint* textures) {
         }
 
         TextureInfo* tex = (TextureInfo*)name;
+        tex->target = 0;
+        tex->format = 0;
+        tex->dataType = 0;
+        tex->borderColor = 0;
+        tex->width = 0;
+        tex->height = 0;
+        tex->minFilter = GL_NEAREST_MIPMAP_LINEAR;
+        tex->magFilter = GL_LINEAR;
+        tex->wrapS = GL_REPEAT;
+        tex->wrapT = GL_REPEAT;
+        tex->minLod = 0;
+        tex->maxLod = 0;
         tex->flags = 0;
+        tex->lodBias = 0;
+
+        for (size_t j = 0; j < 6; ++j)
+            tex->data[j] = NULL;
+
         textures[i] = name;
     }
 }
@@ -182,8 +195,7 @@ static INLINE bool GLASS_validateTexParam(GLenum pname, GLenum param) {
 static void GLASS_setTexParams(GLenum target, GLenum pname, const GLint* intParams, const GLfloat* floatParams) {
     // Get texture.
     CtxCommon* ctx = GLASS_context_getCommon();
-    const TextureUnit* unit = &ctx->textureUnits[ctx->activeTextureUnit];
-    TextureInfo* tex = (TextureInfo*)unit->texture;
+    TextureInfo* tex = (TextureInfo*)ctx->textureUnits[ctx->activeTextureUnit];
 
     // We don't support default textures, and only one target at time can be used.
     if (!tex || (tex->target != target)) {
@@ -248,11 +260,10 @@ static bool GLASS_checkTexArgs(GLenum target, GLint level, GLsizei width, GLsize
     return true;
 }
 
-// To clear up confusion: all parameters are for the texture as a whole, except 
+// To clear up confusion: all parameters are for the texture as a whole, except for data size, which is for the mipmap.
 static void GLASS_setTex(GLenum target, size_t level, GLsizei width, GLsizei height, GLenum format, GLenum type, const u8* data, size_t dataSize) {
     CtxCommon* ctx = GLASS_context_getCommon();
-    TextureUnit* unit = &ctx->textureUnits[ctx->activeTextureUnit];
-    TextureInfo* tex = (TextureInfo*)unit->texture;
+    TextureInfo* tex = (TextureInfo*)ctx->textureUnits[ctx->activeTextureUnit];
 
     // We don't support default textures.
     // TODO: do we need to enforce the check on the target?
@@ -304,24 +315,11 @@ static void GLASS_setTex(GLenum target, size_t level, GLsizei width, GLsizei hei
 
     memcpy(p, data, dataSize);
 
-    // DEFAULT VALUES
-    tex->borderColor = 0;
-    tex->minFilter = GL_NEAREST_MIPMAP_LINEAR;
-    tex->magFilter = GL_LINEAR;
-    tex->wrapS = GL_REPEAT;
-    tex->wrapT = GL_REPEAT;
-
-    tex->minLod = 0;
-    tex->lodBias = 0;
-    //
-
     tex->width = width;
     tex->height = height;
     tex->format = format;
     tex->dataType = type;
     tex->data[dataIndex] = p;
-
-    unit->dirty = true;
 
     ctx->flags |= CONTEXT_FLAG_TEXTURE;
 

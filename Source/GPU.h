@@ -49,6 +49,6 @@ void GLASS_gpu_setLogicOp(GLenum logicOp);
 void GLASS_gpu_drawArrays(GLenum mode, GLint first, GLsizei count);
 void GLASS_gpu_drawElements(GLenum mode, GLsizei count, GLenum type, u32 physIndices);
 
-void GLASS_gpu_setTextureUnits(const TextureUnit* units);
+void GLASS_gpu_setTextureUnits(const GLuint* units);
 
 #endif /* _GLASS_GPU_H */

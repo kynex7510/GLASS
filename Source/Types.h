@@ -41,11 +41,6 @@ typedef struct {
 } TextureInfo;
 
 typedef struct {
-    GLuint texture; // Bound texture.
-    bool dirty;     // Needs update.
-} TextureUnit;
-
-typedef struct {
     u32 type;       // GL type (GLASS_RENDERBUFFER_TYPE).
     u8* address;    // Data address.
     GLsizei width;  // Buffer width.
@@ -171,11 +166,7 @@ typedef struct {
 
     /* Buffers */
     GLuint arrayBuffer;        // GL_ARRAY_BUFFER
-    GLuint elementArrayBuffer; // GL_ELEMENT_ARRAY_BUFFER
-
-    /* Texture */
-    TextureUnit textureUnits[GLASS_NUM_TEX_UNITS]; // Texture units.
-    size_t activeTextureUnit;                      // Currently active texture unit.    
+    GLuint elementArrayBuffer; // GL_ELEMENT_ARRAY_BUFFER  
 
     /* Framebuffer */
     GLuint framebuffer;  // Bound framebuffer object.
@@ -204,10 +195,6 @@ typedef struct {
     /* Attributes */
     AttributeInfo attribs[GLASS_NUM_ATTRIB_REGS]; // Attributes data.
     GLsizei numEnabledAttribs;                    // Number of enabled attributes.
-
-    /* Combiners */
-    GLint combinerStage;                               // Current combiner stage.
-    CombinerInfo combiners[GLASS_NUM_COMBINER_STAGES]; // Combiners.
 
     /* Fragment */
     GLenum fragMode; // Fragment mode.
@@ -263,6 +250,14 @@ typedef struct {
     GLenum blendSrcAlpha; // Blend source alpha.
     GLenum blendDstAlpha; // Blend destination alpha.
     GLenum logicOp;       // Logic op.
+
+    /* Texture */
+    GLuint textureUnits[GLASS_NUM_TEX_UNITS]; // Texture units.
+    size_t activeTextureUnit;                 // Currently active texture unit.  
+
+    /* Combiners */
+    GLint combinerStage;                               // Current combiner stage.
+    CombinerInfo combiners[GLASS_NUM_COMBINER_STAGES]; // Combiners.
 } CtxCommon;
 
 GLuint GLASS_createObject(u32 type);
