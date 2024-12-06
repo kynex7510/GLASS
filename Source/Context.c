@@ -6,7 +6,7 @@
 static CtxCommon* g_Context = NULL;
 static CtxCommon* g_OldCtx = NULL;
 
-static void GLASS_context_initCommon(CtxCommon* ctx, const glassInitParams* initParams, const glassSettings* settings) {
+void GLASS_context_initCommon(CtxCommon* ctx, const glassInitParams* initParams, const glassSettings* settings) {
     ASSERT(ctx);
 
     ctx->initParams.version = initParams->version;
@@ -186,23 +186,13 @@ static void GLASS_context_initCommon(CtxCommon* ctx, const glassInitParams* init
     ctx->flags |= CONTEXT_FLAG_COMBINERS;
 }
 
-static void GLASS_context_cleanupCommon(CtxCommon* ctx) {
+void GLASS_context_cleanupCommon(CtxCommon* ctx) {
     ASSERT(ctx);
 
     if (ctx == g_Context)
         GLASS_context_bind(NULL);
 
     GLASS_gpu_finalize(ctx);
-}
-
-void GLASS_context_initV2(CtxV2* ctx, const glassInitParams* initParams, const glassSettings* settings) {
-    ASSERT(ctx);
-    GLASS_context_initCommon(&ctx->common, initParams, settings);
-}
-
-void GLASS_context_cleanupV2(CtxV2* ctx) {
-    ASSERT(ctx);
-    GLASS_context_cleanupCommon(&ctx->common);
 }
 
 CtxCommon* GLASS_context_getCommon(void) {

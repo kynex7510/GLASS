@@ -16,9 +16,9 @@ glassCtx glassCreateContextEx(const glassInitParams* initParams, const glassSett
         return NULL;
 
     if (initParams->version == GLASS_VERSION_2_0) {
-        CtxV2* ctx = (CtxV2*)glassVirtualAlloc(sizeof(CtxV2));
+        CtxCommon* ctx = (CtxCommon*)glassVirtualAlloc(sizeof(CtxCommon));
         if (ctx) {
-            GLASS_context_initV2(ctx, initParams, settings);
+            GLASS_context_initCommon(ctx, initParams, settings);
         }
         return (glassCtx)ctx;
     }
@@ -33,7 +33,7 @@ void glassDestroyContext(glassCtx wrapped) {
     GLASS_context_waitSwap(ctx);
 
     if (ctx->initParams.version == GLASS_VERSION_2_0) {
-        GLASS_context_cleanupV2((CtxV2*)ctx);
+        GLASS_context_cleanupCommon((CtxCommon*)ctx);
     } else {
         UNREACHABLE("Invalid context version!");
     }

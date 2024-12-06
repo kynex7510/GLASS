@@ -1,35 +1,121 @@
 #include "Context.h"
 #include "Utility.h"
 
-#define IS_BLEND_FUNC(func) \
-  (((func) == GL_ZERO) || ((func) == GL_ONE) || ((func) == GL_SRC_COLOR) || ((func) == GL_ONE_MINUS_SRC_COLOR) || ((func) == GL_SRC_ALPHA) || \
-   ((func) == GL_ONE_MINUS_SRC_ALPHA) || ((func) == GL_DST_ALPHA) || ((func) == GL_ONE_MINUS_DST_ALPHA) || ((func) == GL_DST_COLOR) || \
-   ((func) == GL_ONE_MINUS_DST_COLOR) || ((func) == GL_CONSTANT_COLOR) || ((func) == GL_ONE_MINUS_CONSTANT_COLOR) || ((func) == GL_CONSTANT_ALPHA) || \
-   ((func) == GL_ONE_MINUS_CONSTANT_ALPHA) || ((func) == GL_SRC_ALPHA_SATURATE))
+static bool GLASS_isTestFunc(GLenum func) {
+    switch (func) {
+        case GL_NEVER:
+        case GL_LESS:
+        case GL_EQUAL:
+        case GL_LEQUAL:
+        case GL_GREATER:
+        case GL_NOTEQUAL:
+        case GL_GEQUAL:
+        case GL_ALWAYS:
+            return true;
+    }
 
-#define IS_CULL_FACE(mode) \
-  (((mode) == GL_FRONT) || ((mode) == GL_BACK) || ((mode) == GL_FRONT_AND_BACK))
+    return false;
+}
 
-#define IS_EQUATION(mode) \
-  (((mode) == GL_FUNC_ADD) || ((mode) == GL_MIN) || ((mode) == GL_MAX) || ((mode) == GL_FUNC_SUBTRACT) || ((mode) == GL_FUNC_REVERSE_SUBTRACT))
+static bool GLASS_isEquation(GLenum mode) {
+    switch (mode) {
+        case GL_FUNC_ADD:
+        case GL_MIN:
+        case GL_MAX:
+        case GL_FUNC_SUBTRACT:
+        case GL_FUNC_REVERSE_SUBTRACT:
+            return true;
+    }
 
-#define IS_FRONT_FACE(mode) (((mode) == GL_CW) || ((mode) == GL_CCW))
+    return false;
+}
 
-#define IS_LOGIC_OP(opcode) \
-  (((opcode) == GL_CLEAR) || ((opcode) == GL_AND) || ((opcode) == GL_AND_REVERSE) || ((opcode) == GL_COPY) || ((opcode) == GL_AND_INVERTED) || ((opcode) == GL_NOOP) || \
-   ((opcode) == GL_XOR) || ((opcode) == GL_OR) || ((opcode) == GL_NOR) || ((opcode) == GL_EQUIV) || ((opcode) == GL_INVERT) || ((opcode) == GL_OR_REVERSE) || ((opcode) == GL_COPY_INVERTED) || \
-   ((opcode) == GL_OR_INVERTED) || ((opcode) == GL_NAND) || ((opcode) == GL_SET))
+static bool GLASS_isBlendFunc(GLenum func) {
+    switch (func) {
+        case GL_ZERO:
+        case GL_ONE:
+        case GL_SRC_COLOR:
+        case GL_ONE_MINUS_SRC_COLOR:
+        case GL_SRC_ALPHA:
+        case GL_ONE_MINUS_SRC_ALPHA:
+        case GL_DST_ALPHA:
+        case GL_ONE_MINUS_DST_ALPHA:
+        case GL_DST_COLOR:
+        case GL_ONE_MINUS_DST_COLOR:
+        case GL_CONSTANT_COLOR:
+        case GL_ONE_MINUS_CONSTANT_COLOR:
+        case GL_CONSTANT_ALPHA:
+        case GL_ONE_MINUS_CONSTANT_ALPHA:
+        case GL_SRC_ALPHA_SATURATE:
+            return true;
+    }
 
-#define IS_STENCIL_OP(op) \
-  (((op) == GL_KEEP) || ((op) == GL_ZERO) || ((op) == GL_REPLACE) || ((op) == GL_INCR) || ((op) == GL_INCR_WRAP) || \
-  ((op) == GL_DECR) || ((op) == GL_DECR_WRAP) || ((op) == GL_INVERT))
+    return false;
+}
 
-#define IS_TEST_FUNC(func) \
-  (((func) == GL_NEVER) || ((func) == GL_LESS) || ((func) == GL_EQUAL) || ((func) == GL_LEQUAL) || ((func) == GL_GREATER) || \
-   ((func) == GL_NOTEQUAL) || ((func) == GL_GEQUAL) || ((func) == GL_ALWAYS))
+static bool GLASS_isCullFace(GLenum mode) {
+    switch (mode) {
+        case GL_FRONT:
+        case GL_BACK:
+        case GL_FRONT_AND_BACK:
+            return true;
+    }
+
+    return false;
+}
+
+static bool GLASS_isFrontFace(GLenum mode) {
+    switch (mode) {
+        case GL_CW:
+        case GL_CCW:
+            return true;
+    }
+
+    return false;
+}
+
+static bool GLASS_isLogicOp(GLenum opcode) {
+    switch (opcode) {
+        case GL_CLEAR:
+        case GL_AND:
+        case GL_AND_REVERSE:
+        case GL_COPY:
+        case GL_AND_INVERTED:
+        case GL_NOOP:
+        case GL_XOR:
+        case GL_OR:
+        case GL_NOR:
+        case GL_EQUIV:
+        case GL_INVERT:
+        case GL_OR_REVERSE:
+        case GL_COPY_INVERTED:
+        case GL_OR_INVERTED:
+        case GL_NAND:
+        case GL_SET:
+            return true;
+    }
+
+    return false;
+}
+
+static bool GLASS_isStencilOp(GLenum op) {
+    switch (op) {
+        case GL_KEEP:
+        case GL_ZERO:
+        case GL_REPLACE:
+        case GL_INCR:
+        case GL_INCR_WRAP:
+        case GL_DECR:
+        case GL_DECR_WRAP:
+        case GL_INVERT:
+            return true;
+    }
+
+    return false;
+}
 
 void glAlphaFunc(GLenum func, GLclampf ref) {
-    if (!IS_TEST_FUNC(func)) {
+    if (!GLASS_isTestFunc(func)) {
         GLASS_context_setError(GL_INVALID_ENUM);
         return;
     }
@@ -58,7 +144,7 @@ void glBlendColor(GLclampf red, GLclampf green, GLclampf blue, GLclampf alpha) {
 }
 
 void glBlendEquationSeparate(GLenum modeRGB, GLenum modeAlpha) {
-  if (!IS_EQUATION(modeRGB) || !IS_EQUATION(modeAlpha)) {
+  if (!GLASS_isEquation(modeRGB) || !GLASS_isEquation(modeAlpha)) {
     GLASS_context_setError(GL_INVALID_ENUM);
     return;
   }
@@ -75,7 +161,7 @@ void glBlendEquationSeparate(GLenum modeRGB, GLenum modeAlpha) {
 void glBlendEquation(GLenum mode) { glBlendEquationSeparate(mode, mode); }
 
 void glBlendFuncSeparate(GLenum srcRGB, GLenum dstRGB, GLenum srcAlpha, GLenum dstAlpha) {
-    if (!IS_BLEND_FUNC(srcRGB) || !IS_BLEND_FUNC(dstRGB) || !IS_BLEND_FUNC(srcAlpha) || !IS_BLEND_FUNC(dstAlpha)) {
+    if (!GLASS_isBlendFunc(srcRGB) || !GLASS_isBlendFunc(dstRGB) || !GLASS_isBlendFunc(srcAlpha) || !GLASS_isBlendFunc(dstAlpha)) {
         GLASS_context_setError(GL_INVALID_ENUM);
         return;
     }
@@ -105,7 +191,7 @@ void glColorMask(GLboolean red, GLboolean green, GLboolean blue, GLboolean alpha
 }
 
 void glCullFace(GLenum mode) {
-    if (!IS_CULL_FACE(mode)) {
+    if (!GLASS_isCullFace(mode)) {
         GLASS_context_setError(GL_INVALID_ENUM);
         return;
     }
@@ -119,7 +205,7 @@ void glCullFace(GLenum mode) {
 }
 
 void glDepthFunc(GLenum func) {
-    if (!IS_TEST_FUNC(func)) {
+    if (!GLASS_isTestFunc(func)) {
         GLASS_context_setError(GL_INVALID_ENUM);
         return;
     }
@@ -149,7 +235,7 @@ void glDepthRangef(GLclampf nearVal, GLclampf farVal) {
 }
 
 void glFrontFace(GLenum mode) {
-    if (!IS_FRONT_FACE(mode)) {
+    if (!GLASS_isFrontFace(mode)) {
         GLASS_context_setError(GL_INVALID_ENUM);
         return;
     }
@@ -163,7 +249,7 @@ void glFrontFace(GLenum mode) {
 }
 
 void glLogicOp(GLenum opcode) {
-    if (!IS_LOGIC_OP(opcode)) {
+    if (!GLASS_isLogicOp(opcode)) {
         GLASS_context_setError(GL_INVALID_ENUM);
         return;
     }
@@ -184,7 +270,7 @@ void glPolygonOffset(GLfloat factor, GLfloat units) {
         ctx->flags |= CONTEXT_FLAG_DEPTHMAP;
 }
 
-static INLINE GLsizei GLASS_screenWidth(CtxCommon* ctx) {
+static GLsizei GLASS_screenWidth(CtxCommon* ctx) {
     if (ctx->settings.targetScreen == GFX_TOP)
         return gfxIsWide() ? 800 : 400;
 
@@ -211,7 +297,7 @@ void glScissor(GLint x, GLint y, GLsizei width, GLsizei height) {
 }
 
 void glStencilFunc(GLenum func, GLint ref, GLuint mask) {
-    if (!IS_TEST_FUNC(func)) {
+    if (!GLASS_isTestFunc(func)) {
         GLASS_context_setError(GL_INVALID_ENUM);
         return;
     }
@@ -236,7 +322,7 @@ void glStencilMask(GLuint mask) {
 }
 
 void glStencilOp(GLenum sfail, GLenum dpfail, GLenum dppass) {
-    if (!IS_STENCIL_OP(sfail) || !IS_STENCIL_OP(dpfail) || !IS_STENCIL_OP(dppass)) {
+    if (!GLASS_isStencilOp(sfail) || !GLASS_isStencilOp(dpfail) || !GLASS_isStencilOp(dppass)) {
         GLASS_context_setError(GL_INVALID_ENUM);
         return;
     }

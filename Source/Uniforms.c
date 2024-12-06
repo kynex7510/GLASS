@@ -4,9 +4,6 @@
 #include <stdlib.h> // atoi
 #include <string.h> // strstr, strlen, strncpy
 
-#define CHECK_OFFSET(type, offset) \
-    ((((type) == GLASS_UNI_BOOL) && ((offset) < GLASS_NUM_BOOL_UNIFORMS)) || (((type) == GLASS_UNI_INT) && ((offset) < GLASS_NUM_INT_UNIFORMS)) || (((type) == GLASS_UNI_FLOAT) && ((offset) < GLASS_NUM_FLOAT_UNIFORMS)))
-
 static bool GLASS_getUniformLocInfo(GLint loc, size_t* index, size_t* offset, bool* isGeometry) {
     ASSERT(index);
     ASSERT(offset);
@@ -211,6 +208,19 @@ static size_t GLASS_extractUniformOffset(const char* name) {
     return atoi(&beg[1]);
 }
 
+static bool GLASS_checkUniformOffset(u8 type, size_t offset) {
+    switch (type) {
+        case GLASS_UNI_BOOL:
+            return offset < GLASS_NUM_BOOL_UNIFORMS;
+        case GLASS_UNI_INT:
+            return offset < GLASS_NUM_INT_UNIFORMS;
+        case GLASS_UNI_FLOAT:
+            return offset < GLASS_NUM_FLOAT_UNIFORMS;
+    }
+
+    UNREACHABLE("Invalid uniform type!");
+}
+
 static GLint GLASS_lookupUniform(const ShaderInfo* shader, const char* name, size_t offset) {
     for (size_t i = 0; i < shader->numOfActiveUniforms; ++i) {
         const UniformInfo* uni = &shader->activeUniforms[i];
@@ -218,7 +228,7 @@ static GLint GLASS_lookupUniform(const ShaderInfo* shader, const char* name, siz
         if (strstr(name, uni->symbol) != name)
             continue;
 
-        if (!CHECK_OFFSET(uni->type, offset) || (offset > uni->count))
+        if (!GLASS_checkUniformOffset(uni->type, offset) || (offset > uni->count))
             break;
 
         // Make location.

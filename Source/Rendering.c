@@ -10,9 +10,6 @@
 #define HAS_STENCIL(mask) ((mask) & GL_STENCIL_BUFFER_BIT)
 #define HAS_EARLY_DEPTH(mask) ((mask) & GL_EARLY_DEPTH_BUFFER_BIT_PICA)
 
-#define IS_DRAW_MODE(mode) \
-    (((mode) == GL_TRIANGLES) || ((mode) == GL_TRIANGLE_STRIP) || ((mode) == GL_TRIANGLE_FAN) || ((mode) == GL_GEOMETRY_PRIMITIVE_PICA))
-
 extern GLenum glCheckFramebufferStatus(GLenum target);
 
 static bool GLASS_checkFB(void) {
@@ -41,9 +38,8 @@ void glClear(GLbitfield mask) {
         ctx->flags |= CONTEXT_FLAG_EARLY_DEPTH_CLEAR;
 
     if (HAS_COLOR(mask) || HAS_DEPTH(mask)) {
-        // Early depth clear is a GPU command, and its execution does not need
-        // to be enforced before a clear call is issued. This doesn't apply to
-        // other buffers which rely on a GX call.
+        // Early depth clear is a GPU command, and its execution does not need to be enforced before a clear call is issued.
+        // This doesn't apply to other buffers which rely on a GX call.
         GLASS_context_update();
         GLASS_gpu_flushCommands(ctx);
 
@@ -75,8 +71,20 @@ void glClearStencil(GLint s) {
     ctx->clearStencil = s;
 }
 
+static bool GLASS_isDrawMode(GLenum mode) {
+    switch (mode) {
+        case GL_TRIANGLES:
+        case GL_TRIANGLE_STRIP:
+        case GL_TRIANGLE_FAN:
+        case GL_GEOMETRY_PRIMITIVE_PICA:
+            return true;
+    }
+
+    return false;
+}
+
 void glDrawArrays(GLenum mode, GLint first, GLsizei count) {
-    if (!IS_DRAW_MODE(mode)) {
+    if (!GLASS_isDrawMode(mode)) {
         GLASS_context_setError(GL_INVALID_ENUM);
         return;
     }
@@ -101,7 +109,7 @@ void glDrawArrays(GLenum mode, GLint first, GLsizei count) {
 }
 
 void glDrawElements(GLenum mode, GLsizei count, GLenum type, const GLvoid* indices) {
-    if (!IS_DRAW_MODE(mode)) {
+    if (!GLASS_isDrawMode(mode)) {
         GLASS_context_setError(GL_INVALID_ENUM);
         return;
     }
@@ -141,12 +149,12 @@ void glDrawElements(GLenum mode, GLsizei count, GLenum type, const GLvoid* indic
     ctx->flags |= CONTEXT_FLAG_DRAW;
 }
 
-void glFinish(void) {
-    GLASS_context_update();
-    GLASS_gpu_flushAndRunCommands(GLASS_context_getCommon());
-}
-
 void glFlush(void) {
     GLASS_context_update();
     GLASS_gpu_flushCommands(GLASS_context_getCommon());
+}
+
+void glFinish(void) {
+    GLASS_context_update();
+    GLASS_gpu_flushAndRunCommands(GLASS_context_getCommon());
 }

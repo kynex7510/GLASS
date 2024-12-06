@@ -1,12 +1,6 @@
 #include "Context.h"
 #include "Utility.h"
 
-#define IS_COLOR_FORMAT(format) \
-    (((format) == GL_RGBA8_OES) || ((format) == GL_RGB5_A1) || ((format) == GL_RGB565) || ((format) == GL_RGBA4))
-
-#define IS_DEPTH_FORMAT(format) \
-    (((format) == GL_DEPTH_COMPONENT16) || ((format) == GL_DEPTH_COMPONENT24_OES) || ((format) == GL_DEPTH24_STENCIL8_OES))
-
 void glBindFramebuffer(GLenum target, GLuint framebuffer) {
     ASSERT(OBJ_IS_FRAMEBUFFER(framebuffer) || framebuffer == GLASS_INVALID_OBJECT);
 
@@ -330,8 +324,31 @@ GLboolean glIsRenderbuffer(GLuint renderbuffer) {
     return GL_FALSE;
 }
 
+static bool GLASS_isColorFormat(GLenum format) {
+    switch (format) {
+        case GL_RGBA8_OES:
+        case GL_RGB5_A1:
+        case GL_RGB565:
+        case GL_RGBA4:
+            return true;
+    }
+
+    return false;
+}
+
+static bool GLASS_isDepthFormat(GLenum format) {
+    switch (format) {
+        case GL_DEPTH_COMPONENT16:
+        case GL_DEPTH_COMPONENT24_OES:
+        case GL_DEPTH24_STENCIL8_OES:
+            return true;
+    }
+
+    return false;
+}
+
 void glRenderbufferStorage(GLenum target, GLenum internalformat, GLsizei width, GLsizei height) {
-    if ((target != GL_RENDERBUFFER) || (!IS_COLOR_FORMAT(internalformat) && !IS_DEPTH_FORMAT(internalformat))) {
+    if ((target != GL_RENDERBUFFER) || (!GLASS_isColorFormat(internalformat) && !GLASS_isDepthFormat(internalformat))) {
         GLASS_context_setError(GL_INVALID_ENUM);
         return;
     }
@@ -357,10 +374,10 @@ void glRenderbufferStorage(GLenum target, GLenum internalformat, GLsizei width, 
     if (info->address)
         glassVRAMFree(info->address);
 
-    info->address = glassVRAMAlloc(bufferSize, IS_DEPTH_FORMAT(internalformat) ? VRAM_ALLOC_B : VRAM_ALLOC_A);
+    info->address = glassVRAMAlloc(bufferSize, GLASS_isDepthFormat(internalformat) ? VRAM_ALLOC_B : VRAM_ALLOC_A);
 
     if (!info->address)
-        info->address = glassVRAMAlloc(bufferSize, IS_DEPTH_FORMAT(internalformat) ? VRAM_ALLOC_A : VRAM_ALLOC_B);
+        info->address = glassVRAMAlloc(bufferSize, GLASS_isDepthFormat(internalformat) ? VRAM_ALLOC_A : VRAM_ALLOC_B);
 
     if (!info->address) {
         GLASS_context_setError(GL_OUT_OF_MEMORY);
