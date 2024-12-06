@@ -157,11 +157,11 @@ void GLASS_context_initCommon(CtxCommon* ctx, const glassInitParams* initParams,
     for (size_t i = 0; i < GLASS_NUM_COMBINER_STAGES; ++i) {
         CombinerInfo* combiner = &ctx->combiners[i];
         combiner->rgbSrc[0] = !i ? GL_PRIMARY_COLOR : GL_PREVIOUS;
-        combiner->rgbSrc[1] = GL_PRIMARY_COLOR;
-        combiner->rgbSrc[2] = GL_PRIMARY_COLOR;
+        combiner->rgbSrc[1] = !i ? GL_PRIMARY_COLOR : GL_PREVIOUS;
+        combiner->rgbSrc[2] = !i ? GL_PRIMARY_COLOR : GL_PREVIOUS;
         combiner->alphaSrc[0] = !i ? GL_PRIMARY_COLOR : GL_PREVIOUS;
-        combiner->alphaSrc[1] = GL_PRIMARY_COLOR;
-        combiner->alphaSrc[2] = GL_PRIMARY_COLOR;
+        combiner->alphaSrc[1] = !i ? GL_PRIMARY_COLOR : GL_PREVIOUS;
+        combiner->alphaSrc[2] = !i ? GL_PRIMARY_COLOR : GL_PREVIOUS;
         combiner->rgbOp[0] = GL_SRC_COLOR;
         combiner->rgbOp[1] = GL_SRC_COLOR;
         combiner->rgbOp[2] = GL_SRC_COLOR;
@@ -174,14 +174,6 @@ void GLASS_context_initCommon(CtxCommon* ctx, const glassInitParams* initParams,
         combiner->alphaScale = 1.0f;
         combiner->color = 0xFFFFFFFF;
     }
-
-    //
-    CombinerInfo* combiner = &ctx->combiners[0];
-    combiner->rgbSrc[0] = GL_TEXTURE0;
-    combiner->alphaSrc[0] = GL_TEXTURE0;
-    combiner->rgbFunc = GL_MODULATE;
-    combiner->alphaFunc = GL_MODULATE;
-    //
 
     ctx->flags |= CONTEXT_FLAG_COMBINERS;
 }

@@ -169,6 +169,13 @@ static void sceneInit(GLuint* vbo, GLuint* tex) {
     }
 
     glassDestroyTexture(kittenTex);
+
+    // Configure the first combiner stage: modulate texture color and vertex color.
+    glCombinerStagePICA(0);
+    glCombinerSrcPICA(GL_SRC0_RGB, GL_TEXTURE0);
+    glCombinerSrcPICA(GL_SRC0_ALPHA, GL_TEXTURE0);
+    glCombinerFuncPICA(GL_COMBINE_RGB, GL_MODULATE);
+    glCombinerFuncPICA(GL_COMBINE_ALPHA, GL_MODULATE);
 }
 
 static void sceneRender(float angleX, float angleY) {

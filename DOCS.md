@@ -31,6 +31,12 @@ When specifying LOD values, they will be clamped in the range `[0, 15]`. When sp
 
 `GL_NEAREST` and `GL_NEAREST_MIPMAP_NEAREST` are the same, the GPU decides to use one or the other based on the value of `GL_TEXTURE_MIN_LOD` (ie. whether the filter is active). Same goes for `GL_LINEAR` and `GL_LINEAR_MIPMAP_NEAREST`.
 
+## Combiners
+
+Fragment pipeline can be controlled through combiners. There are 6 combiner stages: each one of them provides 2 sets of sources, one for color and one for alpha. Each of the two has 3 inputs, and an operation can be applied on each input. Finally, the inputs are combined, and the result can be used in next stages.
+
+By default, all stages are set as passthrough, except for the first one, which uses the vertex color as source.
+
 ## Memory allocation
 
 Internally, GLASS has to allocate various kinds of memory buffers to work. It's possible to customize allocation by redefining any of the following functions:
