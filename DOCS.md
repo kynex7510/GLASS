@@ -35,7 +35,7 @@ When specifying LOD values, they will be clamped in the range `[0, 15]`. When sp
 
 Fragment pipeline can be controlled through combiners. There are 6 combiner stages: each one of them provides 2 sets of sources, one for color and one for alpha. Each of the two has 3 inputs, and an operation can be applied on each input. Finally, the inputs are combined, and the result can be used in next stages.
 
-By default, all stages are set as passthrough, except for the first one, which uses the vertex color as source.
+By default, all stages are set as passthrough, and all sources are the vertex color.
 
 ## Memory allocation
 
@@ -79,7 +79,7 @@ size_t GLASS_vramSizeDefault(void* p);
 
 ## Debugging
 
-If GLASS doesn't work as intended, or is responsible for crashing applications, you can compile it in debug mode. Assertions will be enabled, and informations will be logged either under `sdmc:/GLASS.log`, or if GLASS is running under an emulator, they will be logged on the emulator console.
+If GLASS doesn't work as intended, or is responsible for crashing applications, you can compile it in debug mode. Assertions will be enabled, and informations will be logged under `sdmc:/GLASS.log`.
 
 By default, GLASS in debug mode will abort whenever an OpenGL error is raised. This behaviour can be controlled with the `GLASS_NO_MERCY` macro.
 

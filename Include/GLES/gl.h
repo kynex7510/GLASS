@@ -8,6 +8,8 @@
 extern "C" {
 #endif // __cplusplus
 
+#define glTexEnvStagePICA glCombinerStagePICA
+
 /* Color */
 
 void glColor4f(GLfloat red, GLfloat green, GLfloat blue, GLfloat alpha);
@@ -23,6 +25,15 @@ void glLightf(GLenum light, GLenum pname, GLfloat param);
 void glLightfv(GLenum light, GLenum pname, const GLfloat* params);
 void glLightModelf (GLenum pname, GLfloat param);
 void glLightModelfv (GLenum pname, const GLfloat* params);
+
+/* TexEnv (wrapper to combiners) */
+
+void glTexEnvf(GLenum target, GLenum pname, GLfloat param);
+void glTexEnvi(GLenum target, GLenum pname, GLint param);
+void glTexEnvfv(GLenum target, GLenum pname, const GLfloat* params);
+void glTexEnviv(GLenum target, GLenum pname, const GLint* params);
+
+// ...
 
 void glClipPlanef (GLenum p, const GLfloat* eqn);
 void glFrustumf (GLfloat l, GLfloat r, GLfloat b, GLfloat t, GLfloat n, GLfloat f);
@@ -44,8 +55,6 @@ void glPointParameterfv (GLenum pname, const GLfloat* params);
 void glPointSize (GLfloat size);
 void glRotatef (GLfloat angle, GLfloat x, GLfloat y, GLfloat z);
 void glScalef (GLfloat x, GLfloat y, GLfloat z);
-void glTexEnvf (GLenum target, GLenum pname, GLfloat param);
-void glTexEnvfv (GLenum target, GLenum pname, const GLfloat* params);
 void glTexParameterfv (GLenum target, GLenum pname, const GLfloat* params);
 void glTranslatef (GLfloat x, GLfloat y, GLfloat z);
 void glClientActiveTexture (GLenum texture);
@@ -65,8 +74,6 @@ void glPushMatrix (void);
 void glSampleCoverage (GLfloat value, GLboolean invert);
 void glShadeModel (GLenum mode);
 void glTexCoordPointer (GLint size, GLenum type, GLsizei stride, const void* pointer);
-void glTexEnvi (GLenum target, GLenum pname, GLint param);
-void glTexEnviv (GLenum target, GLenum pname, const GLint* params);
 void glTexParameteriv (GLenum target, GLenum pname, const GLint* params);
 void glVertexPointer (GLint size, GLenum type, GLsizei stride, const void* pointer);
 

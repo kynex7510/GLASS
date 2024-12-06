@@ -65,6 +65,8 @@ static bool GLASS_isCombinerFunc(GLenum func) {
     return false;
 }
 
+static bool GLASS_isCombinerScale(GLfloat scale) { return (scale == 1.0f || scale == 2.0f || scale == 4.0f); }
+
 void glCombinerStagePICA(GLint index) {
     if ((index < 0) || (index >= GLASS_NUM_COMBINER_STAGES)) {
         GLASS_context_setError(GL_INVALID_VALUE);
@@ -120,10 +122,10 @@ void glCombinerColorPICA(GLclampf red, GLclampf green, GLclampf blue, GLclampf a
     CtxCommon* ctx = GLASS_context_getCommon();
     CombinerInfo* combiner = &ctx->combiners[ctx->combinerStage];
 
-    u32 color = (u32)(0xFF * CLAMP(0.0f, 1.0f, red)) << 24;
-    color |= (u32)(0xFF * CLAMP(0.0f, 1.0f, green)) << 16;
-    color |= (u32)(0xFF * CLAMP(0.0f, 1.0f, blue)) << 8;
-    color |= (u32)(0xFF * CLAMP(0.0f, 1.0f, alpha));
+    u32 color = (u32)(0xFF * CLAMP(0.0f, 1.0f, red));
+    color |= (u32)(0xFF * CLAMP(0.0f, 1.0f, green)) << 8;
+    color |= (u32)(0xFF * CLAMP(0.0f, 1.0f, blue)) << 16;
+    color |= (u32)(0xFF * CLAMP(0.0f, 1.0f, alpha)) << 24;
 
     if (combiner->color != color) {
         combiner->color = color;
@@ -207,4 +209,32 @@ void glCombinerFuncPICA(GLenum pname, GLenum func) {
     }
 }
 
-void glCombinerScalePICA(GLenum pname, GLfloat scale); // TODO
+void glCombinerScalePICA(GLenum pname, GLfloat scale) {
+    if (!GLASS_isCombinerScale(scale)) {
+        GLASS_context_setError(GL_INVALID_VALUE);
+        return;
+    }
+
+    CtxCommon* ctx = GLASS_context_getCommon();
+    CombinerInfo* combiner = &ctx->combiners[ctx->combinerStage];
+    GLfloat* combinerScale = NULL;
+
+    switch (pname) {
+        case GL_RGB_SCALE:
+            combinerScale = &combiner->rgbScale;
+            break;
+        case GL_ALPHA_SCALE:
+            combinerScale = &combiner->alphaScale;
+            break;
+        default:
+            GLASS_context_setError(GL_INVALID_ENUM);
+            return;
+    }
+
+    ASSERT(combinerScale);
+
+    if (*combinerScale != scale) {
+        *combinerScale = scale;
+        ctx->flags |= CONTEXT_FLAG_COMBINERS;
+    }
+}

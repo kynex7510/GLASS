@@ -17,6 +17,15 @@ void glGenBuffers(GLsizei n, GLuint* buffers);
 void glGetBufferParameteriv(GLenum target, GLenum pname, GLint* params);
 GLboolean glIsBuffer(GLuint buffer);
 
+/* Combiners (extension) */
+
+void glCombinerColorPICA(GLclampf red, GLclampf green, GLclampf blue, GLclampf alpha);
+void glCombinerFuncPICA(GLenum pname, GLenum func);
+void glCombinerOpPICA(GLenum pname, GLenum op);
+void glCombinerScalePICA(GLenum pname, GLfloat scale);
+void glCombinerSrcPICA(GLenum pname, GLenum src);
+void glCombinerStagePICA(GLint index);
+
 /* Effects */
 
 void glAlphaFunc(GLenum func, GLclampf ref);
@@ -43,12 +52,6 @@ void glViewport(GLint x, GLint y, GLsizei width, GLsizei height);
 
 void glBlockModePICA(GLenum mode);
 void glClearEarlyDepthPICA(GLclampf depth);
-void glCombinerColorPICA(GLclampf red, GLclampf green, GLclampf blue, GLclampf alpha);
-void glCombinerFuncPICA(GLenum pname, GLenum func);
-void glCombinerOpPICA(GLenum pname, GLenum op);
-void glCombinerScalePICA(GLenum pname, GLfloat scale);
-void glCombinerSrcPICA(GLenum pname, GLenum src);
-void glCombinerStagePICA(GLint index);
 void glEarlyDepthFuncPICA(GLenum func);
 void glFragOpPICA(GLenum mode);
 
