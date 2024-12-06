@@ -3,9 +3,6 @@
 #include <stdlib.h> // abort
 #include <string.h> // memcpy
 
-#define CITRA_TYPE 0x20000
-#define PANDA_TYPE 0x20001
-
 #ifndef NDEBUG
 
 #include <stdio.h> // file utilities
@@ -13,15 +10,11 @@
 static FILE* g_LogFile = NULL;
 
 void GLASS_utility_logImpl(const char* msg, size_t len) {
-    if (GLASS_utility_isEmulator()) {
-        svcOutputDebugString(msg, len);
-    } else {
-        if (g_LogFile == NULL)
-            g_LogFile = fopen("sdmc:/GLASS.log", "w");
+    if (g_LogFile == NULL)
+        g_LogFile = fopen("sdmc:/GLASS.log", "w");
 
-        if (g_LogFile)
-            fwrite(msg, len, 1, g_LogFile);
-    }
+    if (g_LogFile)
+        fwrite(msg, len, 1, g_LogFile);
 }
 
 void GLASS_utility_abort(void) {
@@ -43,29 +36,6 @@ void GLASS_utility_abort(void) {
 }
 
 #endif // NDEBUG
-
-Emulator GLASS_utility_detectEmulator(void) {
-    static int g_Emu = -1;
-
-    if (g_Emu == -1) {
-        // Detect citra.
-        s64 check = 0;
-        if (R_SUCCEEDED(svcGetSystemInfo(&check, CITRA_TYPE, 0)) && (check == 1)) {
-            g_Emu = (int)Emu_Citra;
-            return Emu_Citra;
-        }
-
-        // Detect panda.
-        if (R_SUCCEEDED(svcGetSystemInfo(&check, PANDA_TYPE, 0)) && (check == 1)) {
-            g_Emu = (int)Emu_Panda;
-            return Emu_Panda;
-        }
-
-        g_Emu = (int)Emu_None;
-    }
-
-    return (Emulator)g_Emu;
-}
 
 void* GLASS_utility_convertPhysToVirt(u32 addr) {
 #define CONVERT_REGION(_name)                                              \

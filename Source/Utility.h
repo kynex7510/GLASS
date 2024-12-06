@@ -41,15 +41,6 @@ void GLASS_utility_logImpl(const char* msg, size_t len);
 #define MAX(a, b) ((a) > (b) ? (a) : (b))
 #define CLAMP(min, max, val) (MAX((min), MIN((max), (val))))
 
-typedef enum {
-    Emu_None = 0,
-    Emu_Citra = 1,
-    Emu_Panda = 2,
-} Emulator;
-
-Emulator GLASS_utility_detectEmulator(void);
-INLINE bool GLASS_utility_isEmulator(void) { return GLASS_utility_detectEmulator() != Emu_None; }
-
 void GLASS_utility_abort(void) NORETURN;
 
 void* GLASS_utility_convertPhysToVirt(u32 addr);

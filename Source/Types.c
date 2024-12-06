@@ -41,11 +41,8 @@ bool GLASS_checkObjectType(GLuint obj, u32 type) {
 #ifndef NDEBUG
         MemInfo minfo;
         PageInfo pinfo;
-        // SVC unimplemented under panda3DS.
-        if (GLASS_utility_detectEmulator() != Emu_Panda) {
-            svcQueryProcessMemory(&minfo, &pinfo, CUR_PROCESS_HANDLE, obj);
-            ASSERT(minfo.perm & MEMPERM_READ);
-        }
+        svcQueryProcessMemory(&minfo, &pinfo, CUR_PROCESS_HANDLE, obj);
+        ASSERT(minfo.perm & MEMPERM_READ);
 #endif
         return *(u32*)obj == type;
     }
