@@ -1,13 +1,8 @@
 # TODO
 
-## Immediate term
-
-- Implement textures
-
 ## Short term
 
 - Add support for geometry shaders
-- Define an API for combiners
 
 ## Medium term
 

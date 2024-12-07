@@ -11,7 +11,7 @@
 
 #ifndef NDEBUG
 
-#define LOG(msg) GLASS_utility_logImpl((msg), sizeof((msg)) - 1)
+#define LOG(msg) GLASS_utility_logImpl((msg))
 
 #define ASSERT(cond)                                                                                  \
     do {                                                                                              \
@@ -27,7 +27,7 @@
         GLASS_utility_abort();                                                                   \
     } while (false)
 
-void GLASS_utility_logImpl(const char* msg, size_t len);
+void GLASS_utility_logImpl(const char* msg);
 
 #else
 
@@ -91,8 +91,9 @@ GPU_TEXCOLOR GLASS_utility_getTexFormat(GLenum format, GLenum dataType);
 GLenum GLASS_utility_getTexDataType(GPU_TEXCOLOR format);
 bool GLASS_utility_isValidTexCombination(GLenum format, GLenum dataType);
 GLenum GLASS_utility_wrapTexFormat(GPU_TEXCOLOR format);
-size_t GLASS_utility_getTexBitsPerPixel(GPU_TEXCOLOR format);
-size_t GLASS_utility_calculateTexSize(u16 width, u16 height, GPU_TEXCOLOR format);
+size_t GLASS_utility_texOffset(u16 width, u16 height, GLenum format, GLenum dataType, size_t level);
+size_t GLASS_utility_texSize(u16 width, u16 height, GLenum format, GLenum dataType, size_t level);
+size_t GLASS_utility_texAllocSize(u16 width, u16 height, GLenum format, GLenum dataType, size_t levels);
 GPU_TEXTURE_FILTER_PARAM GLASS_utility_getTexFilter(GLenum filter);
 GPU_TEXTURE_FILTER_PARAM GLASS_utility_getMipFilter(GLenum minFilter);
 GPU_TEXTURE_WRAP_PARAM GLASS_utility_getTexWrap(GLenum wrap);

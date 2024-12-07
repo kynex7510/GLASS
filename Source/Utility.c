@@ -9,12 +9,12 @@
 
 static FILE* g_LogFile = NULL;
 
-void GLASS_utility_logImpl(const char* msg, size_t len) {
+void GLASS_utility_logImpl(const char* msg) {
     if (g_LogFile == NULL)
         g_LogFile = fopen("sdmc:/GLASS.log", "w");
 
     if (g_LogFile)
-        fwrite(msg, len, 1, g_LogFile);
+        fwrite(msg, strlen(msg), 1, g_LogFile);
 }
 
 void GLASS_utility_abort(void) {
@@ -789,8 +789,8 @@ GLenum GLASS_utility_wrapTexFormat(GPU_TEXCOLOR format) {
     UNREACHABLE("Invalid GPU texture format!");
 }
 
-size_t GLASS_utility_getTexBitsPerPixel(GPU_TEXCOLOR format) {
-    switch (format) {
+static size_t GLASS_getTexBitsPerPixel(GLenum format, GLenum dataType) {
+    switch (GLASS_utility_getTexFormat(format, dataType)) {
         case GPU_RGBA8:
             return 32;
         case GPU_RGB8:
@@ -815,7 +815,28 @@ size_t GLASS_utility_getTexBitsPerPixel(GPU_TEXCOLOR format) {
     UNREACHABLE("Invalid GPU texture format!");
 }
 
-size_t GLASS_utility_calculateTexSize(u16 width, u16 height, GPU_TEXCOLOR format) { return ((width * height * GLASS_utility_getTexBitsPerPixel(format)) >> 3); }
+size_t GLASS_utility_texOffset(u16 width, u16 height, GLenum format, GLenum dataType, size_t level) {
+    ASSERT(level <= GLASS_NUM_TEX_LEVELS);
+
+    if (level > 0) {
+        // Basically rewrite the offset in terms of the previous level dimensions:
+        // B * W(L-1) * H(L-1) * (2^2(L-1) + 2^2(L-2) + ... + 2^2(L-L)) / 8
+        const u16 prevWidth = (width >> (level - 1));
+        const u16 prevHeight = (height >> (level - 1));
+        const size_t bpp = GLASS_getTexBitsPerPixel(format, dataType);
+        return ((bpp * prevWidth * prevHeight * (((1u << (level << 1)) - 1) & 0x55555)) >> 3);
+    }
+
+    return 0;
+}
+
+size_t GLASS_utility_texSize(u16 width, u16 height, GLenum format, GLenum dataType, size_t level) {
+    return (((width >> level) * (height >> level) * GLASS_getTexBitsPerPixel(format, dataType)) >> 3);
+}
+
+size_t GLASS_utility_texAllocSize(u16 width, u16 height, GLenum format, GLenum dataType, size_t levels) {
+    return GLASS_utility_texOffset(width, height, format, dataType, levels);
+}
 
 GPU_TEXTURE_FILTER_PARAM GLASS_utility_getTexFilter(GLenum filter) {
     switch (filter) {

@@ -30,30 +30,15 @@ typedef struct {
     u16 bottom;
 } RawSubTexture;
 
-static size_t GLASS_getTexDataOffset(const glassTexture* tex, size_t level) {
+static u8* GLASS_getTexDataPtr(const glassTexture* tex, size_t level) {
     ASSERT(tex);
-    ASSERT(level <= GLASS_NUM_TEX_LEVELS);
-
-    if (level > 0) {
-        // Basically rewrite the offset in terms of the previous level dimensions:
-        // B * W(L-1) * H(L-1) * (2^2(L-1) + 2^2(L-2) + ... + 2^2(L-L)) / 8
-        const u16 prevWidth = (tex->width >> (level - 1));
-        const u16 prevHeight = (tex->height >> (level - 1));
-        const size_t bpp = GLASS_utility_getTexBitsPerPixel(GLASS_utility_getTexFormat(tex->format, tex->dataType));
-        return ((bpp * prevWidth * prevHeight * (((1u << (level << 1)) - 1) & 0x55555)) >> 3);
-    }
-
-    return 0;
+    const size_t offset = GLASS_utility_texOffset(tex->width, tex->height, tex->format, tex->dataType, level);
+    return (((u8*)&tex->subTextures[tex->numOfSubTextures]) + offset);
 }
 
 static size_t GLASS_getTexDataAllocSize(const glassTexture* tex) {
     ASSERT(tex);
-    return GLASS_getTexDataOffset(tex, tex->levels);
-}
-
-static u8* GLASS_getTexDataPtr(const glassTexture* tex, size_t level) {
-    ASSERT(tex);
-    return (((u8*)&tex->subTextures[tex->numOfSubTextures]) + GLASS_getTexDataOffset(tex, level));
+    return GLASS_utility_texAllocSize(tex->width, tex->height, tex->format, tex->dataType, tex->levels);
 }
 
 static GLenum GLASS_readTexHeader(TexStream* stream, GPU_TEXTURE_MODE_PARAM type, glassTexture* out) {
@@ -94,9 +79,9 @@ static GLenum GLASS_loadTextureImpl(TexStream* stream, glassTexture** out) {
         return ret;
 
     // Allocate texture object.
-    const size_t dataSize = GLASS_getTexDataAllocSize(&dummy);
+    const size_t allocSize = GLASS_getTexDataAllocSize(&dummy);
     const size_t subTexSize = (sizeof(glassSubTexture) * dummy.numOfSubTextures);
-    glassTexture* tex = glassVirtualAlloc(sizeof(glassTexture) + subTexSize + dataSize);
+    glassTexture* tex = glassVirtualAlloc(sizeof(glassTexture) + subTexSize + allocSize);
     if (!tex)
         return GL_OUT_OF_MEMORY;
 
@@ -116,7 +101,7 @@ static GLenum GLASS_loadTextureImpl(TexStream* stream, glassTexture** out) {
 
     // Load texture data.
     u8* data = GLASS_getTexDataPtr(tex, 0);
-    ASSERT(decompress(data, dataSize, stream->read, (void*)stream, 0));
+    ASSERT(decompress(data, allocSize, stream->read, (void*)stream, 0));
 
     *out = tex;
     return 0;
@@ -133,11 +118,11 @@ static GLenum GLASS_loadCubeMapImpl(TexStream* stream, glassTexture** outs) {
         return ret;
 
     // Allocate texture objects.
-    const size_t dataSize = GLASS_getTexDataAllocSize(&dummy);
+    const size_t allocSize = GLASS_getTexDataAllocSize(&dummy);
     glassTexture* texs[6];
 
     for (size_t i = 0; i < 6; ++i) {
-        texs[i] = glassVirtualAlloc(sizeof(glassTexture) + dataSize);
+        texs[i] = glassVirtualAlloc(sizeof(glassTexture) + allocSize);
         if (!texs[i]) {
             for (size_t j = 0; j < i; ++j)
                 glassVirtualFree(texs[j]);
@@ -153,7 +138,7 @@ static GLenum GLASS_loadCubeMapImpl(TexStream* stream, glassTexture** outs) {
     
     for (size_t i = 0; i < 6; ++i) {
         iov[i].data = GLASS_getTexDataPtr(texs[i], 0);
-        iov[i].size = dataSize;
+        iov[i].size = allocSize;
     }
 
     ASSERT(decompressV(iov, 6, stream->read, (void*)stream, 0));
@@ -265,7 +250,7 @@ void glassDestroyTexture(glassTexture* tex) { glassVirtualFree(tex); }
 
 const size_t glassGetTextureSize(const glassTexture* tex, size_t level) {
     if (tex && (level < tex->levels))
-        return GLASS_utility_calculateTexSize(tex->width >> level, tex->height >> level, GLASS_utility_getTexFormat(tex->format, tex->dataType));
+        return GLASS_utility_texSize(tex->width, tex->height, tex->format, tex->dataType, level);
 
     return 0;
 }

@@ -2,23 +2,95 @@
 
 #include <string.h>
 
-#define IS_MAG_FILTER(filter) \
-    (((filter) == GL_NEAREST) || ((filter) == GL_LINEAR))
+static bool GLASS_isMagFilter(GLenum filter) {
+    switch (filter) {
+        case GL_NEAREST:
+        case GL_LINEAR:
+            return true;
+    }
 
-#define IS_MIN_FILTER(filter) \
-    ((IS_MAG_FILTER((filter))) || ((filter) == GL_NEAREST_MIPMAP_NEAREST) || ((filter) == GL_NEAREST_MIPMAP_LINEAR) || ((filter) == GL_LINEAR_MIPMAP_NEAREST) || ((filter) == GL_LINEAR_MIPMAP_LINEAR))
+    return false;
+}
 
-#define IS_WRAP(wrap) \
-    (((wrap) == GL_CLAMP_TO_EDGE) || ((wrap) == GL_CLAMP_TO_BORDER) || ((wrap) == GL_MIRRORED_REPEAT) || ((wrap) == GL_REPEAT))
+static bool GLASS_isMinFilter(GLenum filter) {
+    if (GLASS_isMagFilter(filter))
+        return true;
 
-#define IS_FORMAT(format) \
-    (((format) == GL_ALPHA) || ((format) == GL_LUMINANCE) || ((format) == GL_LUMINANCE_ALPHA) || ((format) == GL_RGB) || ((format) == GL_RGBA))
+    switch (filter) {
+        case GL_NEAREST_MIPMAP_NEAREST:
+        case GL_NEAREST_MIPMAP_LINEAR:
+        case GL_LINEAR_MIPMAP_NEAREST:
+        case GL_LINEAR_MIPMAP_LINEAR:
+            return true;
+    }
 
-#define IS_TYPE(type) \
-    (((type) == GL_UNSIGNED_BYTE) || ((type) == GL_UNSIGNED_SHORT_5_6_5) || ((type) == GL_UNSIGNED_SHORT_4_4_4_4) || ((type) == GL_UNSIGNED_SHORT_5_5_5_1) || ((type) == GL_UNSIGNED_NIBBLE_PICA) || ((type) == GL_UNSIGNED_BYTE_4_4_PICA))
+    return false;
+}
 
-#define IS_COMPRESSED_FORMAT(format) \
-    (((format) == GL_ETC1_RGB8_OES) || ((format) == GL_ETC1_ALPHA_RGB8_A4_PICA))
+static bool GLASS_isTexWrap(GLenum wrap) {
+    switch (wrap) {
+        case GL_CLAMP_TO_EDGE:
+        case GL_CLAMP_TO_BORDER:
+        case GL_MIRRORED_REPEAT:
+        case GL_REPEAT:
+            return true;
+    }
+
+    return false;
+}
+
+static bool GLASS_isTexFormat(GLenum format) {
+    switch (format) {
+        case GL_ALPHA:
+        case GL_LUMINANCE:
+        case GL_LUMINANCE_ALPHA:
+        case GL_RGB:
+        case GL_RGBA:
+            return true;
+    }
+
+    return false;
+}
+
+static bool GLASS_isTextType(GLenum type) {
+    switch (type) {
+        case GL_UNSIGNED_BYTE:
+        case GL_UNSIGNED_SHORT_5_6_5:
+        case GL_UNSIGNED_SHORT_4_4_4_4:
+        case GL_UNSIGNED_SHORT_5_5_5_1:
+        case GL_UNSIGNED_NIBBLE_PICA:
+        case GL_UNSIGNED_BYTE_4_4_PICA:
+            return true;
+    }
+
+    return false;
+}
+
+static bool GLASS_isTexCompressedFormat(GLenum format) {
+    switch (format) {
+        case GL_ETC1_RGB8_OES:
+        case GL_ETC1_ALPHA_RGB8_A4_PICA:
+            return true;
+    }
+
+    return false;
+}
+
+static GLenum GLASS_texTargetForSubtarget(GLenum target) {
+    switch (target) {
+        case GL_TEXTURE_2D:
+            return GL_TEXTURE_2D;
+        case GL_TEXTURE_CUBE_MAP_POSITIVE_X:
+        case GL_TEXTURE_CUBE_MAP_NEGATIVE_X:
+        case GL_TEXTURE_CUBE_MAP_POSITIVE_Y:
+        case GL_TEXTURE_CUBE_MAP_NEGATIVE_Y:
+        case GL_TEXTURE_CUBE_MAP_POSITIVE_Z:
+        case GL_TEXTURE_CUBE_MAP_NEGATIVE_Z:
+            return GL_TEXTURE_CUBE_MAP;
+    }
+
+    UNREACHABLE("Invalid texture subtarget!");
+}
 
 void glBindTexture(GLenum target, GLuint texture) {
     ASSERT(OBJ_IS_TEXTURE(texture) || texture == GLASS_INVALID_OBJECT);
@@ -186,9 +258,9 @@ static bool GLASS_setTexFloats(TextureInfo* tex, GLenum pname, const GLfloat* pa
 }
 
 static bool GLASS_validateTexParam(GLenum pname, GLenum param) {
-    const bool invalidMinFilter = ((pname == GL_TEXTURE_MIN_FILTER) && !IS_MIN_FILTER(param));
-    const bool invalidMagFilter = ((pname == GL_TEXTURE_MAG_FILTER) && !IS_MAG_FILTER(param));
-    const bool invalidWrap = (((pname == GL_TEXTURE_WRAP_S) || (pname == GL_TEXTURE_WRAP_T)) && !IS_WRAP(param));
+    const bool invalidMinFilter = ((pname == GL_TEXTURE_MIN_FILTER) && !GLASS_isMinFilter(param));
+    const bool invalidMagFilter = ((pname == GL_TEXTURE_MAG_FILTER) && !GLASS_isMagFilter(param));
+    const bool invalidWrap = (((pname == GL_TEXTURE_WRAP_S) || (pname == GL_TEXTURE_WRAP_T)) && !GLASS_isTexWrap(param));
     return (!invalidMinFilter && !invalidMagFilter && !invalidWrap);
 }
 
@@ -230,7 +302,6 @@ static void GLASS_setTexParams(GLenum target, GLenum pname, const GLint* intPara
             if (!GLASS_setTexFloats(tex, pname, floatParams))
                 GLASS_context_setError(GL_INVALID_ENUM);
         }
-
     } else if (floatParams) {
         if (!GLASS_setTexFloats(tex, pname, floatParams)) {
             if (!GLASS_validateTexParam(pname, floatParams[0]) || !GLASS_setTexInt(tex, pname, floatParams[0]))
@@ -260,14 +331,66 @@ static bool GLASS_checkTexArgs(GLenum target, GLint level, GLsizei width, GLsize
     return true;
 }
 
-// To clear up confusion: all parameters are for the texture as a whole, except for data size, which is for the mipmap.
-static void GLASS_setTex(GLenum target, size_t level, GLsizei width, GLsizei height, GLenum format, GLenum type, const u8* data, size_t dataSize) {
+typedef enum {
+    Failed,
+    Unchanged,
+    NeedUpdate,
+} TexInitStatus;
+
+static size_t GLASS_dimLevels(size_t dim) {
+    size_t n = 1;
+    while (dim > 8) {
+        dim >>= 1;
+        ++n;
+    }
+    return n;
+}
+
+static TexInitStatus GLASS_initTexMem(TextureInfo* tex, GLsizei width, GLsizei height, GLenum format, GLenum type) {
+    ASSERT(tex);
+
+    if ((tex->width == width) && (tex->height == height) && (tex->format == format) && (tex->dataType == type))
+        return Unchanged;
+
+    const size_t widthLevels = GLASS_dimLevels(width);
+    const size_t heightLevels = GLASS_dimLevels(height);
+    const size_t levels = MIN(widthLevels, heightLevels);
+    const size_t allocSize = GLASS_utility_texAllocSize(width, height, format, type, levels);
+    const size_t numBuffers = (tex->target == GL_TEXTURE_2D ? 1 : 6);
+
+    for (size_t i = 0; i < numBuffers; ++i) {
+        u8* p = glassLinearAlloc(allocSize);
+        if (!p) {
+            GLASS_context_setError(GL_OUT_OF_MEMORY);
+            return Failed;
+        }
+
+        if (tex->data[i])
+            glassLinearFree(tex->data[i]);
+
+        tex->data[i] = p;
+    }
+
+    tex->width = width;
+    tex->height = height;
+    tex->format = format;
+    tex->dataType = type;
+    return NeedUpdate;
+}
+
+// All parameters are for the texture as a whole, except for data and offset, which are relative to the mipmap level.
+static void GLASS_setTex(GLenum target, GLint level, GLsizei width, GLsizei height, GLenum format, GLenum type, const u8* data, size_t offset, size_t dataSize) {
     CtxCommon* ctx = GLASS_context_getCommon();
     TextureInfo* tex = (TextureInfo*)ctx->textureUnits[ctx->activeTextureUnit];
 
     // We don't support default textures.
-    // TODO: do we need to enforce the check on the target?
     if (!tex) {
+        GLASS_context_setError(GL_INVALID_OPERATION);
+        return;
+    }
+
+    // Target check.
+    if (tex->target != GLASS_texTargetForSubtarget(target)) {
         GLASS_context_setError(GL_INVALID_OPERATION);
         return;
     }
@@ -305,25 +428,21 @@ static void GLASS_setTex(GLenum target, size_t level, GLsizei width, GLsizei hei
             return;
     }
 
-    //
-
-    u8* p = glassLinearAlloc(dataSize);
-    if (!p) {
-        GLASS_context_setError(GL_OUT_OF_MEMORY);
+    // Initialize memory.
+    TexInitStatus status = GLASS_initTexMem(tex, width, height, format, type);
+    if (status == Failed)
         return;
+
+    // Write data.
+    if (data) {
+        const size_t mipmapOffset = GLASS_utility_texOffset(width, height, format, type, level);
+        const size_t maxSize = GLASS_utility_texSize(width, height, format, type, level);
+        memcpy(tex->data[dataIndex] + mipmapOffset + offset, data, MIN(maxSize - offset, dataSize));
+        status = NeedUpdate;
     }
 
-    memcpy(p, data, dataSize);
-
-    tex->width = width;
-    tex->height = height;
-    tex->format = format;
-    tex->dataType = type;
-    tex->data[dataIndex] = p;
-
-    ctx->flags |= CONTEXT_FLAG_TEXTURE;
-
-    //
+    if (status == NeedUpdate)
+        ctx->flags |= CONTEXT_FLAG_TEXTURE;
 }
 
 void glTexImage2D(GLenum target, GLint level, GLint internalformat, GLsizei width, GLsizei height, GLint border, GLenum format, GLenum type, const GLvoid* data) {
@@ -332,7 +451,7 @@ void glTexImage2D(GLenum target, GLint level, GLint internalformat, GLsizei widt
         return;
     }
     
-    if (!IS_FORMAT(format) || !IS_TYPE(type)) {
+    if (!GLASS_isTexFormat(format) || !GLASS_isTextType(type)) {
         GLASS_context_setError(GL_INVALID_ENUM);
         return;
     }
@@ -342,26 +461,21 @@ void glTexImage2D(GLenum target, GLint level, GLint internalformat, GLsizei widt
         return;
     }
 
-    const size_t dataSize = GLASS_utility_calculateTexSize(width >> level, height >> level, GLASS_utility_getTexFormat(format, type));    
-    GLASS_setTex(target, level, width, height, format, type, (const u8*)data, dataSize);    
+    GLASS_setTex(target, level, width, height, format, type, (const u8*)data, 0, 0xFFFFFFFF);    
 }
 
 void glCompressedTexImage2D(GLenum target, GLint level, GLenum internalformat, GLsizei width, GLsizei height, GLint border, GLsizei imageSize, const GLvoid* data) {
-    /*
-    GL_INVALID_OPERATION is generated if parameter combinations are not supported by the specific compressed internal
-    format as specified in the specific texture compression extension.
-    */
     if (!GLASS_checkTexArgs(target, level, width, height, border)) {
         GLASS_context_setError(GL_INVALID_VALUE);
         return;
     }
     
-    if (!IS_COMPRESSED_FORMAT(internalformat)) {
+    if (!GLASS_isTexCompressedFormat(internalformat)) {
         GLASS_context_setError(GL_INVALID_ENUM);
         return;
     }
 
-    GLASS_setTex(target, level, width, height, internalformat, 0, (const u8*)data, imageSize);
+    GLASS_setTex(target, level, width, height, internalformat, 0, (const u8*)data, 0, imageSize);
 }
 
 // TODO

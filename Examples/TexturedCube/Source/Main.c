@@ -102,6 +102,30 @@ static void invertComponents(C3D_Mtx* matrix) {
     }
 }
 
+static void loadTexture(const u8* data, size_t size) {
+    glassTexture* tex;
+    glassLoadTexture(data, size, &tex);
+
+    const GLsizei width = tex->width;
+    const GLsizei height = tex->height;
+    const GLenum format = tex->format;
+    const GLenum type = tex->dataType;
+    const bool isCompressed = glassIsTextureCompressed(tex);
+
+    for (size_t level = 0; level < tex->levels; ++level) {
+        const u8* data = glassGetTextureData(tex, level);
+
+        if (isCompressed) {
+            const size_t size = glassGetTextureSize(tex, level);
+            glCompressedTexImage2D(GL_TEXTURE_2D, level, format, width, height, 0, size, data);
+        } else {
+            glTexImage2D(GL_TEXTURE_2D, level, format, width, height, 0, format, type, data);
+        }
+    }
+
+    glassDestroyTexture(tex);
+}
+
 static void sceneInit(GLuint* vbo, GLuint* tex) {
     // Load the vertex shader, create a shader program and bind it.
     GLuint prog = glCreateProgram();
@@ -147,28 +171,7 @@ static void sceneInit(GLuint* vbo, GLuint* tex) {
     glGenTextures(1, tex);
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, *tex);
-
-    glassTexture* kittenTex;
-    glassLoadTexture(Kitten_t3x, Kitten_t3x_size, &kittenTex);
-
-    const GLsizei width = kittenTex->width;
-    const GLsizei height = kittenTex->height;
-    const GLenum format = kittenTex->format;
-    const bool isCompressed = glassIsTextureCompressed(kittenTex);
-
-    for (size_t level = 0; level < kittenTex->levels; ++level) {
-        const u8* data = glassGetTextureData(kittenTex, level);
-
-        if (isCompressed) {
-            const size_t size = glassGetTextureSize(kittenTex, level);
-            glCompressedTexImage2D(GL_TEXTURE_2D, level, format, width, height, 0, size, data);
-        } else {
-            const GLenum type = kittenTex->dataType;
-            glTexImage2D(GL_TEXTURE_2D, level, format, width, height, 0, format, type, data);
-        }
-    }
-
-    glassDestroyTexture(kittenTex);
+    loadTexture(Kitten_t3x, Kitten_t3x_size);
 
     // Configure the first combiner stage: modulate texture color and vertex color.
     glCombinerStagePICA(0);
