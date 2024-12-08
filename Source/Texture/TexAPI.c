@@ -156,6 +156,9 @@ void glDeleteTextures(GLsizei n, const GLuint* textures) {
         }
 
         // Delete texture.
+        for (size_t j = 0; j < 6; ++i)
+            glassLinearFree(tex->data[j]);
+
         glassVirtualFree(tex);
     }
 }
