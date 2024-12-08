@@ -45,19 +45,23 @@ Internally, GLASS has to allocate various kinds of memory buffers to work. It's 
 void* glassVirtualAlloc(size_t size);
 void glassVirtualFree(void* p);
 size_t glassVirtualSize(void* p);
+bool glassIsVirtual(void* p);
 
 void* glassLinearAlloc(size_t size);
 void glassLinearFree(void* p);
 size_t glassLinearSize(void* p);
+bool glassIsLinear(void* p);
 
 void* glassVRAMAlloc(size_t size, vramAllocPos pos);
 void glassVRAMFree(void* p);
 size_t glassVRAMSize(void* p);
+bool glassIsVRAM(void* p);
 ```
 
 - `*Alloc` allocates `size` bytes.
 - `*Free` frees the memory pointed by `p` (null pointers are ignored).
 - `*Size` returns the usuable size for the memory pointed by `p`.
+- `*Is*` returns whether the address is of the specified kind.
 
 By redefining any of the functions above, you will override default memory management routines. This is useful for tracking, controlling and customizing allocations.
 
@@ -67,14 +71,17 @@ If you need to rely on the default behaviour, you can declare and call any of th
 void* GLASS_virtualAllocDefault(size_t size);
 void GLASS_virtualFreeDefault(void* p);
 size_t GLASS_virtualSizeDefault(void* p);
+bool GLASS_isVirtualDefault(void* p);
 
 void* GLASS_linearAllocDefault(size_t size);
 void GLASS_linearFreeDefault(void* p);
 size_t GLASS_linearSizeDefault(void* p);
+bool GLASS_isLinearDefault(void* p);
 
 void* GLASS_vramAllocDefault(size_t size, vramAllocPos pos);
 void GLASS_vramFreeDefault(void* p);
 size_t GLASS_vramSizeDefault(void* p);
+bool GLASS_isVramDefault(void* p);
 ```
 
 ## Debugging
