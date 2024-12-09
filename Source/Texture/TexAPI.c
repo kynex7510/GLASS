@@ -362,10 +362,10 @@ static bool GLASS_initTexMem(TextureInfo* tex, GLsizei width, GLsizei height, GL
     const size_t numBuffers = (tex->target == GL_TEXTURE_2D ? 1 : 6);
     const bool useVRAM = tex->flags & TEXTURE_FLAG_VRAM;
 
-    for (size_t i = 0; i < numBuffers; ++i) {
+    for (size_t i = 0; i < 6; ++i) {
         u8* p = NULL;
         
-        if (allocSize) {
+        if (allocSize && (i < numBuffers)) {
             p = useVRAM ? glassVRAMAlloc(allocSize, VRAM_ALLOC_ANY) : glassLinearAlloc(allocSize);
             if (!p) {
                 GLASS_context_setError(GL_OUT_OF_MEMORY);

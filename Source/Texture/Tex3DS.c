@@ -1,7 +1,6 @@
-// Heavily based on tex3ds.c from citro3d
-// https://github.com/devkitPro/citro3d/blob/master/source/tex3ds.c
-
+#include "Context.h"
 #include "Utility.h"
+#include "GX.h"
 
 #include <string.h> // memcpy
 
@@ -30,34 +29,41 @@ typedef struct {
     u16 bottom;
 } RawSubTexture;
 
-static u8* GLASS_getTexDataPtr(const glassTexture* tex, size_t level) {
-    ASSERT(tex);
-    const size_t offset = GLASS_utility_texOffset(tex->width, tex->height, tex->format, tex->dataType, level);
-    return (((u8*)&tex->subTextures[tex->numOfSubTextures]) + offset);
+static u8* GLASS_getTexDataPtr(const glassTexture* tex, size_t face, size_t level) {
+    u8* p = tex->faces[face];
+    if (p) {
+        const size_t offset = GLASS_utility_texOffset(tex->width, tex->height, tex->format, tex->type, level);
+        return p + offset;
+    }
+
+    return NULL;
 }
 
-static size_t GLASS_getTexDataAllocSize(const glassTexture* tex) {
+static size_t GLASS_getTexFaceAllocSize(const glassTexture* tex) {
     ASSERT(tex);
-    return GLASS_utility_texAllocSize(tex->width, tex->height, tex->format, tex->dataType, tex->levels);
+    return GLASS_utility_texAllocSize(tex->width, tex->height, tex->format, tex->type, tex->levels);
 }
 
-static GLenum GLASS_readTexHeader(TexStream* stream, GPU_TEXTURE_MODE_PARAM type, glassTexture* out) {
+static void GLASS_loadTextureImpl(TexStream* stream, glassTexture* out) {
     ASSERT(stream);
     ASSERT(out);
-    ASSERT((type == GPU_TEX_2D) || (type == GPU_TEX_CUBE_MAP));
-
+    
+    // Parse header.
     RawHeader header;
     stream->read(stream, &header, sizeof(RawHeader));
-    if (header.type != type)
-        return GL_INVALID_OPERATION;
+    ASSERT((header.type == GPU_TEX_2D) || (header.type == GPU_TEX_CUBE_MAP));
 
+    for (size_t i = 0; i < 6; ++i)
+        out->faces[i] = NULL;
+
+    out->isCubeMap = header.type == GPU_TEX_CUBE_MAP;
     out->width = (1 << (header.widthLog2 + 3));
     out->height = (1 << (header.heightLog2 + 3));
     out->format = GLASS_utility_wrapTexFormat(header.format);
-    out->dataType = GLASS_utility_getTexDataType(header.format);
+    out->type = GLASS_utility_getTexDataType(header.format);
     out->levels = (header.mipmapLevels + 1); // Add one for base level.
 
-    if (type == GPU_TEX_2D) {
+    if (!out->isCubeMap) {
         out->numOfSubTextures = header.numSubTextures;
     } else {
         // It doesn't make sense for a cubemap to have sub-textures.
@@ -65,34 +71,31 @@ static GLenum GLASS_readTexHeader(TexStream* stream, GPU_TEXTURE_MODE_PARAM type
         out->numOfSubTextures = 0; 
     }
 
-    return 0;
-}
-
-static GLenum GLASS_loadTextureImpl(TexStream* stream, glassTexture** out) {
-    ASSERT(stream);
-    ASSERT(out);
+    // Allocate sub textures.
+    out->subTextures = glassVirtualAlloc(sizeof(glassSubTexture) * out->numOfSubTextures);
+    if (!out->subTextures) {
+        GLASS_context_setError(GL_OUT_OF_MEMORY);
+        return;
+    }
     
-    // Parse header.
-    glassTexture dummy;
-    GLenum ret = GLASS_readTexHeader(stream, GPU_TEX_2D, &dummy);
-    if (ret)
-        return ret;
-
-    // Allocate texture object.
-    const size_t allocSize = GLASS_getTexDataAllocSize(&dummy);
-    const size_t subTexSize = (sizeof(glassSubTexture) * dummy.numOfSubTextures);
-    glassTexture* tex = glassVirtualAlloc(sizeof(glassTexture) + subTexSize + allocSize);
-    if (!tex)
-        return GL_OUT_OF_MEMORY;
-
-    memcpy(tex, &dummy, sizeof(glassTexture));
+    // Allocate texture data.
+    const size_t faceAllocSize = GLASS_getTexFaceAllocSize(out);
+    const size_t numFaces = out->isCubeMap ? 6 : 1;
+    for (size_t i = 0; i < numFaces; ++i) {
+        out->faces[i] = glassLinearAlloc(faceAllocSize);
+        if (!out->faces[i]) {
+            glassDestroyTexture(out);
+            GLASS_context_setError(GL_OUT_OF_MEMORY);
+            return;
+        }
+    }
 
     // Load sub-texture info.
-    for (size_t i = 0; i < tex->numOfSubTextures; ++i) {
+    for (size_t i = 0; i < out->numOfSubTextures; ++i) {
         RawSubTexture raw;
         stream->read(stream, &raw, sizeof(RawSubTexture));
 
-        glassSubTexture* subTex = &tex->subTextures[i];
+        glassSubTexture* subTex = &out->subTextures[i];
         subTex->xFactor = (raw.left / 1024.0f);
         subTex->yFactor = (1.0f - (raw.top / 1024.0f)); // TODO: make sure this is right.
         subTex->width = raw.width;
@@ -100,53 +103,16 @@ static GLenum GLASS_loadTextureImpl(TexStream* stream, glassTexture** out) {
     }
 
     // Load texture data.
-    u8* data = GLASS_getTexDataPtr(tex, 0);
-    ASSERT(decompress(data, allocSize, stream->read, (void*)stream, 0));
-
-    *out = tex;
-    return 0;
-}
-
-static GLenum GLASS_loadCubeMapImpl(TexStream* stream, glassTexture** outs) {
-    ASSERT(stream);
-    ASSERT(outs);
-
-    // Parse header.
-    glassTexture dummy;
-    GLenum ret = GLASS_readTexHeader(stream, GPU_TEX_CUBE_MAP, &dummy);
-    if (ret)
-        return ret;
-
-    // Allocate texture objects.
-    const size_t allocSize = GLASS_getTexDataAllocSize(&dummy);
-    glassTexture* texs[6];
-
-    for (size_t i = 0; i < 6; ++i) {
-        texs[i] = glassVirtualAlloc(sizeof(glassTexture) + allocSize);
-        if (!texs[i]) {
-            for (size_t j = 0; j < i; ++j)
-                glassVirtualFree(texs[j]);
-
-            return GL_OUT_OF_MEMORY;
-        }
-
-        memcpy(&texs[i], &dummy, sizeof(glassTexture));
-    }
-
-    // Load texture data.
     decompressIOVec iov[6];
-    
-    for (size_t i = 0; i < 6; ++i) {
-        iov[i].data = GLASS_getTexDataPtr(texs[i], 0);
-        iov[i].size = allocSize;
+
+    for (size_t i = 0; i < numFaces; ++i) {
+        u8* p = GLASS_getTexDataPtr(out, i, 0);
+        ASSERT(p);
+        iov[i].data = p;
+        iov[i].size = faceAllocSize;
     }
 
-    ASSERT(decompressV(iov, 6, stream->read, (void*)stream, 0));
-
-    for (size_t i = 0; i < 6; ++i)
-        outs[i] = texs[i];
-
-    return 0;
+    ASSERT(decompressV(iov, numFaces, stream->read, (void*)stream, 0));
 }
 
 static ssize_t GLASS_texStreamReadMem(void* userdata, void* out, size_t size) {
@@ -184,80 +150,124 @@ static void GLASS_getFileTexStream(TexStream* stream, FILE* f) {
     ASSERT(fseek(f, 0, SEEK_SET) == 0);
 }
 
-GLenum glassLoadTexture(const u8* data, size_t size, glassTexture** out) {
-    if (!data || !out)
-        return GL_INVALID_VALUE;
+void glassLoadTexture(const u8* data, size_t size, glassTexture* out) {
+    if (!data || !out) {
+        GLASS_context_setError(GL_INVALID_VALUE);
+        return;
+    }
 
     TexStream stream;
     GLASS_getMemTexStream(&stream, data, size);
-    return GLASS_loadTextureImpl(&stream, out);
+    GLASS_loadTextureImpl(&stream, out);
 }
 
-GLenum glassLoadCubeMap(const u8* data, size_t size, glassTexture** out) {
-    if (!data || !out)
-        return GL_INVALID_VALUE;
-
-    TexStream stream;
-    GLASS_getMemTexStream(&stream, data, size);
-    return GLASS_loadCubeMapImpl(&stream, out);
-}
-
-GLenum glassLoadTextureFromFile(FILE* f, glassTexture** out) {
-    if ((f == NULL) || !out)
-        return GL_INVALID_VALUE;
+void glassLoadTextureFromFile(FILE* f, glassTexture* out) {
+    if ((f == NULL) || !out) {
+        GLASS_context_setError(GL_INVALID_VALUE);
+        return;
+    }
 
     TexStream stream;
     GLASS_getFileTexStream(&stream, f);
-    return GLASS_loadTextureImpl(&stream, out);
+    GLASS_loadTextureImpl(&stream, out);
 }
 
-GLenum glassLoadCubeMapFromFile(FILE* f, glassTexture** out) {
-    if ((f == NULL) || !out)
-        return GL_INVALID_VALUE;
-
-    TexStream stream;
-    GLASS_getFileTexStream(&stream, f);
-    return GLASS_loadCubeMapImpl(&stream, out);
-}
-
-GLenum glassLoadTextureFromPath(const char* path, glassTexture** out) {
-    if (!path || !out)
-        return GL_INVALID_VALUE;
+void glassLoadTextureFromPath(const char* path, glassTexture* out) {
+    if (!path || !out) {
+        GLASS_context_setError(GL_INVALID_VALUE);
+        return;
+    }
 
     FILE* f = fopen(path, "rb");
-    if (f == NULL)
-        return GL_INVALID_OPERATION;
+    if (f == NULL) {
+        GLASS_context_setError(GL_INVALID_OPERATION);
+        return;
+    }
 
-    GLenum ret = glassLoadTextureFromFile(f, out);
-    fclose(f);
-    return ret;
+    glassLoadTextureFromFile(f, out);
 }
 
-GLenum glassLoadCubeMapFromPath(const char* path, glassTexture** out) {
-    if (!path || !out)
-        return GL_INVALID_VALUE;
+void glassMoveTextureData(glassTexture* tex) {
+    if (!tex)
+        return;
 
-    FILE* f = fopen(path, "rb");
-    if (f == NULL)
-        return GL_INVALID_OPERATION;
+    CtxCommon* ctx = GLASS_context_getCommon();
+    TextureInfo* dest = (TextureInfo*)ctx->textureUnits[ctx->activeTextureUnit];
 
-    GLenum ret = glassLoadCubeMapFromFile(f, out);
-    fclose(f);
-    return ret;
+    if (dest->target != (tex->isCubeMap ? GL_TEXTURE_CUBE_MAP : GL_TEXTURE_2D)) {
+        GLASS_context_setError(GL_INVALID_OPERATION);
+        return;
+    }
+
+    const size_t faceAllocSize = GLASS_getTexFaceAllocSize(tex);
+    const size_t numBuffers = (tex->isCubeMap ? 6 : 1);
+
+    u8* oldBuffers[6];
+    memcpy(oldBuffers, dest->data, 6 * sizeof(u8*));
+
+    bool failed = false;
+
+    for (size_t i = 0; i < 6; ++i) {
+        if ((i < numBuffers) && (dest->flags & TEXTURE_FLAG_VRAM)) {
+            dest->data[i] = glassVRAMAlloc(faceAllocSize, VRAM_ALLOC_ANY);
+            if (!dest->data[i]) {
+                GLASS_context_setError(GL_OUT_OF_MEMORY);
+                failed = true;
+                break;
+            }
+
+            ASSERT(R_SUCCEEDED(GSPGPU_FlushDataCache(tex->faces[i], faceAllocSize)));
+            GLASS_gx_copyTexture((u32)tex->faces[i], (u32)dest->data[i], faceAllocSize);
+        } else {
+            dest->data[i] = tex->faces[i];
+        }
+    }
+
+    if (failed) {
+        for (size_t i = 0; i < 6; ++i) {
+            if (dest->flags & TEXTURE_FLAG_VRAM)
+                glassVRAMFree(dest->data[i]);
+
+            dest->data[i] = oldBuffers[i];
+        }
+    } else {
+        for (size_t i = 0; i < 6; ++i) {
+            glassLinearFree(oldBuffers[i]);
+            if (dest->flags & TEXTURE_FLAG_VRAM)
+                glassLinearFree(tex->faces[i]);
+
+            tex->faces[i] = NULL;
+        }
+
+        dest->width = tex->width;
+        dest->height = tex->height;
+        dest->format = tex->format;
+        dest->dataType = tex->type;
+        dest->flags |= TEXTURE_FLAG_INITIALIZED;
+        ctx->flags |= CONTEXT_FLAG_TEXTURE;
+    }
 }
 
-void glassDestroyTexture(glassTexture* tex) { glassVirtualFree(tex); }
+void glassDestroyTexture(glassTexture* tex) {
+    if (!tex)
+        return;
+
+    for (size_t i = 0; i < (tex->isCubeMap ? 6 : 1); ++i)
+        glassLinearFree(tex->faces[i]);
+
+    glassVirtualFree(tex->subTextures);
+}
 
 const size_t glassGetTextureSize(const glassTexture* tex, size_t level) {
     if (tex && (level < tex->levels))
-        return GLASS_utility_texSize(tex->width, tex->height, tex->format, tex->dataType, level);
+        return GLASS_utility_texSize(tex->width, tex->height, tex->format, tex->type, level);
 
     return 0;
 }
 
-const u8* glassGetTextureData(const glassTexture* tex, size_t level) {
+const u8* glassGetTextureData(const glassTexture* tex, size_t face, size_t level) {
     if (tex && (level < tex->levels))
-        return GLASS_getTexDataPtr(tex, level);
+        return GLASS_getTexDataPtr(tex, face, level);
 
     return NULL;
 }
