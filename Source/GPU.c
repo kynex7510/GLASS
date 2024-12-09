@@ -727,15 +727,15 @@ void GLASS_gpu_setTextureUnits(const GLuint* units) {
 
         params[3] = GLASS_utility_f32tofixed13(tex->lodBias) | (((u32)tex->maxLod & 0x0F) << 16) | (((u32)tex->minLod & 0x0F) << 24);
 
-        const u32 mainTexAddr = osConvertVirtToPhys(tex->data[0]);
+        const u32 mainTexAddr = osConvertVirtToPhys(tex->faces[0]);
         ASSERT(mainTexAddr);
         params[4] = mainTexAddr >> 3;
 
         if (hasCubeMap) {
             const u32 mask = (mainTexAddr >> 3) & ~(0x3FFFFFu);
 
-            for (size_t j = 1; j < 6; ++j) {
-                const u32 dataAddr = osConvertVirtToPhys(tex->data[j]);
+            for (size_t j = 1; j < GLASS_NUM_TEX_FACES; ++j) {
+                const u32 dataAddr = osConvertVirtToPhys(tex->faces[j]);
                 ASSERT(dataAddr);
                 ASSERT(((dataAddr >> 3) & ~(0x3FFFFFu)) == mask);
                 params[4 + j] = (dataAddr >> 3) & 0x3FFFFF;

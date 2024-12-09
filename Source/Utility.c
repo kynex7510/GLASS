@@ -789,55 +789,6 @@ GLenum GLASS_utility_wrapTexFormat(GPU_TEXCOLOR format) {
     UNREACHABLE("Invalid GPU texture format!");
 }
 
-static size_t GLASS_getTexBitsPerPixel(GLenum format, GLenum dataType) {
-    switch (GLASS_utility_getTexFormat(format, dataType)) {
-        case GPU_RGBA8:
-            return 32;
-        case GPU_RGB8:
-            return 24;
-        case GPU_RGBA5551:
-        case GPU_RGB565:
-        case GPU_RGBA4:
-        case GPU_LA8:
-        case GPU_HILO8:
-            return 16;
-        case GPU_L8:
-        case GPU_A8:
-        case GPU_LA4:
-        case GPU_ETC1A4:
-            return 8;
-        case GPU_L4:
-        case GPU_A4:
-        case GPU_ETC1:
-            return 4;
-    }
-
-    UNREACHABLE("Invalid GPU texture format!");
-}
-
-size_t GLASS_utility_texOffset(u16 width, u16 height, GLenum format, GLenum dataType, size_t level) {
-    ASSERT(level <= GLASS_NUM_TEX_LEVELS);
-
-    if (level > 0) {
-        // Basically rewrite the offset in terms of the previous level dimensions:
-        // B * W(L-1) * H(L-1) * (2^2(L-1) + 2^2(L-2) + ... + 2^2(L-L)) / 8
-        const u16 prevWidth = (width >> (level - 1));
-        const u16 prevHeight = (height >> (level - 1));
-        const size_t bpp = GLASS_getTexBitsPerPixel(format, dataType);
-        return ((bpp * prevWidth * prevHeight * (((1u << (level << 1)) - 1) & 0x55555)) >> 3);
-    }
-
-    return 0;
-}
-
-size_t GLASS_utility_texSize(u16 width, u16 height, GLenum format, GLenum dataType, size_t level) {
-    return (((width >> level) * (height >> level) * GLASS_getTexBitsPerPixel(format, dataType)) >> 3);
-}
-
-size_t GLASS_utility_texAllocSize(u16 width, u16 height, GLenum format, GLenum dataType, size_t levels) {
-    return GLASS_utility_texOffset(width, height, format, dataType, levels);
-}
-
 GPU_TEXTURE_FILTER_PARAM GLASS_utility_getTexFilter(GLenum filter) {
     switch (filter) {
         case GL_NEAREST:

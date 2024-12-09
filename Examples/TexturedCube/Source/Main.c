@@ -102,40 +102,6 @@ static void invertComponents(C3D_Mtx* matrix) {
     }
 }
 
-static void loadTexture(const u8* data, size_t size) {
-    glassTexture* tex;
-    glassLoadTexture(data, size, &tex);
-
-    const GLsizei width = tex->width;
-    const GLsizei height = tex->height;
-    const GLenum format = tex->format;
-    const GLenum type = tex->dataType;
-    const bool isCompressed = glassIsTextureCompressed(tex);
-
-    // Load texture in VRAM.
-    glTexVRAMPICA(GL_TRUE);
-
-    for (size_t level = 0; level < tex->levels; ++level) {
-        const u8* data = glassGetTextureData(tex, level);
-
-        if (isCompressed) {
-            const size_t size = glassGetTextureSize(tex, level);
-            glCompressedTexImage2D(GL_TEXTURE_2D, level, format, width, height, 0, size, data);
-        } else {
-            glTexImage2D(GL_TEXTURE_2D, level, format, width, height, 0, format, type, data);
-        }
-    }
-
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_LOD, 0);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LOD, tex->levels - 1);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-
-    glassDestroyTexture(tex);
-}
-
 static void sceneInit(GLuint* vbo, GLuint* tex) {
     // Load the vertex shader, create a shader program and bind it.
     GLuint prog = glCreateProgram();
@@ -177,11 +143,27 @@ static void sceneInit(GLuint* vbo, GLuint* tex) {
     invertComponents(&g_Proj);
     invertComponents(&g_Material);
 
-    // Load texture.
+    // Create texture.
     glGenTextures(1, tex);
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, *tex);
-    loadTexture(Kitten_t3x, Kitten_t3x_size);
+
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+    // Extension: allocate texture data in VRAM.
+    glTexVRAMPICA(GL_TRUE);
+
+    // Load texture.
+    glassTexture kittenTex;
+    glassLoadTexture(Kitten_t3x, Kitten_t3x_size, &kittenTex);
+    glassMoveTextureData(&kittenTex);
+    
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LOD, kittenTex.levels - 1);
+
+    glassDestroyTexture(&kittenTex);
 
     // Configure the first combiner stage: modulate texture color and vertex color.
     glCombinerStagePICA(0);

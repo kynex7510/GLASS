@@ -23,21 +23,21 @@ typedef struct {
 
 typedef struct {
     u32 type;         // GL type (GLASS_TEXTURE_TYPE).
-    GLenum target;    // Texture target.
-    GLenum format;    // Texture format.
-    GLenum dataType;  // Texture data type.
-    u32 borderColor;  // Border color (ABGR).
-    u16 width;        // Texture width.
-    u16 height;       // Texture height.
-    GLenum minFilter; // Min filter.
-    GLenum magFilter; // Mag filter.
-    GLenum wrapS;     // Wrap S.
-    GLenum wrapT;     // Wrap T.
-    u8 minLod;        // Min level of details.
-    u8 maxLod;        // Max level of details.
-    u16 flags;        // Texture flags.
-    float lodBias;    // LOD bias.
-    u8* data[6];      // Texture data.
+    GLenum target;                  // Texture target.
+    GLenum format;                  // Texture format.
+    GLenum dataType;                // Texture data type.
+    u32 borderColor;                // Border color (ABGR).
+    u16 width;                      // Texture width.
+    u16 height;                     // Texture height.
+    GLenum minFilter;               // Min filter.
+    GLenum magFilter;               // Mag filter.
+    GLenum wrapS;                   // Wrap S.
+    GLenum wrapT;                   // Wrap T.
+    u8 minLod;                      // Min level of details.
+    u8 maxLod;                      // Max level of details.
+    u16 flags;                      // Texture flags.
+    float lodBias;                  // LOD bias.
+    u8* faces[GLASS_NUM_TEX_FACES]; // Texture data.
 } TextureInfo;
 
 typedef struct {

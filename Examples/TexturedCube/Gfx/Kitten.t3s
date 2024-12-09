@@ -1,2 +1,2 @@
--f auto-etc1 -z auto
+-f auto-etc1 -m gaussian -z auto
 Kitten.png

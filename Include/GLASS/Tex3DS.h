@@ -17,7 +17,7 @@ typedef struct {
 // Texture object.
 typedef struct {
     u8* faces[6];                 // Internal texture data.
-    bool isCubeMap;               // Whether this is a cube map.
+    bool isCubeMap;               // Whether this texture is a cube map.
     u16 width;                    // Texture width.
     u16 height;                   // Texture height.
     GLenum format;                // Texture format.

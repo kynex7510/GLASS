@@ -1,5 +1,5 @@
 #include "Context.h"
-#include "GX.h"
+#include "TexCommon.h"
 
 #include <string.h>
 
@@ -158,8 +158,10 @@ void glDeleteTextures(GLsizei n, const GLuint* textures) {
 
         // Delete texture.
         const bool useVRAM = tex->flags |= TEXTURE_FLAG_VRAM;
-        for (size_t j = 0; j < 6; ++j)
-            useVRAM ? glassVRAMFree(tex->data[j]) : glassLinearFree(tex->data[j]);
+        for (size_t j = 0; j < GLASS_NUM_TEX_FACES; ++j) {
+            u8* p = tex->faces[i];
+            useVRAM ? glassVRAMFree(p) : glassLinearFree(p);
+        }
 
         glassVirtualFree(tex);
     }
@@ -196,8 +198,8 @@ void glGenTextures(GLsizei n, GLuint* textures) {
         tex->flags = 0;
         tex->lodBias = 0;
 
-        for (size_t j = 0; j < 6; ++j)
-            tex->data[j] = NULL;
+        for (size_t j = 0; j < GLASS_NUM_TEX_FACES; ++j)
+            tex->faces[j] = NULL;
 
         textures[i] = name;
     }
@@ -324,6 +326,9 @@ static bool GLASS_checkTexArgs(GLenum target, GLint level, GLsizei width, GLsize
     if ((target != GL_TEXTURE_2D) && (width != height))
         return false;
 
+    if ((width < GLASS_MIN_TEX_SIZE) || (height < GLASS_MIN_TEX_SIZE))
+        return false;
+
     if ((width > GLASS_MAX_TEX_SIZE) || (height > GLASS_MAX_TEX_SIZE))
         return false;
 
@@ -334,68 +339,6 @@ static bool GLASS_checkTexArgs(GLenum target, GLint level, GLsizei width, GLsize
         return false;
 
     return true;
-}
-
-typedef enum {
-    Failed,
-    Unchanged,
-    NeedUpdate,
-} TexInitStatus;
-
-static size_t GLASS_dimLevels(size_t dim) {
-    size_t n = 1;
-    while (dim > 8) {
-        dim >>= 1;
-        ++n;
-    }
-    return n;
-}
-
-static bool GLASS_initTexMem(TextureInfo* tex, GLsizei width, GLsizei height, GLenum format, GLenum type) {
-    ASSERT(tex);
-    ASSERT(tex->flags & TEXTURE_FLAG_BOUND);
-
-    const size_t widthLevels = GLASS_dimLevels(width);
-    const size_t heightLevels = GLASS_dimLevels(height);
-    const size_t levels = MIN(widthLevels, heightLevels);
-    const size_t allocSize = GLASS_utility_texAllocSize(width, height, format, type, levels);
-    const size_t numBuffers = (tex->target == GL_TEXTURE_2D ? 1 : 6);
-    const bool useVRAM = tex->flags & TEXTURE_FLAG_VRAM;
-
-    for (size_t i = 0; i < 6; ++i) {
-        u8* p = NULL;
-        
-        if (allocSize && (i < numBuffers)) {
-            p = useVRAM ? glassVRAMAlloc(allocSize, VRAM_ALLOC_ANY) : glassLinearAlloc(allocSize);
-            if (!p) {
-                GLASS_context_setError(GL_OUT_OF_MEMORY);
-                return false;
-            }
-        }
-
-        u8* old = tex->data[i];
-        useVRAM ? glassVRAMFree(old) : glassLinearFree(old);
-
-        tex->data[i] = p;
-    }
-
-    tex->width = width;
-    tex->height = height;
-    tex->format = format;
-    tex->dataType = type;
-    tex->flags |= TEXTURE_FLAG_INITIALIZED;
-    return true;
-}
-
-static TexInitStatus GLASS_initTexMemIfNeeded(TextureInfo* tex, GLsizei width, GLsizei height, GLenum format, GLenum type) {
-    ASSERT(tex);
-
-    if (tex->flags & TEXTURE_FLAG_INITIALIZED) {
-        if ((tex->width == width) && (tex->height == height) && (tex->format == format) && (tex->dataType == type))
-            return Unchanged;
-    }
-
-    return GLASS_initTexMem(tex, width, height, format, type) ? NeedUpdate : Failed;
 }
 
 // All parameters are for the texture as a whole, except for data and offset, which are relative to the mipmap level.
@@ -422,53 +365,44 @@ static void GLASS_setTex(GLenum target, GLint level, GLsizei width, GLsizei heig
         return;
     }
     
-    size_t dataIndex;
+    size_t face;
     switch (target) {
         case GL_TEXTURE_2D:
         case GL_TEXTURE_CUBE_MAP_POSITIVE_X:
-            dataIndex = 0;
+            face = 0;
             break;
         case GL_TEXTURE_CUBE_MAP_NEGATIVE_X:
-            dataIndex = 1;
+            face = 1;
             break;
         case GL_TEXTURE_CUBE_MAP_POSITIVE_Y:
-            dataIndex = 2;
+            face = 2;
             break;
         case GL_TEXTURE_CUBE_MAP_NEGATIVE_Y:
-            dataIndex = 3;
+            face = 3;
             break;
         case GL_TEXTURE_CUBE_MAP_POSITIVE_Z:
-            dataIndex = 4;
+            face = 4;
             break;
         case GL_TEXTURE_CUBE_MAP_NEGATIVE_Z:
-            dataIndex = 5;
+            face = 5;
             break;
         default:
             GLASS_context_setError(GL_INVALID_ENUM);
             return;
     }
 
-    // Initialize memory.
-    TexInitStatus status = GLASS_initTexMemIfNeeded(tex, width, height, format, type);
-    if (status == Failed)
+    // Prepare memory.
+    TexStatus status = GLASS_tex_reallocIfNeeded(tex, width, height, format, type, tex->flags & TEXTURE_FLAG_VRAM);
+    if (status == TexStatus_Failed)
         return;
 
     // Write data.
     if (data) {
-        const size_t mipmapOffset = GLASS_utility_texOffset(width, height, format, type, level);
-        const size_t maxSize = GLASS_utility_texSize(width, height, format, type, level);
-        const size_t copySize = MIN(maxSize - offset, dataSize);
-
-        if (tex->flags & TEXTURE_FLAG_VRAM) {
-            GLASS_gx_copyTexture((u32)data, (u32)tex->data[dataIndex] + mipmapOffset + offset, copySize);
-        } else {
-            memcpy(tex->data[dataIndex] + mipmapOffset + offset, data, copySize);
-        }
-
-        status = NeedUpdate;
+        GLASS_tex_write(tex, data, dataSize, face, level);
+        status = TexStatus_Updated;
     }
     
-    if (status == NeedUpdate)
+    if (status == TexStatus_Updated)
         ctx->flags |= CONTEXT_FLAG_TEXTURE;
 }
 
@@ -518,32 +452,19 @@ void glTexVRAMPICA(GLboolean enabled) {
     if (hadVRAM == enabled)
         return;
 
-    if (enabled) {
-        tex->flags |= TEXTURE_FLAG_VRAM;
-     } else {
-        tex->flags &= ~(TEXTURE_FLAG_VRAM);
-    }
-
-    if (tex->flags & TEXTURE_FLAG_INITIALIZED) {
-        u8* oldBuffers[6];
-        memcpy(oldBuffers, tex->data, 6 * sizeof(u8*));
-        
-        if (!GLASS_initTexMem(tex, tex->width, tex->height, tex->format, tex->type)) {
-            // Revert change.
-            if (enabled) {
-                tex->flags &= ~(TEXTURE_FLAG_VRAM);
-            } else {
-                tex->flags |= TEXTURE_FLAG_VRAM;
-            }
-
-            return;
+    if (!(tex->flags & TEXTURE_FLAG_INITIALIZED)) {
+        if (enabled) {
+            tex->flags |= TEXTURE_FLAG_VRAM;
+        } else {
+            tex->flags &= ~(TEXTURE_FLAG_VRAM);
         }
 
-        for (size_t i = 0; i < 6; ++i)
-            hadVRAM ? glassVRAMFree(oldBuffers[i]) : glassLinearFree(oldBuffers[i]);
-
-        ctx->flags |= CONTEXT_FLAG_TEXTURE;
+        return;
     }
+
+    const TexStatus status = GLASS_tex_reallocIfNeeded(tex, tex->width, tex->height, tex->format, tex->dataType, enabled);
+    if (status == TexStatus_Updated)
+        ctx->flags |= CONTEXT_FLAG_TEXTURE;
 }
 
 // TODO
