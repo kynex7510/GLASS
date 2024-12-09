@@ -7,7 +7,7 @@
 #define FILL_CONTROL(fillWidth) (((fillWidth) << 8) | 1)
 
 #define TRANSFER_FLAGS(srcFormat, dstFormat, verticalFlip, scaling) \
-    GX_TRANSFER_FLIP_VERT(verticalFlip)| GX_TRANSFER_IN_FORMAT(srcFormat) | GX_TRANSFER_OUT_FORMAT(dstFormat) | GX_TRANSFER_SCALING(scaling)
+    GX_TRANSFER_IN_FORMAT(srcFormat) | GX_TRANSFER_OUT_FORMAT(dstFormat) | GX_TRANSFER_FLIP_VERT(verticalFlip) | GX_TRANSFER_SCALING(scaling)
 
 typedef struct {
     u32 addr;

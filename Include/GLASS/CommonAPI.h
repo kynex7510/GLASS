@@ -98,6 +98,10 @@ void glTexParameterfv(GLenum target, GLenum pname, const GLfloat* params);
 void glTexParameteriv(GLenum target, GLenum pname, const GLint* params);
 void glTexSubImage2D(GLenum target, GLint level, GLint xoffset, GLint yoffset, GLsizei width, GLsizei height, GLenum format, GLenum type, const GLvoid* data);
 
+/* Texture (extension) */
+
+void glTexVRAMPICA(GLboolean enabled);
+
 #if defined(__cplusplus)
 }
 #endif // __cplusplus

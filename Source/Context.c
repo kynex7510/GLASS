@@ -202,15 +202,16 @@ CtxCommon* GLASS_context_getCommon(void) {
 }
 
 void GLASS_context_bind(CtxCommon* ctx) {
-    const bool skipUpdate = (ctx == g_Context) || (g_Context == NULL && ctx == g_OldCtx);
+    if (ctx == g_Context)
+        return;
+
+    const bool skipUpdate = (g_Context == NULL) && (ctx == g_OldCtx);
 
     if (g_Context)
         GLASS_gx_unbind(g_Context);
 
-    if (ctx != g_Context) {
-        g_OldCtx = g_Context;
-        g_Context = ctx;
-    }
+    g_OldCtx = g_Context;
+    g_Context = ctx;
 
     if (g_Context) {
         GLASS_gx_bind(g_Context);

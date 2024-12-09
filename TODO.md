@@ -1,5 +1,13 @@
 # TODO
 
+## Immediate term
+
+- Finish textures
+- - Load subtextures (tex3ds)
+- - Load subtextures (GL)
+- - Copy textures
+- Combiner buffers
+
 ## Short term
 
 - Add support for geometry shaders

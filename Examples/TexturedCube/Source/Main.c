@@ -112,6 +112,9 @@ static void loadTexture(const u8* data, size_t size) {
     const GLenum type = tex->dataType;
     const bool isCompressed = glassIsTextureCompressed(tex);
 
+    // Load texture in VRAM.
+    glTexVRAMPICA(GL_TRUE);
+
     for (size_t level = 0; level < tex->levels; ++level) {
         const u8* data = glassGetTextureData(tex, level);
 
@@ -122,6 +125,13 @@ static void loadTexture(const u8* data, size_t size) {
             glTexImage2D(GL_TEXTURE_2D, level, format, width, height, 0, format, type, data);
         }
     }
+
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_LOD, 0);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LOD, tex->levels - 1);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
     glassDestroyTexture(tex);
 }

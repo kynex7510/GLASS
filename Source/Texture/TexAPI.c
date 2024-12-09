@@ -1,4 +1,5 @@
 #include "Context.h"
+#include "GX.h"
 
 #include <string.h>
 
@@ -156,8 +157,9 @@ void glDeleteTextures(GLsizei n, const GLuint* textures) {
         }
 
         // Delete texture.
-        for (size_t j = 0; j < 6; ++i)
-            glassLinearFree(tex->data[j]);
+        const bool useVRAM = tex->flags |= TEXTURE_FLAG_VRAM;
+        for (size_t j = 0; j < 6; ++j)
+            useVRAM ? glassVRAMFree(tex->data[j]) : glassLinearFree(tex->data[j]);
 
         glassVirtualFree(tex);
     }
@@ -349,27 +351,30 @@ static size_t GLASS_dimLevels(size_t dim) {
     return n;
 }
 
-static TexInitStatus GLASS_initTexMem(TextureInfo* tex, GLsizei width, GLsizei height, GLenum format, GLenum type) {
+static bool GLASS_initTexMem(TextureInfo* tex, GLsizei width, GLsizei height, GLenum format, GLenum type) {
     ASSERT(tex);
-
-    if ((tex->width == width) && (tex->height == height) && (tex->format == format) && (tex->dataType == type))
-        return Unchanged;
+    ASSERT(tex->flags & TEXTURE_FLAG_BOUND);
 
     const size_t widthLevels = GLASS_dimLevels(width);
     const size_t heightLevels = GLASS_dimLevels(height);
     const size_t levels = MIN(widthLevels, heightLevels);
     const size_t allocSize = GLASS_utility_texAllocSize(width, height, format, type, levels);
     const size_t numBuffers = (tex->target == GL_TEXTURE_2D ? 1 : 6);
+    const bool useVRAM = tex->flags & TEXTURE_FLAG_VRAM;
 
     for (size_t i = 0; i < numBuffers; ++i) {
-        u8* p = glassLinearAlloc(allocSize);
-        if (!p) {
-            GLASS_context_setError(GL_OUT_OF_MEMORY);
-            return Failed;
+        u8* p = NULL;
+        
+        if (allocSize) {
+            p = useVRAM ? glassVRAMAlloc(allocSize, VRAM_ALLOC_ANY) : glassLinearAlloc(allocSize);
+            if (!p) {
+                GLASS_context_setError(GL_OUT_OF_MEMORY);
+                return false;
+            }
         }
 
-        if (tex->data[i])
-            glassLinearFree(tex->data[i]);
+        u8* old = tex->data[i];
+        useVRAM ? glassVRAMFree(old) : glassLinearFree(old);
 
         tex->data[i] = p;
     }
@@ -378,7 +383,19 @@ static TexInitStatus GLASS_initTexMem(TextureInfo* tex, GLsizei width, GLsizei h
     tex->height = height;
     tex->format = format;
     tex->dataType = type;
-    return NeedUpdate;
+    tex->flags |= TEXTURE_FLAG_INITIALIZED;
+    return true;
+}
+
+static TexInitStatus GLASS_initTexMemIfNeeded(TextureInfo* tex, GLsizei width, GLsizei height, GLenum format, GLenum type) {
+    ASSERT(tex);
+
+    if (tex->flags & TEXTURE_FLAG_INITIALIZED) {
+        if ((tex->width == width) && (tex->height == height) && (tex->format == format) && (tex->dataType == type))
+            return Unchanged;
+    }
+
+    return GLASS_initTexMem(tex, width, height, format, type) ? NeedUpdate : Failed;
 }
 
 // All parameters are for the texture as a whole, except for data and offset, which are relative to the mipmap level.
@@ -432,7 +449,7 @@ static void GLASS_setTex(GLenum target, GLint level, GLsizei width, GLsizei heig
     }
 
     // Initialize memory.
-    TexInitStatus status = GLASS_initTexMem(tex, width, height, format, type);
+    TexInitStatus status = GLASS_initTexMemIfNeeded(tex, width, height, format, type);
     if (status == Failed)
         return;
 
@@ -440,10 +457,17 @@ static void GLASS_setTex(GLenum target, GLint level, GLsizei width, GLsizei heig
     if (data) {
         const size_t mipmapOffset = GLASS_utility_texOffset(width, height, format, type, level);
         const size_t maxSize = GLASS_utility_texSize(width, height, format, type, level);
-        memcpy(tex->data[dataIndex] + mipmapOffset + offset, data, MIN(maxSize - offset, dataSize));
+        const size_t copySize = MIN(maxSize - offset, dataSize);
+
+        if (tex->flags & TEXTURE_FLAG_VRAM) {
+            GLASS_gx_copyTexture((u32)data, (u32)tex->data[dataIndex] + mipmapOffset + offset, copySize);
+        } else {
+            memcpy(tex->data[dataIndex] + mipmapOffset + offset, data, copySize);
+        }
+
         status = NeedUpdate;
     }
-
+    
     if (status == NeedUpdate)
         ctx->flags |= CONTEXT_FLAG_TEXTURE;
 }
@@ -479,6 +503,47 @@ void glCompressedTexImage2D(GLenum target, GLint level, GLenum internalformat, G
     }
 
     GLASS_setTex(target, level, width, height, internalformat, 0, (const u8*)data, 0, imageSize);
+}
+
+void glTexVRAMPICA(GLboolean enabled) {
+    CtxCommon* ctx = GLASS_context_getCommon();
+    TextureInfo* tex = (TextureInfo*)ctx->textureUnits[ctx->activeTextureUnit];
+
+    if (!tex) {
+        GLASS_context_setError(GL_INVALID_OPERATION);
+        return;
+    }
+
+    const bool hadVRAM = tex->flags & TEXTURE_FLAG_VRAM;
+    if (hadVRAM == enabled)
+        return;
+
+    if (enabled) {
+        tex->flags |= TEXTURE_FLAG_VRAM;
+     } else {
+        tex->flags &= ~(TEXTURE_FLAG_VRAM);
+    }
+
+    if (tex->flags & TEXTURE_FLAG_INITIALIZED) {
+        u8* oldBuffers[6];
+        memcpy(oldBuffers, tex->data, 6 * sizeof(u8*));
+        
+        if (!GLASS_initTexMem(tex, tex->width, tex->height, tex->format, tex->type)) {
+            // Revert change.
+            if (enabled) {
+                tex->flags &= ~(TEXTURE_FLAG_VRAM);
+            } else {
+                tex->flags |= TEXTURE_FLAG_VRAM;
+            }
+
+            return;
+        }
+
+        for (size_t i = 0; i < 6; ++i)
+            hadVRAM ? glassVRAMFree(oldBuffers[i]) : glassLinearFree(oldBuffers[i]);
+
+        ctx->flags |= CONTEXT_FLAG_TEXTURE;
+    }
 }
 
 // TODO
