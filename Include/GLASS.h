@@ -23,6 +23,7 @@ typedef struct {
     size_t gpuCmdBufferCapacity;     // Max size of GPU command buffer, in words (default: 0).
     size_t gpuCmdBufferOffset;       // Offset of the current GPU command location (default: 0).
     GX_TRANSFER_SCALE transferScale; // Anti-aliasing (default: GX_TRANSFER_SCALE_NO).
+    bool verticalFlip;               // Flip display buffer vertically (default: false).
 } glassSettings;
 
 #if defined(__cplusplus)

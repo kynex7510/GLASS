@@ -20,6 +20,7 @@ void GLASS_context_initCommon(CtxCommon* ctx, const glassInitParams* initParams,
         ctx->settings.gpuSecondCmdBuffer = settings->gpuSecondCmdBuffer;
         ctx->settings.gpuCmdBufferCapacity = settings->gpuCmdBufferCapacity;
         ctx->settings.gpuCmdBufferOffset = settings->gpuCmdBufferOffset;
+        ctx->settings.verticalFlip = settings->verticalFlip;
         ctx->settings.transferScale = settings->transferScale;
     } else {
         ctx->settings.targetScreen = GFX_TOP;
@@ -28,6 +29,7 @@ void GLASS_context_initCommon(CtxCommon* ctx, const glassInitParams* initParams,
         ctx->settings.gpuSecondCmdBuffer = 0;
         ctx->settings.gpuCmdBufferCapacity = 0;
         ctx->settings.gpuCmdBufferOffset = 0;
+        ctx->settings.verticalFlip = false;
         ctx->settings.transferScale = GX_TRANSFER_SCALE_NO;
     }
 
