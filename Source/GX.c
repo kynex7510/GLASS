@@ -6,8 +6,8 @@
 
 #define FILL_CONTROL(fillWidth) (((fillWidth) << 8) | 1)
 
-#define TRANSFER_FLAGS(srcFormat, dstFormat, verticalFlip, scaling) \
-    GX_TRANSFER_FLIP_VERT(verticalFlip)| GX_TRANSFER_IN_FORMAT(srcFormat) | GX_TRANSFER_OUT_FORMAT(dstFormat) | GX_TRANSFER_SCALING(scaling)
+#define TRANSFER_FLAGS(srcFormat, dstFormat, scaling) \
+    GX_TRANSFER_IN_FORMAT(srcFormat) | GX_TRANSFER_OUT_FORMAT(dstFormat) | GX_TRANSFER_SCALING(scaling)
 
 typedef struct {
     u32 addr;
@@ -25,7 +25,6 @@ typedef struct {
     u16 dstWidth;
     u16 dstHeight;
     GX_TRANSFER_FORMAT dstFormat;
-    bool verticalFlip;
     GX_TRANSFER_SCALE scaling;
 } GXDisplayTransferParams;
 
@@ -76,7 +75,7 @@ static void GLASS_displayTransfer(const GXDisplayTransferParams* transfer) {
 
     GX_DisplayTransfer((u32*)(transfer->srcAddr), GX_BUFFER_DIM(transfer->srcHeight, transfer->srcWidth),
         (u32*)(transfer->dstAddr), GX_BUFFER_DIM(transfer->dstHeight, transfer->dstWidth),
-        TRANSFER_FLAGS(transfer->srcFormat, transfer->dstFormat, transfer->verticalFlip, transfer->scaling));
+        TRANSFER_FLAGS(transfer->srcFormat, transfer->dstFormat, transfer->scaling));
 }
 
 static void GLASS_textureCopy(const GXTextureCopyParams* copy) {
@@ -174,7 +173,6 @@ void GLASS_gx_transferAndSwap(const RenderbufferInfo* colorBuffer, const Renderb
     params.dstHeight = displayBuffer->height;
     params.dstFormat = GLASS_utility_getTransferFormat(displayBuffer->format);
 
-    params.verticalFlip = ctx->settings.verticalFlip;
     params.scaling = ctx->settings.transferScale;
 
     gxCmdQueueWait(&ctx->gxQueue, -1);
