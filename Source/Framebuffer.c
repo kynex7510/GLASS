@@ -374,10 +374,11 @@ void glRenderbufferStorage(GLenum target, GLenum internalformat, GLsizei width, 
     if (info->address)
         glassVRAMFree(info->address);
 
-    info->address = glassVRAMAlloc(bufferSize, GLASS_isDepthFormat(internalformat) ? VRAM_ALLOC_B : VRAM_ALLOC_A);
+    const bool isDepth = GLASS_isDepthFormat(internalformat);
+    info->address = glassVRAMAlloc(bufferSize, isDepth ? VRAM_ALLOC_B : VRAM_ALLOC_A);
 
     if (!info->address)
-        info->address = glassVRAMAlloc(bufferSize, GLASS_isDepthFormat(internalformat) ? VRAM_ALLOC_A : VRAM_ALLOC_B);
+        info->address = glassVRAMAlloc(bufferSize, isDepth ? VRAM_ALLOC_A : VRAM_ALLOC_B);
 
     if (!info->address) {
         GLASS_context_setError(GL_OUT_OF_MEMORY);

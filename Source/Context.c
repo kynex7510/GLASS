@@ -1,5 +1,6 @@
 #include "Context.h"
 #include "GPU.h"
+#include "GX.h"
 
 #include <string.h> // memset
 
@@ -15,23 +16,30 @@ void GLASS_context_initCommon(CtxCommon* ctx, const glassInitParams* initParams,
     if (settings) {
         ctx->settings.targetScreen = settings->targetScreen;
         ctx->settings.targetSide = settings->targetSide;
+        ctx->settings.gpuMainCmdBuffer = settings->gpuMainCmdBuffer;
+        ctx->settings.gpuSecondCmdBuffer = settings->gpuSecondCmdBuffer;
+        ctx->settings.gpuCmdBufferCapacity = settings->gpuCmdBufferCapacity;
+        ctx->settings.gpuCmdBufferOffset = settings->gpuCmdBufferOffset;
+        ctx->settings.verticalFlip = settings->verticalFlip;
         ctx->settings.transferScale = settings->transferScale;
     } else {
         ctx->settings.targetScreen = GFX_TOP;
         ctx->settings.targetSide = GFX_LEFT;
+        ctx->settings.gpuMainCmdBuffer = 0;
+        ctx->settings.gpuSecondCmdBuffer = 0;
+        ctx->settings.gpuCmdBufferCapacity = 0;
+        ctx->settings.gpuCmdBufferOffset = 0;
+        ctx->settings.verticalFlip = false;
         ctx->settings.transferScale = GX_TRANSFER_SCALE_NO;
     }
 
     // Platform.
     ctx->flags = 0;
     ctx->lastError = GL_NO_ERROR;
-    ctx->cmdBuffer = NULL;
-    ctx->cmdBufferSize = 0;
-    ctx->cmdBufferOffset = 0;
-    ctx->inSwap = 0;
     memset(&ctx->gxQueue, 0, sizeof(ctx->gxQueue));
 
     GLASS_gpu_init(ctx);
+    GLASS_gx_init(ctx);
 
     // Buffers.
     ctx->arrayBuffer = GLASS_INVALID_OBJECT;
@@ -184,7 +192,8 @@ void GLASS_context_cleanupCommon(CtxCommon* ctx) {
     if (ctx == g_Context)
         GLASS_context_bind(NULL);
 
-    GLASS_gpu_finalize(ctx);
+    GLASS_gx_cleanup(ctx);
+    GLASS_gpu_cleanup(ctx);
 }
 
 CtxCommon* GLASS_context_getCommon(void) {
@@ -195,28 +204,26 @@ CtxCommon* GLASS_context_getCommon(void) {
 void GLASS_context_bind(CtxCommon* ctx) {
     const bool skipUpdate = (ctx == g_Context) || (g_Context == NULL && ctx == g_OldCtx);
 
-    // Complete pending commands.
     if (g_Context)
-        GLASS_gpu_flushQueue(g_Context, true);
+        GLASS_gx_unbind(g_Context);
 
-    // Bind context.
     if (ctx != g_Context) {
         g_OldCtx = g_Context;
         g_Context = ctx;
     }
 
-    // Run new queue.
     if (g_Context) {
-        GLASS_gpu_runQueue(g_Context, true);
+        GLASS_gx_bind(g_Context);
 
         if (!skipUpdate)
             g_Context->flags = CONTEXT_FLAG_ALL;
     }
 }
 
-void GLASS_context_update(void) {
+void GLASS_context_flush(void) {
     ASSERT(g_Context);
-    GLASS_gpu_enableCommands(g_Context);
+
+    GLASS_gpu_enableCommands();
 
     // Handle framebuffer.
     if (g_Context->flags & CONTEXT_FLAG_FRAMEBUFFER) {
@@ -392,7 +399,7 @@ void GLASS_context_update(void) {
         g_Context->flags &= ~CONTEXT_FLAG_COMBINERS;
     }
 
-    GLASS_gpu_disableCommands(g_Context);
+    GLASS_gpu_disableCommands();
 }
 
 #ifndef GLASS_NO_MERCY
@@ -402,22 +409,3 @@ void GLASS_context_setError(GLenum error) {
         g_Context->lastError = error;
 }
 #endif // GLASS_NO_MERCY
-
-void GLASS_context_setSwap(CtxCommon* ctx, bool swap) {
-    ASSERT(ctx);
-
-    do {
-        __ldrexb(&ctx->inSwap);
-    } while (__strexb(&ctx->inSwap, swap ? 1 : 0));
-}
-
-void GLASS_context_waitSwap(CtxCommon* ctx) {
-    ASSERT(ctx);
-
-    u8 inSwap = 1;
-    do {
-        inSwap = __ldrexb(&ctx->inSwap);
-    } while (inSwap == 1);
-
-    __clrex();
-}

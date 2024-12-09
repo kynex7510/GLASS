@@ -4,8 +4,7 @@
 #include <string.h> // memcpy, memset
 
 #define PHYSICAL_LINEAR_BASE 0x18000000
-#define GPU_MAX_ENTRIES 0x4000
-#define GX_MAX_ENTRIES 32
+#define DEFAULT_CMDBUF_CAPACITY 0x1000
 
 #define PAD_4 12
 #define PAD_8 13
@@ -15,124 +14,73 @@
 void GLASS_gpu_init(CtxCommon* ctx) {
     ASSERT(ctx);
 
-    ctx->cmdBuffer = glassLinearAlloc(GPU_MAX_ENTRIES * sizeof(u32));
-    ASSERT(ctx->cmdBuffer);
+    glassSettings* settings = &ctx->settings;
 
-    ctx->gxQueue.maxEntries = GX_MAX_ENTRIES;
-    ctx->gxQueue.entries = (gxCmdEntry_s*)glassVirtualAlloc(ctx->gxQueue.maxEntries * sizeof(gxCmdEntry_s));
-    ASSERT(ctx->gxQueue.entries);
+    if (!settings->gpuCmdBufferCapacity) {
+        ASSERT(!settings->gpuMainCmdBuffer);
+        ASSERT(!settings->gpuSecondCmdBuffer);
+        settings->gpuCmdBufferCapacity = DEFAULT_CMDBUF_CAPACITY;
+    }
+
+    if (!settings->gpuMainCmdBuffer) {
+        settings->gpuMainCmdBuffer = (u32)glassLinearAlloc(settings->gpuCmdBufferCapacity * sizeof(u32));
+        ASSERT(settings->gpuMainCmdBuffer);
+    }
+
+    if (!settings->gpuSecondCmdBuffer) {
+        settings->gpuSecondCmdBuffer = (u32)glassLinearAlloc(settings->gpuCmdBufferCapacity * sizeof(u32));
+        ASSERT(settings->gpuSecondCmdBuffer);
+    }
 }
 
-void GLASS_gpu_finalize(CtxCommon* ctx) {
+void GLASS_gpu_cleanup(CtxCommon* ctx) {
     ASSERT(ctx);
-    glassVirtualFree(ctx->gxQueue.entries);
-    glassLinearFree(ctx->cmdBuffer);
+
+    glassSettings* settings = &ctx->settings;
+    glassLinearFree((void*)settings->gpuSecondCmdBuffer);
+    glassLinearFree((void*)settings->gpuMainCmdBuffer);
 }
 
-void GLASS_gpu_enableCommands(CtxCommon* ctx) {
-    ASSERT(ctx);
-    GPUCMD_SetBuffer(ctx->cmdBuffer + ctx->cmdBufferOffset, GPU_MAX_ENTRIES - ctx->cmdBufferOffset, ctx->cmdBufferSize);
+void GLASS_gpu_enableCommands(void) {
+    CtxCommon* ctx = GLASS_context_getCommon();
+    glassSettings* settings = &ctx->settings;
+    GPUCMD_SetBuffer((u32*)settings->gpuMainCmdBuffer, settings->gpuCmdBufferCapacity, settings->gpuCmdBufferOffset);
 }
 
-void GLASS_gpu_disableCommands(CtxCommon* ctx) {
-    ASSERT(ctx);
-    GPUCMD_GetBuffer(NULL, NULL, &ctx->cmdBufferSize);
+void GLASS_gpu_disableCommands(void) {
+    CtxCommon* ctx = GLASS_context_getCommon();
+
+    u32 offset;
+    GPUCMD_GetBuffer(NULL, NULL, &offset);
     GPUCMD_SetBuffer(NULL, 0, 0);
+    ctx->settings.gpuCmdBufferOffset = offset;
 }
 
-void GLASS_gpu_flushCommands(CtxCommon* ctx) {
-    ASSERT(ctx);
+bool GLASS_gpu_swapCommandBuffers(u32* buffer, size_t* sizeInWords) {
+    ASSERT(buffer);
+    ASSERT(sizeInWords);
 
-    if (ctx->cmdBufferSize) {
-        // Split command buffer.
-        GLASS_gpu_enableCommands(ctx);
-        GPUCMD_Split(NULL, &ctx->cmdBufferSize);
+    CtxCommon* ctx = GLASS_context_getCommon();
+    glassSettings* settings = &ctx->settings;
+
+    if (settings->gpuCmdBufferOffset > 0) {
+        GLASS_gpu_enableCommands();
+
+        u32* b;
+        u32 s;
+        GPUCMD_Split(&b, &s);
         GPUCMD_SetBuffer(NULL, 0, 0);
+        *buffer = (u32)b;
+        *sizeInWords = s;
 
-        // Process GPU commands.
-        u8 flags = GX_CMDLIST_FLUSH;
-
-        if (ctx->initParams.flushAllLinearMem) {
-            extern u32 __ctru_linear_heap;
-            extern u32 __ctru_linear_heap_size;
-            ASSERT(R_SUCCEEDED(GSPGPU_FlushDataCache((void*)__ctru_linear_heap, __ctru_linear_heap_size)));
-            flags = 0;
-        }
-
-        GX_ProcessCommandList(ctx->cmdBuffer + ctx->cmdBufferOffset, ctx->cmdBufferSize * sizeof(u32), flags);
-
-        // Set new offset.
-        ctx->cmdBufferOffset += ctx->cmdBufferSize;
-        ctx->cmdBufferSize = 0;
+        u32 tmp = settings->gpuMainCmdBuffer;
+        settings->gpuMainCmdBuffer = settings->gpuSecondCmdBuffer;
+        settings->gpuSecondCmdBuffer = tmp;
+        settings->gpuCmdBufferOffset = 0;
+        return true;
     }
-}
 
-void GLASS_gpu_flushQueue(CtxCommon* ctx, bool unbind) {
-    ASSERT(ctx);
-    gxCmdQueueWait(&ctx->gxQueue, -1);
-    gxCmdQueueStop(&ctx->gxQueue);
-    gxCmdQueueClear(&ctx->gxQueue);
-
-    if (unbind)
-        GX_BindQueue(NULL);
-}
-
-void GLASS_gpu_runQueue(CtxCommon* ctx, bool bind) {
-    ASSERT(ctx);
-
-    if (bind)
-        GX_BindQueue(&ctx->gxQueue);
-
-    gxCmdQueueRun(&ctx->gxQueue);
-}
-
-void GLASS_gpu_flushAndRunCommands(CtxCommon* ctx) {
-    ASSERT(ctx);
-
-    GLASS_gpu_flushCommands(ctx);
-    GLASS_gpu_flushQueue(ctx, false);
-
-    // Reset offset.
-    ctx->cmdBufferOffset = 0;
-    GLASS_gpu_runQueue(ctx, false);
-}
-
-static u16 GLASS_getGXControl(bool start, bool finished, GLenum format) {
-    const u16 fillWidth = GLASS_utility_getPixelSizeForFB(format);
-    return (u16)(start) | ((u16)(finished) << 1) | (fillWidth << 8);
-}
-
-void GLASS_gpu_clearBuffers(RenderbufferInfo* colorBuffer, u32 clearColor, RenderbufferInfo* depthBuffer, u32 clearDepth) {
-    size_t colorBufferSize = 0;
-    size_t depthBufferSize = 0;
-
-    if (colorBuffer)
-        colorBufferSize = (colorBuffer->width * colorBuffer->height * GLASS_utility_getRBBytesPerPixel(colorBuffer->format));
-
-    if (depthBuffer)
-        depthBufferSize = (depthBuffer->width * depthBuffer->height * GLASS_utility_getRBBytesPerPixel(depthBuffer->format));
-
-    if (colorBufferSize && depthBufferSize) {
-        const bool colorFirst = (u32)colorBuffer->address < (u32)depthBuffer->address;
-        if (colorFirst) {
-            GX_MemoryFill((u32*)colorBuffer->address, clearColor, (u32*)(colorBuffer->address + colorBufferSize), GLASS_getGXControl(true, false, colorBuffer->format),
-                (u32*)(depthBuffer->address), clearDepth, (u32*)(depthBuffer->address + depthBufferSize), GLASS_getGXControl(true, false, depthBuffer->format));
-        } else {
-            GX_MemoryFill((u32*)(depthBuffer->address), clearDepth, (u32*)(depthBuffer->address + depthBufferSize), GLASS_getGXControl(true, false, depthBuffer->format),
-                (u32*)(colorBuffer->address), clearColor, (u32*)(colorBuffer->address + colorBufferSize), GLASS_getGXControl(true, false, colorBuffer->format));
-        }
-    } else if (colorBufferSize) {
-        GX_MemoryFill((u32*)(colorBuffer->address), clearColor, (u32*)(colorBuffer->address + colorBufferSize), GLASS_getGXControl(true, false, colorBuffer->format), NULL, 0, NULL, 0);
-    } else if (depthBufferSize) {
-        GX_MemoryFill((u32*)(depthBuffer->address), clearDepth, (u32*)(depthBuffer->address + depthBufferSize), GLASS_getGXControl(true, false, depthBuffer->format), NULL, 0, NULL, 0);
-    }
-}
-
-void GLASS_gpu_transferBuffer(const RenderbufferInfo* colorBuffer, const RenderbufferInfo* displayBuffer, u32 flags) {
-    ASSERT(colorBuffer);
-    ASSERT(displayBuffer);
-    GX_DisplayTransfer((u32*)(colorBuffer->address), GX_BUFFER_DIM(colorBuffer->height, colorBuffer->width),
-        (u32*)(displayBuffer->address), GX_BUFFER_DIM(displayBuffer->height, displayBuffer->width), flags);
+    return false;
 }
 
 void GLASS_gpu_bindFramebuffer(const FramebufferInfo* info, bool block32) {

@@ -1,5 +1,6 @@
 #include "Context.h"
 #include "GPU.h"
+#include "GX.h"
 #include "Utility.h"
 
 #define REMOVE_CLEAR_BITS(mask) \
@@ -37,19 +38,14 @@ void glClear(GLbitfield mask) {
     if (HAS_EARLY_DEPTH(mask))
         ctx->flags |= CONTEXT_FLAG_EARLY_DEPTH_CLEAR;
 
+    // Clear framebuffers.
     if (HAS_COLOR(mask) || HAS_DEPTH(mask)) {
-        // Early depth clear is a GPU command, and its execution does not need to be enforced before a clear call is issued.
-        // This doesn't apply to other buffers which rely on a GX call.
-        GLASS_context_update();
-        GLASS_gpu_flushCommands(ctx);
-
-        // Clear framebuffer.
         FramebufferInfo* fb = (FramebufferInfo*)ctx->framebuffer;
         RenderbufferInfo* colorBuffer = HAS_COLOR(mask) ? fb->colorBuffer : NULL;
         const u32 clearColor = colorBuffer ? GLASS_utility_makeClearColor(colorBuffer->format, ctx->clearColor) : 0;
         RenderbufferInfo* depthBuffer = HAS_DEPTH(mask) ? fb->depthBuffer : NULL;
         const u32 clearDepth = depthBuffer ? GLASS_utility_makeClearDepth(depthBuffer->format, ctx->clearDepth, ctx->clearStencil) : 0;
-        GLASS_gpu_clearBuffers(colorBuffer, clearColor, depthBuffer, clearDepth);
+        GLASS_gx_clearBuffers(colorBuffer, clearColor, depthBuffer, clearDepth);
     }
 }
 
@@ -98,13 +94,13 @@ void glDrawArrays(GLenum mode, GLint first, GLsizei count) {
         return;
 
     // Apply prior commands.
-    GLASS_context_update();
+    GLASS_context_flush();
 
     // Add draw command.
     CtxCommon* ctx = GLASS_context_getCommon();
-    GLASS_gpu_enableCommands(ctx);
+    GLASS_gpu_enableCommands();
     GLASS_gpu_drawArrays(mode, first, count);
-    GLASS_gpu_disableCommands(ctx);
+    GLASS_gpu_disableCommands();
     ctx->flags |= CONTEXT_FLAG_DRAW;
 }
 
@@ -140,21 +136,18 @@ void glDrawElements(GLenum mode, GLsizei count, GLenum type, const GLvoid* indic
     ASSERT(physAddr);
 
     // Apply prior commands.
-    GLASS_context_update();
+    GLASS_context_flush();
 
     // Add draw command.
-    GLASS_gpu_enableCommands(ctx);
+    GLASS_gpu_enableCommands();
     GLASS_gpu_drawElements(mode, count, type, physAddr);
-    GLASS_gpu_disableCommands(ctx);
+    GLASS_gpu_disableCommands();
     ctx->flags |= CONTEXT_FLAG_DRAW;
 }
 
-void glFlush(void) {
-    GLASS_context_update();
-    GLASS_gpu_flushCommands(GLASS_context_getCommon());
-}
+void glFlush(void) { GLASS_context_flush(); }
 
 void glFinish(void) {
-    GLASS_context_update();
-    GLASS_gpu_flushAndRunCommands(GLASS_context_getCommon());
+    GLASS_context_flush();
+    GLASS_gx_sendGPUCommands();
 }

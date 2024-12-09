@@ -4,18 +4,12 @@
 #include "Context.h"
 
 void GLASS_gpu_init(CtxCommon* ctx);
-void GLASS_gpu_finalize(CtxCommon* ctx);
+void GLASS_gpu_cleanup(CtxCommon* ctx);
 
-void GLASS_gpu_enableCommands(CtxCommon* ctx);
-void GLASS_gpu_disableCommands(CtxCommon* ctx);
+void GLASS_gpu_enableCommands(void);
+void GLASS_gpu_disableCommands(void);
+bool GLASS_gpu_swapCommandBuffers(u32* buffer, size_t* sizeInWords);
 
-void GLASS_gpu_flushQueue(CtxCommon* ctx, bool unbind);
-void GLASS_gpu_runQueue(CtxCommon* ctx, bool bind);
-void GLASS_gpu_flushCommands(CtxCommon* ctx);
-void GLASS_gpu_flushAndRunCommands(CtxCommon* ctx);
-
-void GLASS_gpu_clearBuffers(RenderbufferInfo* colorBuffer, u32 clearColor, RenderbufferInfo* depthBuffer, u32 clearDepth);
-void GLASS_gpu_transferBuffer(const RenderbufferInfo* colorBuffer, const RenderbufferInfo* displayBuffer, u32 flags);
 void GLASS_gpu_bindFramebuffer(const FramebufferInfo* info, bool block32);
 void GLASS_gpu_flushFramebuffer(void);
 void GLASS_gpu_invalidateFramebuffer(void);

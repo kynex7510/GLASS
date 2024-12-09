@@ -1,6 +1,7 @@
 #include "Utility.h"
 #include "Context.h"
 #include "GPU.h"
+#include "GX.h"
 
 #include <string.h> // memcpy
 
@@ -30,8 +31,6 @@ void glassDestroyContext(glassCtx wrapped) {
     ASSERT(wrapped);
     CtxCommon* ctx = (CtxCommon*)wrapped;
 
-    GLASS_context_waitSwap(ctx);
-
     if (ctx->initParams.version == GLASS_VERSION_2_0) {
         GLASS_context_cleanupCommon((CtxCommon*)ctx);
     } else {
@@ -56,22 +55,15 @@ void glassWriteSettings(glassCtx wrapped, const glassSettings* settings) {
     ASSERT(settings);
 
     CtxCommon* ctx = (CtxCommon*)wrapped;
-    GLASS_context_waitSwap(ctx);
     memcpy(&ctx->settings, settings, sizeof(ctx->settings));
 }
 
-static void GLASS_swapBuffersCb(gxCmdQueue_s* queue) {
-    CtxCommon* ctx = (CtxCommon*)queue->user;
-    gfxScreenSwapBuffers(ctx->settings.targetScreen, ctx->settings.targetScreen == GFX_TOP && ctx->settings.targetSide == GFX_RIGHT);
-    gxCmdQueueSetCallback(queue, NULL, NULL);
-    GLASS_context_setSwap(ctx, false);
-}
-
 void glassSwapBuffers(void) {
-    // Execute GPU commands.
-    GLASS_context_update();
     CtxCommon* ctx = GLASS_context_getCommon();
-    GLASS_gpu_flushAndRunCommands(ctx);
+
+    // Flush GPU commands.
+    GLASS_context_flush();
+    GLASS_gx_sendGPUCommands();
 
     // Framebuffer might not be set.
     if (!OBJ_IS_FRAMEBUFFER(ctx->framebuffer))
@@ -92,13 +84,5 @@ void glassSwapBuffers(void) {
     displayBuffer.width = width;
     displayBuffer.height = height;
 
-    // Get transfer flags.
-    const u32 transferFlags = GLASS_utility_makeTransferFlags(false, false, false, GLASS_utility_getTransferFormat(fb->colorBuffer->format), GLASS_utility_getTransferFormat(displayBuffer.format), ctx->settings.transferScale);
-
-    // Transfer buffer.
-    GLASS_gpu_flushQueue(ctx, false);
-    gxCmdQueueSetCallback(&ctx->gxQueue, GLASS_swapBuffersCb, (void*)ctx);
-    GLASS_context_setSwap(ctx, true);
-    GLASS_gpu_transferBuffer(fb->colorBuffer, &displayBuffer, transferFlags);
-    GLASS_gpu_runQueue(ctx, false);
+    GLASS_gx_transferAndSwap(colorBuffer, &displayBuffer);
 }

@@ -156,13 +156,9 @@ typedef struct {
     glassSettings settings;     // Context settings.
 
     /* Platform */
-    u32 flags;            // State flags.
-    GLenum lastError;     // Actually first error.
-    u32* cmdBuffer;       // Buffer for GPU commands.
-    u32 cmdBufferSize;    // Offset relative to cmd buffer offset.
-    u32 cmdBufferOffset;  // Offset relative to cmd buffer base.
-    gxCmdQueue_s gxQueue; // Queue for GX commands.
-    u8 inSwap;            // Whether we're currently swapping.
+    u32 flags;              // State flags.
+    GLenum lastError;       // Actually first error.
+    gxCmdQueue_s gxQueue;   // Queue for GX commands.
 
     /* Buffers */
     GLuint arrayBuffer;        // GL_ARRAY_BUFFER
