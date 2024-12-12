@@ -64,7 +64,9 @@ static void GLASS_loadTextureImpl(TexStream* stream, glassTexture* out) {
 
     out->isCubeMap = header.type == GPU_TEX_CUBE_MAP;
     out->width = (1 << (header.widthLog2 + 3));
+    ASSERT(out->width >= GLASS_MIN_TEX_SIZE);
     out->height = (1 << (header.heightLog2 + 3));
+    ASSERT(out->height >= GLASS_MIN_TEX_SIZE);
     out->format = GLASS_utility_wrapTexFormat(header.format);
     out->type = GLASS_utility_getTexDataType(header.format);
     out->levels = (header.mipmapLevels + 1); // Add one for base level.

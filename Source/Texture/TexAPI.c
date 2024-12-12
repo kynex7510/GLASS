@@ -332,10 +332,7 @@ static bool GLASS_checkTexArgs(GLenum target, GLint level, GLsizei width, GLsize
     if ((width > GLASS_MAX_TEX_SIZE) || (height > GLASS_MAX_TEX_SIZE))
         return false;
 
-    if ((level < 0) || (width < 0) || (height < 0) || (border != 0))
-        return false;
-
-    if (level >= GLASS_NUM_TEX_LEVELS)
+    if ((level < 0) || (level >= GLASS_NUM_TEX_LEVELS) || (border != 0))
         return false;
 
     return true;
