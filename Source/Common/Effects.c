@@ -1,5 +1,5 @@
-#include "Context.h"
-#include "Utility.h"
+#include "Base/Context.h"
+#include "Base/Utility.h"
 
 static bool GLASS_isTestFunc(GLenum func) {
     switch (func) {

@@ -1,8 +1,7 @@
 #ifndef _GLASS_GX_H
 #define _GLASS_GX_H
 
-#include "Context.h"
-#include "Utility.h"
+#include "Base/Context.h"
 
 void GLASS_gx_init(CtxCommon* ctx);
 void GLASS_gx_cleanup(CtxCommon* ctx);

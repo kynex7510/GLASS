@@ -1,5 +1,5 @@
-#ifndef _GLASS_UTILITY_H
-#define _GLASS_UTILITY_H
+#ifndef _GLASS_BASE_UTILITY_H
+#define _GLASS_BASE_UTILITY_H
 
 #include "Types.h"
 
@@ -96,4 +96,4 @@ GPU_TEXTURE_FILTER_PARAM GLASS_utility_getTexFilter(GLenum filter);
 GPU_TEXTURE_FILTER_PARAM GLASS_utility_getMipFilter(GLenum minFilter);
 GPU_TEXTURE_WRAP_PARAM GLASS_utility_getTexWrap(GLenum wrap);
 
-#endif /* _GLASS_UTILITY_H */
+#endif /* _GLASS_BASE_UTILITY_H */

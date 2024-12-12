@@ -1,7 +1,7 @@
-#include "Context.h"
-#include "GPU.h"
-#include "GX.h"
-#include "Utility.h"
+#include "Base/Context.h"
+#include "Base/GPU.h"
+#include "Base/GX.h"
+#include "Base/Utility.h"
 
 #define REMOVE_CLEAR_BITS(mask) \
   (((((mask) & ~GL_COLOR_BUFFER_BIT) & ~GL_DEPTH_BUFFER_BIT) & ~GL_STENCIL_BUFFER_BIT) & ~GL_EARLY_DEPTH_BUFFER_BIT_PICA)

@@ -1,6 +1,6 @@
-#include "Context.h"
-#include "GPU.h"
-#include "GX.h"
+#include "Base/Context.h"
+#include "Base/GPU.h"
+#include "Base/GX.h"
 
 #include <string.h> // memset
 

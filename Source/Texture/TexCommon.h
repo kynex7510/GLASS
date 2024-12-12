@@ -1,7 +1,7 @@
 #ifndef _GLASS_TEXCOMMON_H
 #define _GLASS_TEXCOMMON_H
 
-#include "Types.h"
+#include "Base/Types.h"
 
 typedef enum {
     TexStatus_Failed,

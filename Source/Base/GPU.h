@@ -1,7 +1,7 @@
-#ifndef _GLASS_GPU_H
-#define _GLASS_GPU_H
+#ifndef _GLASS_BASE_GPU_H
+#define _GLASS_BASE_GPU_H
 
-#include "Context.h"
+#include "Base/Context.h"
 
 void GLASS_gpu_init(CtxCommon* ctx);
 void GLASS_gpu_cleanup(CtxCommon* ctx);
@@ -45,4 +45,4 @@ void GLASS_gpu_drawElements(GLenum mode, GLsizei count, GLenum type, u32 physInd
 
 void GLASS_gpu_setTextureUnits(const GLuint* units);
 
-#endif /* _GLASS_GPU_H */
+#endif /* _GLASS_BASE_GPU_H */

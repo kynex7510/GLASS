@@ -1,5 +1,5 @@
-#ifndef _GLASS_CONSTANTS_H
-#define _GLASS_CONSTANTS_H
+#ifndef _GLASS_BASE_CONSTANTS_H
+#define _GLASS_BASE_CONSTANTS_H
 
 #define DECL_FLAG(id) (u32)(1u << (id))
 
@@ -72,4 +72,4 @@
 #define CONTEXT_FLAG_TEXTURE DECL_FLAG(16)
 #define CONTEXT_FLAG_ALL (~(0u))
 
-#endif /* _GLASS_CONSTANTS_H */
+#endif /* _GLASS_BASE_CONSTANTS_H */

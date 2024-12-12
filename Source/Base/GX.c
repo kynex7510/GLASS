@@ -1,6 +1,6 @@
-#include "GX.h"
-#include "GPU.h"
-#include "Utility.h"
+#include "Base/GX.h"
+#include "Base/GPU.h"
+#include "Base/Utility.h"
 
 #define MAX_ENTRIES 32
 

@@ -1,6 +1,6 @@
-#include "Context.h"
-#include "Utility.h"
-#include "TexCommon.h"
+#include "Base/Context.h"
+#include "Base/Utility.h"
+#include "Texture/TexCommon.h"
 
 #include <string.h> // memcpy
 

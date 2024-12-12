@@ -1,4 +1,4 @@
-#include "Context.h"
+#include "Base/Context.h"
 
 static void GLASS_setCapability(GLenum cap, bool enabled) {
     CtxCommon* ctx = GLASS_context_getCommon();

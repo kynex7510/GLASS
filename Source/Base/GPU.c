@@ -1,5 +1,5 @@
-#include "GPU.h"
-#include "Utility.h"
+#include "Base/GPU.h"
+#include "Base/Utility.h"
 
 #include <string.h> // memcpy, memset
 

@@ -1,5 +1,5 @@
-#include "Context.h"
-#include "Utility.h"
+#include "Base/Context.h"
+#include "Base/Utility.h"
 
 void glBindFramebuffer(GLenum target, GLuint framebuffer) {
     ASSERT(OBJ_IS_FRAMEBUFFER(framebuffer) || framebuffer == GLASS_INVALID_OBJECT);

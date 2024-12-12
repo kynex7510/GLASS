@@ -16,7 +16,7 @@ include $(DEVKITARM)/3ds_rules
 # INCLUDES is a list of directories containing header files
 #---------------------------------------------------------------------------------
 TARGET		:=	GLASS
-SOURCES		:=	Source Source/Texture
+SOURCES		:=	Source/Base Source/Common Source/Texture
 #DATA		:=	data
 INCLUDES	:=	Include Source
 

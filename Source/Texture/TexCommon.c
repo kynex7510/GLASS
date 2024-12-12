@@ -1,6 +1,6 @@
-#include "TexCommon.h"
-#include "Utility.h"
-#include "GX.h"
+#include "Texture/TexCommon.h"
+#include "Base/Utility.h"
+#include "Base/GX.h"
 
 #include <string.h>
 

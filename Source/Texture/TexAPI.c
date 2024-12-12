@@ -1,5 +1,5 @@
-#include "Context.h"
-#include "TexCommon.h"
+#include "Base/Context.h"
+#include "Texture/TexCommon.h"
 
 #include <string.h>
 

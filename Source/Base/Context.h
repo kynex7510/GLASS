@@ -1,7 +1,7 @@
-#ifndef _GLASS_CONTEXT_H
-#define _GLASS_CONTEXT_H
+#ifndef _GLASS_BASE_CONTEXT_H
+#define _GLASS_BASE_CONTEXT_H
 
-#include "Utility.h"
+#include "Base/Utility.h"
 
 void GLASS_context_initCommon(CtxCommon* ctx, const glassInitParams* initParams, const glassSettings* settings);
 void GLASS_context_cleanupCommon(CtxCommon* ctx);
@@ -16,4 +16,4 @@ void GLASS_context_flush(void);
 void GLASS_context_setError(GLenum error);
 #endif // GLASS_NO_MERCY
 
-#endif /* _GLASS_CONTEXT_H */
+#endif /* _GLASS_BASE_CONTEXT_H */

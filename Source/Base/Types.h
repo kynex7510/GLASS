@@ -1,9 +1,8 @@
-#ifndef _GLASS_TYPES_H
-#define _GLASS_TYPES_H
+#ifndef _GLASS_BASE_TYPES_H
+#define _GLASS_BASE_TYPES_H
 
-#include "GLASS.h"
-#include "GLASS/Defs.h"
-#include "Constants.h"
+#include "GLES/gl2.h"
+#include "Base/Constants.h"
 
 #include <stddef.h>
 
@@ -22,7 +21,7 @@ typedef struct {
 } BufferInfo;
 
 typedef struct {
-    u32 type;         // GL type (GLASS_TEXTURE_TYPE).
+    u32 type;                       // GL type (GLASS_TEXTURE_TYPE).
     GLenum target;                  // Texture target.
     GLenum format;                  // Texture format.
     GLenum dataType;                // Texture data type.
@@ -259,4 +258,4 @@ typedef struct {
 GLuint GLASS_createObject(u32 type);
 bool GLASS_checkObjectType(GLuint obj, u32 type);
 
-#endif /* _GLASS_TYPES_H */
+#endif /* _GLASS_BASE_TYPES_H */
