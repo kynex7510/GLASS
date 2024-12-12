@@ -88,37 +88,6 @@ u32 GLASS_utility_f32tofixed13(float f) {
     return (sign | (i << 8) | ((u32)((f - i) * 1000.0f) & 0xFF));
 }
 
-size_t GLASS_utility_getRBBytesPerPixel(GLenum format) {
-    switch (format) {
-        case GL_RGBA8_OES:
-        case GL_DEPTH24_STENCIL8_OES:
-            return 4;
-        case GL_RGB8_OES:
-        case GL_DEPTH_COMPONENT24_OES:
-            return 3;
-        case GL_RGB5_A1:
-        case GL_RGB565:
-        case GL_RGBA4:
-        case GL_DEPTH_COMPONENT16:
-            return 2;
-    }
-
-    UNREACHABLE("Invalid pixel format!");
-}
-
-size_t GLASS_utility_getPixelSizeForFB(GLenum format) {
-    switch (format) {
-        case GL_RGBA8_OES:
-            return 2;
-        case GL_RGB5_A1:
-        case GL_RGB565:
-        case GL_RGBA4:
-            return 0;
-    }
-
-    UNREACHABLE("Invalid framebuffer format!");
-}
-
 void GLASS_utility_packIntVector(const u32* in, u32* out) {
     ASSERT(in);
     ASSERT(out);
@@ -159,4 +128,35 @@ void GLASS_utility_unpackFloatVector(const u32* in, float* out) {
     out[1] = GLASS_utility_f24tof32((in[2] >> 24) | ((in[1] & 0xFFFF) << 8));
     out[2] = GLASS_utility_f24tof32((in[1] >> 16) | ((in[0] & 0xFF) << 16));
     out[3] = GLASS_utility_f24tof32(in[0] >> 8);
+}
+
+size_t GLASS_utility_getRenderbufferBPP(GLenum format) {
+    switch (format) {
+        case GL_RGBA8_OES:
+        case GL_DEPTH24_STENCIL8_OES:
+            return 32;
+        case GL_RGB8_OES:
+        case GL_DEPTH_COMPONENT24_OES:
+            return 24;
+        case GL_RGB5_A1:
+        case GL_RGB565:
+        case GL_RGBA4:
+        case GL_DEPTH_COMPONENT16:
+            return 16;
+    }
+
+    UNREACHABLE("Invalid format!");
+}
+
+size_t GLASS_utility_unwrapRenderbufferPixelSize(GLenum format) {
+    switch (format) {
+        case GL_RGBA8_OES:
+            return 2;
+        case GL_RGB5_A1:
+        case GL_RGB565:
+        case GL_RGBA4:
+            return 0;
+    }
+
+    UNREACHABLE("Invalid format!");
 }

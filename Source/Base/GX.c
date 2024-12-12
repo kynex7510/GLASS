@@ -136,16 +136,16 @@ void GLASS_gx_clearBuffers(RenderbufferInfo* colorBuffer, u32 colorClear, Render
 
     if (colorBuffer) {
         colorFill.addr = (u32)colorBuffer->address;
-        colorFill.size = (colorBuffer->width * colorBuffer->height * GLASS_utility_getRBBytesPerPixel(colorBuffer->format));
+        colorFill.size = (colorBuffer->width * colorBuffer->height * (GLASS_utility_getRenderbufferBPP(colorBuffer->format) >> 3));
         colorFill.value = colorClear;
-        colorFill.width = GLASS_utility_getPixelSizeForFB(colorBuffer->format);
+        colorFill.width = GLASS_utility_unwrapRenderbufferPixelSize(colorBuffer->format);
     }
 
     if (depthBuffer) {
         depthFill.addr = (u32)depthBuffer->address;
-        depthFill.size = (depthBuffer->width * depthBuffer->height * GLASS_utility_getRBBytesPerPixel(depthBuffer->format));
+        depthFill.size = (depthBuffer->width * depthBuffer->height * (GLASS_utility_getRenderbufferBPP(depthBuffer->format) >> 3));
         depthFill.value = depthClear;
-        depthFill.width = GLASS_utility_getPixelSizeForFB(depthBuffer->format);
+        depthFill.width = GLASS_utility_unwrapRenderbufferPixelSize(depthBuffer->format);
     }
 
     GLASS_memoryFill(colorBuffer ? &colorFill : NULL, depthBuffer ? &depthFill : NULL);

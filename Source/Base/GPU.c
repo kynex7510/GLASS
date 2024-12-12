@@ -146,7 +146,7 @@ void GLASS_gpu_bindFramebuffer(const FramebufferInfo* info, bool block32) {
 
     // Set buffer parameters.
     if (colorBuffer) {
-        GPUCMD_AddWrite(GPUREG_COLORBUFFER_FORMAT, (GLASS_unwrapRBFormat(colorFormat) << 16) | GLASS_utility_getPixelSizeForFB(colorFormat));
+        GPUCMD_AddWrite(GPUREG_COLORBUFFER_FORMAT, (GLASS_unwrapRBFormat(colorFormat) << 16) | GLASS_utility_unwrapRenderbufferPixelSize(colorFormat));
         params[0] = params[1] = 0x0F;
     } else {
         params[0] = params[1] = 0;

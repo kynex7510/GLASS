@@ -47,13 +47,13 @@ void* GLASS_utility_convertPhysToVirt(u32 addr);
 float GLASS_utility_f24tof32(u32 f);
 u32 GLASS_utility_f32tofixed13(float f);
 
-size_t GLASS_utility_getRBBytesPerPixel(GLenum format);
-size_t GLASS_utility_getPixelSizeForFB(GLenum format);
-
 void GLASS_utility_packIntVector(const u32* in, u32* out);
 void GLASS_utility_unpackIntVector(u32 in, u32* out);
 
 void GLASS_utility_packFloatVector(const float* in, u32* out);
 void GLASS_utility_unpackFloatVector(const u32* in, float* out);
+
+size_t GLASS_utility_getRenderbufferBPP(GLenum format);
+size_t GLASS_utility_unwrapRenderbufferPixelSize(GLenum format);
 
 #endif /* _GLASS_BASE_UTILITY_H */
