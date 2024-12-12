@@ -157,6 +157,23 @@ static void GLASS_displayTransferDone(gxCmdQueue_s* queue) {
     gxCmdQueueSetCallback(queue, NULL, NULL);
 }
 
+static GX_TRANSFER_FORMAT GLASS_unwrapTransferFormat(GLenum format) {
+    switch (format) {
+        case GL_RGBA8_OES:
+            return GX_TRANSFER_FMT_RGBA8;
+        case GL_BGR8_PICA:
+            return GX_TRANSFER_FMT_RGB8; // Misnomer.
+        case GL_RGB565:
+            return GX_TRANSFER_FMT_RGB565;
+        case GL_RGB5_A1:
+            return GX_TRANSFER_FMT_RGB5A1;
+        case GL_RGBA4:
+            return GX_TRANSFER_FMT_RGBA4;
+    }
+
+    UNREACHABLE("Invalid transfer format!");
+}
+
 void GLASS_gx_transferAndSwap(const RenderbufferInfo* colorBuffer, const RenderbufferInfo* displayBuffer) {
     ASSERT(colorBuffer);
     ASSERT(displayBuffer);
@@ -167,12 +184,12 @@ void GLASS_gx_transferAndSwap(const RenderbufferInfo* colorBuffer, const Renderb
     params.srcAddr = (u32)colorBuffer->address;
     params.srcWidth = colorBuffer->width;
     params.srcHeight = colorBuffer->height;
-    params.srcFormat = GLASS_utility_getTransferFormat(colorBuffer->format);
+    params.srcFormat = GLASS_unwrapTransferFormat(colorBuffer->format);
 
     params.dstAddr = (u32)displayBuffer->address;
     params.dstWidth = displayBuffer->width;
     params.dstHeight = displayBuffer->height;
-    params.dstFormat = GLASS_utility_getTransferFormat(displayBuffer->format);
+    params.dstFormat = GLASS_unwrapTransferFormat(displayBuffer->format);
 
     params.verticalFlip = ctx->settings.verticalFlip;
     params.scaling = ctx->settings.transferScale;

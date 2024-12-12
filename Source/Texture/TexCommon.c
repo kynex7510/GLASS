@@ -4,8 +4,78 @@
 
 #include <string.h>
 
-static size_t GLASS_getTexBitsPerPixel(GLenum format, GLenum dataType) {
-    switch (GLASS_utility_getTexFormat(format, dataType)) {
+
+
+static GPU_TEXCOLOR GLASS_unwrapTexFormatImpl(GLenum format, GLenum dataType) {
+    if (format == GL_ALPHA) {
+        switch (dataType) {
+            case GL_UNSIGNED_BYTE:
+                return GPU_A8;
+            case GL_UNSIGNED_NIBBLE_PICA:
+                return GPU_A4;
+        }
+    }
+
+    if (format == GL_LUMINANCE) {
+        switch (dataType) {
+            case GL_UNSIGNED_BYTE:
+                return GPU_L8;
+            case GL_UNSIGNED_NIBBLE_PICA:
+                return GPU_L4;
+        }
+    }
+
+    if (format == GL_LUMINANCE_ALPHA) {
+        switch (dataType) {
+            case GL_UNSIGNED_BYTE:
+                return GPU_LA8;
+            case GL_UNSIGNED_BYTE_4_4_PICA:
+                return GPU_LA4;
+        }
+    }
+
+    if (format == GL_RGB) {
+        switch (dataType) {
+            case GL_UNSIGNED_BYTE:
+                return GPU_RGB8;
+            case GL_UNSIGNED_SHORT_5_6_5:
+                return GPU_RGB565;
+        }
+    }
+
+    if (format == GL_RGBA) {
+        switch (dataType) {
+            case GL_UNSIGNED_BYTE:
+                return GPU_RGBA8;
+            case GL_UNSIGNED_SHORT_5_5_5_1:
+                return GPU_RGBA5551;
+            case GL_UNSIGNED_SHORT_4_4_4_4:
+                return GPU_RGBA4;
+        }
+    }
+
+    if (format == GL_HILO8_PICA && dataType == GL_UNSIGNED_BYTE)
+        return GPU_HILO8;
+
+    if (format == GL_ETC1_RGB8_OES)
+        return GPU_ETC1;
+
+    if (format == GL_ETC1_ALPHA_RGB8_A4_PICA)
+        return GPU_ETC1A4;
+
+    return (GPU_TEXCOLOR)-1;
+}
+
+GPU_TEXCOLOR GLASS_tex_unwrapFormat(GLenum format, GLenum type) {
+    GPU_TEXCOLOR texFmt = GLASS_unwrapTexFormatImpl(format, type);
+    if (texFmt != (GPU_TEXCOLOR)-1)
+        return texFmt;
+
+    UNREACHABLE("Invalid texture format!");
+}
+
+static size_t GLASS_getTexBPP(GLenum format, GLenum type) {
+    switch (GLASS_tex_unwrapFormat(format, type)) {
         case GPU_RGBA8:
             return 32;
         case GPU_RGB8:
@@ -30,6 +100,67 @@ static size_t GLASS_getTexBitsPerPixel(GLenum format, GLenum dataType) {
     UNREACHABLE("Invalid GPU texture format!");
 }
 
+GLenum GLASS_tex_wrapFormat(GPU_TEXCOLOR format) {
+    switch (format) {
+        case GPU_A8:
+        case GPU_A4:
+            return GL_ALPHA;
+        case GPU_L8:
+        case GPU_L4:
+            return GL_LUMINANCE;
+        case GPU_LA8:
+        case GPU_LA4:
+            return GL_LUMINANCE_ALPHA;
+        case GPU_RGB8:
+        case GPU_RGB565:
+            return GL_RGB;
+        case GPU_RGBA8:
+        case GPU_RGBA5551:
+        case GPU_RGBA4:
+            return GL_RGBA;
+        case GPU_HILO8:
+            return GL_HILO8_PICA;
+            break;
+        case GPU_ETC1:
+            return GL_ETC1_RGB8_OES;
+        case GPU_ETC1A4:
+            return GL_ETC1_ALPHA_RGB8_A4_PICA;
+    }
+
+    UNREACHABLE("Invalid GPU texture format!");
+}
+
+GLenum GLASS_tex_wrapType(GPU_TEXCOLOR format) {
+    switch (format) {
+        case GPU_A8:
+        case GPU_L8:
+        case GPU_LA8:
+        case GPU_RGB8:
+        case GPU_RGBA8:
+        case GPU_HILO8:
+            return GL_UNSIGNED_BYTE;
+        case GPU_RGB565:
+            return GL_UNSIGNED_SHORT_5_6_5;
+        case GPU_RGBA4:
+            return GL_UNSIGNED_SHORT_4_4_4_4;
+        case GPU_RGBA5551:
+            return GL_UNSIGNED_SHORT_5_5_5_1;
+        case GPU_A4:
+        case GPU_L4:
+            return GL_UNSIGNED_NIBBLE_PICA;
+        case GPU_LA4:
+            return GL_UNSIGNED_BYTE_4_4_PICA;
+        // Compressed texture don't have a data type.
+        case GPU_ETC1:
+        case GPU_ETC1A4:
+            return 0;
+    }
+
+    UNREACHABLE("Invalid GPU texture format!");
+}
+
+bool GLASS_tex_isFormatValid(GLenum format, GLenum type) { return GLASS_unwrapTexFormatImpl(format, type) != (GPU_TEXCOLOR)-1; }
+
 size_t GLASS_tex_getNumFaces(GLenum target) {
     switch (target) {
         case GL_TEXTURE_2D:
@@ -49,7 +180,7 @@ size_t GLASS_tex_getOffset(u16 width, u16 height, GLenum format, GLenum type, si
         // B * W(L-1) * H(L-1) * (2^2(L-1) + 2^2(L-2) + ... + 2^2(L-L)) / 8
         const u16 prevWidth = (width >> (level - 1));
         const u16 prevHeight = (height >> (level - 1));
-        const size_t bpp = GLASS_getTexBitsPerPixel(format, type);
+        const size_t bpp = GLASS_getTexBPP(format, type);
         return ((bpp * prevWidth * prevHeight * (((1u << (level << 1)) - 1) & 0x55555)) >> 3);
     }
 
@@ -57,7 +188,7 @@ size_t GLASS_tex_getOffset(u16 width, u16 height, GLenum format, GLenum type, si
 }
 
 size_t GLASS_tex_getSize(u16 width, u16 height, GLenum format, GLenum type, size_t level) {
-    return (((width >> level) * (height >> level) * GLASS_getTexBitsPerPixel(format, type)) >> 3);
+    return (((width >> level) * (height >> level) * GLASS_getTexBPP(format, type)) >> 3);
 }
 
 static size_t GLASS_dimLevels(size_t dim) {

@@ -58,6 +58,25 @@ void glassWriteSettings(glassCtx wrapped, const glassSettings* settings) {
     memcpy(&ctx->settings, settings, sizeof(ctx->settings));
 }
 
+static GLenum GLASS_wrapFBFormat(GSPGPU_FramebufferFormat format) {
+    switch (format) {
+        case GSP_RGBA8_OES:
+            return GL_RGBA8_OES;
+        case GSP_BGR8_OES:
+            // This is not supported by OpenGL framebuffers; however it's required
+            // for correctly wrapping libctru framebuffer formats.
+            return GL_BGR8_PICA;
+        case GSP_RGB565_OES:
+            return GL_RGB565;
+        case GSP_RGB5_A1_OES:
+            return GL_RGB5_A1;
+        case GSP_RGBA4_OES:
+            return GL_RGBA4;
+    }
+
+    UNREACHABLE("Invalid GSP framebuffer format!");
+}
+
 void glassSwapBuffers(void) {
     CtxCommon* ctx = GLASS_context_getCommon();
 
@@ -80,7 +99,7 @@ void glassSwapBuffers(void) {
     u16 width = 0, height = 0;
     displayBuffer.address = gfxGetFramebuffer(ctx->settings.targetScreen, ctx->settings.targetSide, &height, &width);
     ASSERT(displayBuffer.address);
-    displayBuffer.format = GLASS_utility_wrapFBFormat(gfxGetScreenFormat(ctx->settings.targetScreen));
+    displayBuffer.format = GLASS_wrapFBFormat(gfxGetScreenFormat(ctx->settings.targetScreen));
     displayBuffer.width = width;
     displayBuffer.height = height;
 

@@ -9,6 +9,11 @@ typedef enum {
     TexStatus_Updated,
 } TexStatus;
 
+GPU_TEXCOLOR GLASS_tex_unwrapFormat(GLenum format, GLenum type);
+GLenum GLASS_tex_wrapFormat(GPU_TEXCOLOR format);
+GLenum GLASS_tex_wrapType(GPU_TEXCOLOR format);
+bool GLASS_tex_isFormatValid(GLenum format, GLenum type);
+
 size_t GLASS_tex_getNumFaces(GLenum target);
 size_t GLASS_tex_getOffset(u16 width, u16 height, GLenum format, GLenum type, size_t level);
 size_t GLASS_tex_getSize(u16 width, u16 height, GLenum format, GLenum type, size_t level);

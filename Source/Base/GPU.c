@@ -1,5 +1,6 @@
 #include "Base/GPU.h"
 #include "Base/Utility.h"
+#include "Texture/TexCommon.h"
 
 #include <string.h> // memcpy, memset
 
@@ -83,6 +84,29 @@ bool GLASS_gpu_swapCommandBuffers(u32* buffer, size_t* sizeInWords) {
     return false;
 }
 
+static GPU_COLORBUF GLASS_unwrapRBFormat(GLenum format) {
+    switch (format) {
+        case GL_RGBA8_OES:
+            return GPU_RB_RGBA8;
+        case GL_RGB8_OES:
+            return GPU_RB_RGB8;
+        case GL_RGB5_A1:
+            return GPU_RB_RGBA5551;
+        case GL_RGB565:
+            return GPU_RB_RGB565;
+        case GL_RGBA4:
+            return GPU_RB_RGBA4;
+        case GL_DEPTH_COMPONENT16:
+            return GPU_RB_DEPTH16;
+        case GL_DEPTH_COMPONENT24_OES:
+            return GPU_RB_DEPTH24;
+        case GL_DEPTH24_STENCIL8_OES:
+            return GPU_RB_DEPTH24_STENCIL8;
+    }
+
+    UNREACHABLE("Invalid renderbuffer format!");
+}
+
 void GLASS_gpu_bindFramebuffer(const FramebufferInfo* info, bool block32) {
     u8* colorBuffer = NULL;
     u8* depthBuffer = NULL;
@@ -122,14 +146,14 @@ void GLASS_gpu_bindFramebuffer(const FramebufferInfo* info, bool block32) {
 
     // Set buffer parameters.
     if (colorBuffer) {
-        GPUCMD_AddWrite(GPUREG_COLORBUFFER_FORMAT, (GLASS_utility_getRBFormat(colorFormat) << 16) | GLASS_utility_getPixelSizeForFB(colorFormat));
+        GPUCMD_AddWrite(GPUREG_COLORBUFFER_FORMAT, (GLASS_unwrapRBFormat(colorFormat) << 16) | GLASS_utility_getPixelSizeForFB(colorFormat));
         params[0] = params[1] = 0x0F;
     } else {
         params[0] = params[1] = 0;
     }
 
     if (depthBuffer) {
-        GPUCMD_AddWrite(GPUREG_DEPTHBUFFER_FORMAT, GLASS_utility_getRBFormat(depthFormat));
+        GPUCMD_AddWrite(GPUREG_DEPTHBUFFER_FORMAT, GLASS_unwrapRBFormat(depthFormat));
         params[2] = params[3] = 0x03;
     } else {
         params[2] = params[3] = 0;
@@ -345,7 +369,22 @@ void GLASS_gpu_uploadUniforms(ShaderInfo* shader) {
         GLASS_uploadBoolUniformMask(shader, boolMask);
 }
 
-static size_t GLASS_insertPad(u32* permutation, size_t startIndex, size_t padSize) {
+static GPU_FORMATS GLASS_unwrapAttribType(GLenum type) {
+    switch (type) {
+        case GL_BYTE:
+            return GPU_BYTE;
+        case GL_UNSIGNED_BYTE:
+            return GPU_UNSIGNED_BYTE;
+        case GL_SHORT:
+            return GPU_SHORT;
+        case GL_FLOAT:
+            return GPU_FLOAT;
+    }
+
+    UNREACHABLE("Invalid attribute type!");
+}
+
+static size_t GLASS_insertAttribPad(u32* permutation, size_t startIndex, size_t padSize) {
     ASSERT(permutation);
 
     size_t index = startIndex;
@@ -401,7 +440,7 @@ void GLASS_gpu_uploadAttributes(const AttributeInfo* attribs) {
 
         if (!(attrib->flags & ATTRIB_FLAG_FIXED)) {
             // Set buffer params.
-            const GPU_FORMATS attribType = GLASS_utility_getAttribType(attrib->type);
+            const GPU_FORMATS attribType = GLASS_unwrapAttribType(attrib->type);
 
             if (attribCount < 8) {
                 format[0] |= GPU_ATTRIBFMT(attribCount, attrib->count, attribType);
@@ -467,7 +506,7 @@ void GLASS_gpu_uploadAttributes(const AttributeInfo* attribs) {
             u32 permutation[2];
             memset(&permutation, 0, sizeof(permutation));
 
-            const size_t permIndex = GLASS_insertPad(permutation, 0, attrib->sizeOfPrePad);
+            const size_t permIndex = GLASS_insertAttribPad(permutation, 0, attrib->sizeOfPrePad);
             const size_t attribIndex = regTable[regId];
 
             if (permIndex < 8) {
@@ -476,7 +515,7 @@ void GLASS_gpu_uploadAttributes(const AttributeInfo* attribs) {
                 permutation[1] |= (attribIndex << (permIndex * 4));
             }
 
-            const size_t numPerms = GLASS_insertPad(permutation, permIndex + 1, attrib->sizeOfPostPad);
+            const size_t numPerms = GLASS_insertAttribPad(permutation, permIndex + 1, attrib->sizeOfPostPad);
 
             params[0] = attrib->physAddr - PHYSICAL_LINEAR_BASE;
             params[1] = permutation[0];
@@ -487,6 +526,124 @@ void GLASS_gpu_uploadAttributes(const AttributeInfo* attribs) {
         ++currentAttribBuffer;
         ASSERT(currentAttribBuffer <= 12); // We can have at most 12 attribute buffers.
     }
+}
+
+static GPU_TEVSRC GLASS_unwrapCombinerSrc(GLenum src) {
+    switch (src) {
+        case GL_PRIMARY_COLOR:
+            return GPU_PRIMARY_COLOR;
+        case GL_FRAGMENT_PRIMARY_COLOR_PICA:
+            return GPU_FRAGMENT_PRIMARY_COLOR;
+        case GL_FRAGMENT_SECONDARY_COLOR_PICA:
+            return GPU_FRAGMENT_SECONDARY_COLOR;
+        case GL_TEXTURE0:
+            return GPU_TEXTURE0;
+        case GL_TEXTURE1:
+            return GPU_TEXTURE1;
+        case GL_TEXTURE2:
+            return GPU_TEXTURE2;
+            // TODO: what constant to use?
+        //case GL_TEXTURE3:
+        //    return GPU_TEXTURE3;
+        case GL_PREVIOUS_BUFFER_PICA:
+            return GPU_PREVIOUS_BUFFER;
+        case GL_CONSTANT:
+            return GPU_CONSTANT;
+        case GL_PREVIOUS:
+            return GPU_PREVIOUS;
+    }
+
+    UNREACHABLE("Invalid combiner source!");
+}
+
+static GPU_TEVOP_RGB GLASS_unwrapCombinerOpRGB(GLenum op) {
+    switch (op) {
+        case GL_SRC_COLOR:
+            return GPU_TEVOP_RGB_SRC_COLOR;
+        case GL_ONE_MINUS_SRC_COLOR:
+            return GPU_TEVOP_RGB_ONE_MINUS_SRC_COLOR;
+        case GL_SRC_ALPHA:
+            return GPU_TEVOP_RGB_SRC_ALPHA;
+        case GL_ONE_MINUS_SRC_ALPHA:
+            return GPU_TEVOP_RGB_ONE_MINUS_SRC_ALPHA;
+        case GL_SRC_R_PICA:
+            return GPU_TEVOP_RGB_SRC_R;
+        case GL_ONE_MINUS_SRC_R_PICA:
+            return GPU_TEVOP_RGB_ONE_MINUS_SRC_R;
+        case GL_SRC_G_PICA:
+            return GPU_TEVOP_RGB_SRC_G;
+        case GL_ONE_MINUS_SRC_G_PICA:
+            return GPU_TEVOP_RGB_ONE_MINUS_SRC_G;
+        case GL_SRC_B_PICA:
+            return GPU_TEVOP_RGB_SRC_B;
+        case GL_ONE_MINUS_SRC_B_PICA:
+            return GPU_TEVOP_RGB_ONE_MINUS_SRC_B;
+    }
+
+    UNREACHABLE("Invalid combiner RGB operand!");
+}
+
+static GPU_TEVOP_A GLASS_unwrapCombinerOpAlpha(GLenum op) {
+    switch (op) {
+        case GL_SRC_ALPHA:
+            return GPU_TEVOP_A_SRC_ALPHA;
+        case GL_ONE_MINUS_SRC_ALPHA:
+            return GPU_TEVOP_A_ONE_MINUS_SRC_ALPHA;
+        case GL_SRC_R_PICA:
+            return GPU_TEVOP_A_SRC_R;
+        case GL_ONE_MINUS_SRC_R_PICA:
+            return GPU_TEVOP_A_ONE_MINUS_SRC_R;
+        case GL_SRC_G_PICA:
+            return GPU_TEVOP_A_SRC_G;
+        case GL_ONE_MINUS_SRC_G_PICA:
+            return GPU_TEVOP_A_ONE_MINUS_SRC_G;
+        case GL_SRC_B_PICA:
+            return GPU_TEVOP_A_SRC_B;
+        case GL_ONE_MINUS_SRC_B_PICA:
+            return GPU_TEVOP_A_ONE_MINUS_SRC_B;
+    }
+
+    UNREACHABLE("Invalid combiner alpha operand!");
+}
+
+static GPU_COMBINEFUNC GLASS_unwrapCombinerFunc(GLenum func) {
+    switch (func) {
+        case GL_REPLACE:
+            return GPU_REPLACE;
+        case GL_MODULATE:
+            return GPU_MODULATE;
+        case GL_ADD:
+            return GPU_ADD;
+        case GL_ADD_SIGNED:
+            return GPU_ADD_SIGNED;
+        case GL_INTERPOLATE:
+            return GPU_INTERPOLATE;
+        case GL_SUBTRACT:
+            return GPU_SUBTRACT;
+        case GL_DOT3_RGB:
+            return GPU_DOT3_RGB;
+        case GL_DOT3_RGBA:
+            return GPU_DOT3_RGBA;
+        case GL_MULT_ADD_PICA:
+            return GPU_MULTIPLY_ADD;
+        case GL_ADD_MULT_PICA:
+            return GPU_ADD_MULTIPLY;
+    }
+
+    UNREACHABLE("Invalid combiner function!");
+}
+
+static GPU_TEVSCALE GLASS_unwrapCombinerScale(GLfloat scale) {
+    if (scale == 1.0f)
+        return GPU_TEVSCALE_1;
+
+    if (scale == 2.0f)
+        return GPU_TEVSCALE_2;
+
+    if (scale == 4.0f)
+        return GPU_TEVSCALE_4;
+
+    UNREACHABLE("Invalid combiner scale!");
 }
 
 void GLASS_gpu_setCombiners(const CombinerInfo* combiners) {
@@ -501,23 +658,23 @@ void GLASS_gpu_setCombiners(const CombinerInfo* combiners) {
         u32 params[5];
         const CombinerInfo* combiner = &combiners[i];
 
-        params[0] = GLASS_utility_getCombinerSrc(combiner->rgbSrc[0]);
-        params[0] |= (GLASS_utility_getCombinerSrc(combiner->rgbSrc[1]) << 4);
-        params[0] |= (GLASS_utility_getCombinerSrc(combiner->rgbSrc[2]) << 8);
-        params[0] |= (GLASS_utility_getCombinerSrc(combiner->alphaSrc[0]) << 16);
-        params[0] |= (GLASS_utility_getCombinerSrc(combiner->alphaSrc[1]) << 20);
-        params[0] |= (GLASS_utility_getCombinerSrc(combiner->alphaSrc[2]) << 24);
-        params[1] = GLASS_utility_getCombinerOpRGB(combiner->rgbOp[0]);
-        params[1] |= (GLASS_utility_getCombinerOpRGB(combiner->rgbOp[1]) << 4);
-        params[1] |= (GLASS_utility_getCombinerOpRGB(combiner->rgbOp[2]) << 8);
-        params[1] |= (GLASS_utility_getCombinerOpAlpha(combiner->alphaOp[0]) << 12);
-        params[1] |= (GLASS_utility_getCombinerOpAlpha(combiner->alphaOp[1]) << 16);
-        params[1] |= (GLASS_utility_getCombinerOpAlpha(combiner->alphaOp[2]) << 20);
-        params[2] = GLASS_utility_getCombinerFunc(combiner->rgbFunc);
-        params[2] |= (GLASS_utility_getCombinerFunc(combiner->alphaFunc) << 16);
+        params[0] = GLASS_unwrapCombinerSrc(combiner->rgbSrc[0]);
+        params[0] |= (GLASS_unwrapCombinerSrc(combiner->rgbSrc[1]) << 4);
+        params[0] |= (GLASS_unwrapCombinerSrc(combiner->rgbSrc[2]) << 8);
+        params[0] |= (GLASS_unwrapCombinerSrc(combiner->alphaSrc[0]) << 16);
+        params[0] |= (GLASS_unwrapCombinerSrc(combiner->alphaSrc[1]) << 20);
+        params[0] |= (GLASS_unwrapCombinerSrc(combiner->alphaSrc[2]) << 24);
+        params[1] = GLASS_unwrapCombinerOpRGB(combiner->rgbOp[0]);
+        params[1] |= (GLASS_unwrapCombinerOpRGB(combiner->rgbOp[1]) << 4);
+        params[1] |= (GLASS_unwrapCombinerOpRGB(combiner->rgbOp[2]) << 8);
+        params[1] |= (GLASS_unwrapCombinerOpAlpha(combiner->alphaOp[0]) << 12);
+        params[1] |= (GLASS_unwrapCombinerOpAlpha(combiner->alphaOp[1]) << 16);
+        params[1] |= (GLASS_unwrapCombinerOpAlpha(combiner->alphaOp[2]) << 20);
+        params[2] = GLASS_unwrapCombinerFunc(combiner->rgbFunc);
+        params[2] |= (GLASS_unwrapCombinerFunc(combiner->alphaFunc) << 16);
         params[3] = combiner->color;
-        params[4] = GLASS_utility_getCombinerScale(combiner->rgbScale);
-        params[4] |= (GLASS_utility_getCombinerScale(combiner->alphaScale) << 16);
+        params[4] = GLASS_unwrapCombinerScale(combiner->rgbScale);
+        params[4] |= (GLASS_unwrapCombinerScale(combiner->alphaScale) << 16);
 
         GPUCMD_AddIncrementalWrites(offsets[i], params, 5);
     }
@@ -543,11 +700,34 @@ void GLASS_gpu_setFragOp(GLenum fragMode, bool blendMode) {
     GPUCMD_AddMaskedWrite(GPUREG_COLOR_OPERATION, 0x07, 0xE40000 | (blendMode ? 0x100 : 0x0) | gpuFragMode);
 }
 
+static GPU_TESTFUNC GLASS_unwrapTestFunc(GLenum func) {
+    switch (func) {
+        case GL_NEVER:
+            return GPU_NEVER;
+        case GL_LESS:
+            return GPU_LESS;
+        case GL_EQUAL:
+            return GPU_EQUAL;
+        case GL_LEQUAL:
+            return GPU_LEQUAL;
+        case GL_GREATER:
+            return GPU_GREATER;
+        case GL_NOTEQUAL:
+            return GPU_NOTEQUAL;
+        case GL_GEQUAL:
+            return GPU_GEQUAL;
+        case GL_ALWAYS:
+            return GPU_ALWAYS;
+    }
+
+    UNREACHABLE("Invalid test function!");
+}
+
 void GLASS_gpu_setColorDepthMask(bool writeRed, bool writeGreen, bool writeBlue, bool writeAlpha, bool writeDepth, bool depthTest, GLenum depthFunc) {
     u32 value = ((writeRed ? 0x0100 : 0x00) | (writeGreen ? 0x0200 : 0x00) | (writeBlue ? 0x0400 : 0x00) | (writeAlpha ? 0x0800 : 0x00));
 
     if (depthTest)
-        value |= (GLASS_utility_getTestFunc(depthFunc) << 4) | (writeDepth ? 0x1000 : 0x00) | 1;
+        value |= (GLASS_unwrapTestFunc(depthFunc) << 4) | (writeDepth ? 0x1000 : 0x00) | 1;
 
     GPUCMD_AddMaskedWrite(GPUREG_DEPTH_COLOR_MASK, 0x03, value);
 }
@@ -589,7 +769,7 @@ void GLASS_gpu_clearEarlyDepthBuffer(void) { GPUCMD_AddWrite(GPUREG_EARLYDEPTH_C
 void GLASS_gpu_setStencilTest(bool enabled, GLenum func, GLint ref, GLuint mask, GLuint writeMask) {
     u32 value = enabled ? 1 : 0;
     if (enabled) {
-        value |= (GLASS_utility_getTestFunc(func) << 4);
+        value |= (GLASS_unwrapTestFunc(func) << 4);
         value |= ((u8)writeMask << 8);
         value |= ((int8_t)ref << 16);
         value |= ((u8)mask << 24);
@@ -598,7 +778,30 @@ void GLASS_gpu_setStencilTest(bool enabled, GLenum func, GLint ref, GLuint mask,
     GPUCMD_AddWrite(GPUREG_STENCIL_TEST, value);
 }
 
-void GLASS_gpu_setStencilOp(GLenum sfail, GLenum dpfail, GLenum dppass) { GPUCMD_AddMaskedWrite(GPUREG_STENCIL_OP, 0x03, GLASS_utility_getStencilOp(sfail) | (GLASS_utility_getStencilOp(dpfail) << 4) | (GLASS_utility_getStencilOp(dppass) << 8)); }
+static GPU_STENCILOP GLASS_unwrapStencilOp(GLenum op) {
+    switch (op) {
+        case GL_KEEP:
+            return GPU_STENCIL_KEEP;
+        case GL_ZERO:
+            return GPU_STENCIL_ZERO;
+        case GL_REPLACE:
+            return GPU_STENCIL_REPLACE;
+        case GL_INCR:
+            return GPU_STENCIL_INCR;
+        case GL_INCR_WRAP:
+            return GPU_STENCIL_INCR_WRAP;
+        case GL_DECR:
+            return GPU_STENCIL_DECR;
+        case GL_DECR_WRAP:
+            return GPU_STENCIL_DECR_WRAP;
+        case GL_INVERT:
+            return GPU_STENCIL_INVERT;
+    }
+
+    UNREACHABLE("Invalid stencil operation!");
+}
+
+void GLASS_gpu_setStencilOp(GLenum sfail, GLenum dpfail, GLenum dppass) { GPUCMD_AddMaskedWrite(GPUREG_STENCIL_OP, 0x03, GLASS_unwrapStencilOp(sfail) | (GLASS_unwrapStencilOp(dpfail) << 4) | (GLASS_unwrapStencilOp(dppass) << 8)); }
 
 void GLASS_gpu_setCullFace(bool enabled, GLenum cullFace, GLenum frontFace) {
     // Essentially:
@@ -612,28 +815,137 @@ void GLASS_gpu_setAlphaTest(bool enabled, GLenum func, GLclampf ref) {
     ASSERT(ref >= 0.0f && ref <= 1.0f);
     u32 value = enabled ? 1 : 0;
     if (enabled) {
-        value |= (GLASS_utility_getTestFunc(func) << 4);
+        value |= (GLASS_unwrapTestFunc(func) << 4);
         value |= ((u8)(ref * 0xFF) << 8);
     }
 
     GPUCMD_AddMaskedWrite(GPUREG_FRAGOP_ALPHA_TEST, 0x03, value);
 }
 
+static GPU_BLENDEQUATION GLASS_unwrapBlendEq(GLenum eq) {
+    switch (eq) {
+        case GL_FUNC_ADD:
+            return GPU_BLEND_ADD;
+        case GL_MIN:
+            return GPU_BLEND_MIN;
+        case GL_MAX:
+            return GPU_BLEND_MAX;
+        case GL_FUNC_SUBTRACT:
+            return GPU_BLEND_SUBTRACT;
+        case GL_FUNC_REVERSE_SUBTRACT:
+            return GPU_BLEND_REVERSE_SUBTRACT;
+    }
+
+    UNREACHABLE("Invalid blend equation!");
+}
+
+static GPU_BLENDFACTOR GLASS_unwrapBlendFactor(GLenum func) {
+    switch (func) {
+        case GL_ZERO:
+            return GPU_ZERO;
+        case GL_ONE:
+            return GPU_ONE;
+        case GL_SRC_COLOR:
+            return GPU_SRC_COLOR;
+        case GL_ONE_MINUS_SRC_COLOR:
+            return GPU_ONE_MINUS_SRC_COLOR;
+        case GL_DST_COLOR:
+            return GPU_DST_COLOR;
+        case GL_ONE_MINUS_DST_COLOR:
+            return GPU_ONE_MINUS_DST_COLOR;
+        case GL_SRC_ALPHA:
+            return GPU_SRC_ALPHA;
+        case GL_ONE_MINUS_SRC_ALPHA:
+            return GPU_ONE_MINUS_SRC_ALPHA;
+        case GL_DST_ALPHA:
+            return GPU_DST_ALPHA;
+        case GL_ONE_MINUS_DST_ALPHA:
+            return GPU_ONE_MINUS_DST_ALPHA;
+        case GL_CONSTANT_COLOR:
+            return GPU_CONSTANT_COLOR;
+        case GL_ONE_MINUS_CONSTANT_COLOR:
+            return GPU_ONE_MINUS_CONSTANT_COLOR;
+        case GL_CONSTANT_ALPHA:
+            return GPU_CONSTANT_ALPHA;
+        case GL_ONE_MINUS_CONSTANT_ALPHA:
+            return GPU_ONE_MINUS_CONSTANT_ALPHA;
+        case GL_SRC_ALPHA_SATURATE:
+            return GPU_SRC_ALPHA_SATURATE;
+    }
+
+    UNREACHABLE("Invalid blend function!");
+}
+
 void GLASS_gpu_setBlendFunc(GLenum rgbEq, GLenum alphaEq, GLenum srcColor, GLenum dstColor, GLenum srcAlpha, GLenum dstAlpha) {
-    const GPU_BLENDEQUATION gpuRGBEq = GLASS_utility_getBlendEq(rgbEq);
-    const GPU_BLENDEQUATION gpuAlphaEq = GLASS_utility_getBlendEq(alphaEq);
-    const GPU_BLENDFACTOR gpuSrcColor = GLASS_utility_getBlendFactor(srcColor);
-    const GPU_BLENDFACTOR gpuDstColor = GLASS_utility_getBlendFactor(dstColor);
-    const GPU_BLENDFACTOR gpuSrcAlpha = GLASS_utility_getBlendFactor(srcAlpha);
-    const GPU_BLENDFACTOR gpuDstAlpha = GLASS_utility_getBlendFactor(dstAlpha);
+    const GPU_BLENDEQUATION gpuRGBEq = GLASS_unwrapBlendEq(rgbEq);
+    const GPU_BLENDEQUATION gpuAlphaEq = GLASS_unwrapBlendEq(alphaEq);
+    const GPU_BLENDFACTOR gpuSrcColor = GLASS_unwrapBlendFactor(srcColor);
+    const GPU_BLENDFACTOR gpuDstColor = GLASS_unwrapBlendFactor(dstColor);
+    const GPU_BLENDFACTOR gpuSrcAlpha = GLASS_unwrapBlendFactor(srcAlpha);
+    const GPU_BLENDFACTOR gpuDstAlpha = GLASS_unwrapBlendFactor(dstAlpha);
     GPUCMD_AddWrite(GPUREG_BLEND_FUNC, (gpuDstAlpha << 28) | (gpuSrcAlpha << 24) | (gpuDstColor << 20) | (gpuSrcColor << 16) | (gpuAlphaEq << 8) | gpuRGBEq);
 }
 
 void GLASS_gpu_setBlendColor(u32 color) { GPUCMD_AddWrite(GPUREG_BLEND_COLOR, color); }
-void GLASS_gpu_setLogicOp(GLenum op) { GPUCMD_AddMaskedWrite(GPUREG_LOGIC_OP, 0x01, GLASS_utility_getLogicOp(op)); }
+
+static GPU_LOGICOP GLASS_unwrapLogicOp(GLenum op) {
+    switch (op) {
+        case GL_CLEAR:
+            return GPU_LOGICOP_CLEAR;
+        case GL_AND:
+            return GPU_LOGICOP_AND;
+        case GL_AND_REVERSE:
+            return GPU_LOGICOP_AND_REVERSE;
+        case GL_COPY:
+            return GPU_LOGICOP_COPY;
+        case GL_AND_INVERTED:
+            return GPU_LOGICOP_AND_INVERTED;
+        case GL_NOOP:
+            return GPU_LOGICOP_NOOP;
+        case GL_XOR:
+            return GPU_LOGICOP_XOR;
+        case GL_OR:
+            return GPU_LOGICOP_OR;
+        case GL_NOR:
+            return GPU_LOGICOP_NOR;
+        case GL_EQUIV:
+            return GPU_LOGICOP_EQUIV;
+        case GL_INVERT:
+            return GPU_LOGICOP_INVERT;
+        case GL_OR_REVERSE:
+            return GPU_LOGICOP_OR_REVERSE;
+        case GL_COPY_INVERTED:
+            return GPU_LOGICOP_COPY_INVERTED;
+        case GL_OR_INVERTED:
+            return GPU_LOGICOP_OR_INVERTED;
+        case GL_NAND:
+            return GPU_LOGICOP_NAND;
+        case GL_SET:
+            return GPU_LOGICOP_SET;
+    }
+
+    UNREACHABLE("Invalid logic operator!");
+}
+
+void GLASS_gpu_setLogicOp(GLenum op) { GPUCMD_AddMaskedWrite(GPUREG_LOGIC_OP, 0x01, GLASS_unwrapLogicOp(op)); }
+
+static GPU_Primitive_t GLASS_unwrapDrawPrimitive(GLenum mode) {
+    switch (mode) {
+        case GL_TRIANGLES:
+            return GPU_TRIANGLES;
+        case GL_TRIANGLE_STRIP:
+            return GPU_TRIANGLE_STRIP;
+        case GL_TRIANGLE_FAN:
+            return GPU_TRIANGLE_FAN;
+        case GL_GEOMETRY_PRIMITIVE_PICA:
+            return GPU_GEOMETRY_PRIM;
+    }
+
+    UNREACHABLE("Invalid draw mode!");
+}
 
 void GLASS_gpu_drawArrays(GLenum mode, GLint first, GLsizei count) {
-    GPUCMD_AddMaskedWrite(GPUREG_PRIMITIVE_CONFIG, 2, GLASS_utility_getDrawPrimitive(mode));
+    GPUCMD_AddMaskedWrite(GPUREG_PRIMITIVE_CONFIG, 2, GLASS_unwrapDrawPrimitive(mode));
     GPUCMD_AddWrite(GPUREG_RESTART_PRIMITIVE, 1);
     GPUCMD_AddWrite(GPUREG_INDEXBUFFER_CONFIG, 0x80000000);
     GPUCMD_AddWrite(GPUREG_NUMVERTICES, count);
@@ -646,14 +958,24 @@ void GLASS_gpu_drawArrays(GLenum mode, GLint first, GLsizei count) {
     GPUCMD_AddWrite(GPUREG_VTX_FUNC, 1);
 }
 
+static u32 GLASS_unwrapDrawType(GLenum type) {
+    switch (type) {
+        case GL_UNSIGNED_BYTE:
+            return 0;
+        case GL_UNSIGNED_SHORT:
+            return 1;
+    }
+
+    UNREACHABLE("Invalid draw type!");
+}
+
 void GLASS_gpu_drawElements(GLenum mode, GLsizei count, GLenum type, u32 physIndices) {
-    const GPU_Primitive_t primitive = GLASS_utility_getDrawPrimitive(mode);
-    const u32 gpuType = GLASS_utility_getDrawType(type);
+    const GPU_Primitive_t primitive = GLASS_unwrapDrawPrimitive(mode);
 
     GPUCMD_AddMaskedWrite(GPUREG_PRIMITIVE_CONFIG, 2, primitive != GPU_TRIANGLES ? primitive : GPU_GEOMETRY_PRIM);
 
     GPUCMD_AddWrite(GPUREG_RESTART_PRIMITIVE, 1);
-    GPUCMD_AddWrite(GPUREG_INDEXBUFFER_CONFIG, (physIndices - PHYSICAL_LINEAR_BASE) | (gpuType << 31));
+    GPUCMD_AddWrite(GPUREG_INDEXBUFFER_CONFIG, (physIndices - PHYSICAL_LINEAR_BASE) | (GLASS_unwrapDrawType(type) << 31));
 
     GPUCMD_AddWrite(GPUREG_NUMVERTICES, count);
     GPUCMD_AddWrite(GPUREG_VERTEX_OFFSET, 0);
@@ -675,6 +997,51 @@ void GLASS_gpu_drawElements(GLenum mode, GLsizei count, GLenum type, u32 physInd
     GPUCMD_AddWrite(GPUREG_VTX_FUNC, 1);
     GPUCMD_AddMaskedWrite(GPUREG_PRIMITIVE_CONFIG, 0x08, 0);
     GPUCMD_AddMaskedWrite(GPUREG_PRIMITIVE_CONFIG, 0x08, 0);
+}
+
+static GPU_TEXTURE_FILTER_PARAM GLASS_unwrapTexFilter(GLenum filter) {
+    switch (filter) {
+        case GL_NEAREST:
+        case GL_NEAREST_MIPMAP_NEAREST:
+        case GL_NEAREST_MIPMAP_LINEAR:
+            return GPU_NEAREST;
+        case GL_LINEAR:
+        case GL_LINEAR_MIPMAP_NEAREST:
+        case GL_LINEAR_MIPMAP_LINEAR:
+            return GPU_LINEAR;
+    }
+
+    UNREACHABLE("Invalid texture filter!");
+}
+
+static GPU_TEXTURE_FILTER_PARAM GLASS_unwrapMipFilter(GLenum minFilter) {
+    switch (minFilter) {
+        case GL_NEAREST:
+        case GL_NEAREST_MIPMAP_NEAREST:
+        case GL_LINEAR:
+        case GL_LINEAR_MIPMAP_NEAREST:
+            return GPU_NEAREST;
+        case GL_NEAREST_MIPMAP_LINEAR:
+        case GL_LINEAR_MIPMAP_LINEAR:
+            return GPU_LINEAR;
+    }
+
+    UNREACHABLE("Invalid texture minification filter!");
+}
+
+static GPU_TEXTURE_WRAP_PARAM GLASS_unwrapTexWrap(GLenum wrap) {
+    switch (wrap) {
+        case GL_CLAMP_TO_EDGE:
+            return GPU_CLAMP_TO_EDGE;
+        case GL_CLAMP_TO_BORDER:
+            return GPU_CLAMP_TO_BORDER;
+        case GL_MIRRORED_REPEAT:
+            return GPU_MIRRORED_REPEAT;
+        case GL_REPEAT:
+            return GPU_REPEAT;
+    }
+
+    UNREACHABLE("Invalid texture wrap!");
 }
 
 void GLASS_gpu_setTextureUnits(const GLuint* units) {
@@ -709,11 +1076,11 @@ void GLASS_gpu_setTextureUnits(const GLuint* units) {
         params[0] = tex->borderColor;
         params[1] = ((u32)(tex->width & 0x3FF) << 16) | (tex->height & 0x3FF);
 
-        const GPU_TEXTURE_FILTER_PARAM minFilter = GLASS_utility_getTexFilter(tex->minFilter);
-        const GPU_TEXTURE_FILTER_PARAM magFilter = GLASS_utility_getTexFilter(tex->magFilter);
-        const GPU_TEXTURE_FILTER_PARAM mipFilter = GLASS_utility_getMipFilter(tex->minFilter);
-        const GPU_TEXTURE_WRAP_PARAM wrapS = GLASS_utility_getTexWrap(tex->wrapS);
-        const GPU_TEXTURE_WRAP_PARAM wrapT = GLASS_utility_getTexWrap(tex->wrapT);
+        const GPU_TEXTURE_FILTER_PARAM minFilter = GLASS_unwrapTexFilter(tex->minFilter);
+        const GPU_TEXTURE_FILTER_PARAM magFilter = GLASS_unwrapTexFilter(tex->magFilter);
+        const GPU_TEXTURE_FILTER_PARAM mipFilter = GLASS_unwrapMipFilter(tex->minFilter);
+        const GPU_TEXTURE_WRAP_PARAM wrapS = GLASS_unwrapTexWrap(tex->wrapS);
+        const GPU_TEXTURE_WRAP_PARAM wrapT = GLASS_unwrapTexWrap(tex->wrapT);
 
         params[2] = (GPU_TEXTURE_MIN_FILTER(minFilter) | GPU_TEXTURE_MAG_FILTER(magFilter) | GPU_TEXTURE_MIP_FILTER(mipFilter) | GPU_TEXTURE_WRAP_S(wrapS) | GPU_TEXTURE_WRAP_T(wrapT));
         
@@ -743,7 +1110,7 @@ void GLASS_gpu_setTextureUnits(const GLuint* units) {
         }
 
         GPUCMD_AddIncrementalWrites(setupCmds[i], params, hasCubeMap ? 10 : 5);
-        GPUCMD_AddWrite(typeCmds[i], GLASS_utility_getTexFormat(tex->format, tex->dataType));
+        GPUCMD_AddWrite(typeCmds[i], GLASS_tex_unwrapFormat(tex->format, tex->dataType));
     }
 
     // TODO: is a double write required?

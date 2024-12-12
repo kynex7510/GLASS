@@ -53,7 +53,7 @@ static bool GLASS_isTexFormat(GLenum format) {
     return false;
 }
 
-static bool GLASS_isTextType(GLenum type) {
+static bool GLASS_isTexType(GLenum type) {
     switch (type) {
         case GL_UNSIGNED_BYTE:
         case GL_UNSIGNED_SHORT_5_6_5:
@@ -409,12 +409,12 @@ void glTexImage2D(GLenum target, GLint level, GLint internalformat, GLsizei widt
         return;
     }
     
-    if (!GLASS_isTexFormat(format) || !GLASS_isTextType(type)) {
+    if (!GLASS_isTexFormat(format) || !GLASS_isTexType(type)) {
         GLASS_context_setError(GL_INVALID_ENUM);
         return;
     }
     
-    if ((format != internalformat) || !GLASS_utility_isValidTexCombination(format, type)) {
+    if ((format != internalformat) || !GLASS_tex_isFormatValid(format, type)) {
         GLASS_context_setError(GL_INVALID_OPERATION);
         return;
     }

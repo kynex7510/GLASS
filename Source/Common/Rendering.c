@@ -11,8 +11,6 @@
 #define HAS_STENCIL(mask) ((mask) & GL_STENCIL_BUFFER_BIT)
 #define HAS_EARLY_DEPTH(mask) ((mask) & GL_EARLY_DEPTH_BUFFER_BIT_PICA)
 
-extern GLenum glCheckFramebufferStatus(GLenum target);
-
 static bool GLASS_checkFB(void) {
     if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
         GLASS_context_setError(GL_INVALID_FRAMEBUFFER_OPERATION);
@@ -20,6 +18,61 @@ static bool GLASS_checkFB(void) {
     }
 
     return true;
+}
+
+static u32 GLASS_makeClearColor(GLenum format, u32 color) {
+    u32 cvt = 0;
+
+    switch (format) {
+        case GL_RGBA8_OES:
+            cvt = color;
+            break;
+        case GL_RGB8_OES:
+            cvt = color >> 8;
+            break;
+        case GL_RGBA4:
+            cvt = ((color >> 24) & 0x0F) << 12;
+            cvt |= ((color >> 16) & 0x0F) << 8;
+            cvt |= ((color >> 8) & 0x0F) << 4;
+            cvt |= color & 0x0F;
+            break;
+        case GL_RGB5_A1:
+            cvt = ((color >> 24) & 0x1F) << 11;
+            cvt |= ((color >> 16) & 0x1F) << 6;
+            cvt |= ((color >> 8) & 0x1F) << 1;
+            cvt |= (color & 0xFF) != 0;
+            break;
+        case GL_RGB565:
+            cvt = ((color >> 24) & 0x1F) << 11;
+            cvt |= ((color >> 16) & 0x3F) << 5;
+            cvt |= (color >> 8) & 0x1F;
+            break;
+        default:
+            UNREACHABLE("Invalid color format!");
+    }
+
+    return cvt;
+}
+
+static u32 GLASS_makeClearDepth(GLenum format, GLclampf factor, u8 stencil) {
+    ASSERT(factor >= 0.0 && factor <= 1.0);
+
+    u32 clearDepth = 0;
+    switch (format) {
+        case GL_DEPTH_COMPONENT16:
+            clearDepth = (u32)(0xFFFF * factor);
+            break;
+        case GL_DEPTH_COMPONENT24_OES:
+            clearDepth = (u32)(0xFFFFFF * factor);
+            break;
+        case GL_DEPTH24_STENCIL8_OES:
+            clearDepth = (((u32)(0xFFFFFF * factor) << 8) | stencil);
+            break;
+        default:
+            UNREACHABLE("Invalid depth format!");
+    }
+
+    return clearDepth;
 }
 
 void glClear(GLbitfield mask) {
@@ -42,9 +95,9 @@ void glClear(GLbitfield mask) {
     if (HAS_COLOR(mask) || HAS_DEPTH(mask)) {
         FramebufferInfo* fb = (FramebufferInfo*)ctx->framebuffer;
         RenderbufferInfo* colorBuffer = HAS_COLOR(mask) ? fb->colorBuffer : NULL;
-        const u32 clearColor = colorBuffer ? GLASS_utility_makeClearColor(colorBuffer->format, ctx->clearColor) : 0;
+        const u32 clearColor = colorBuffer ? GLASS_makeClearColor(colorBuffer->format, ctx->clearColor) : 0;
         RenderbufferInfo* depthBuffer = HAS_DEPTH(mask) ? fb->depthBuffer : NULL;
-        const u32 clearDepth = depthBuffer ? GLASS_utility_makeClearDepth(depthBuffer->format, ctx->clearDepth, ctx->clearStencil) : 0;
+        const u32 clearDepth = depthBuffer ? GLASS_makeClearDepth(depthBuffer->format, ctx->clearDepth, ctx->clearStencil) : 0;
         GLASS_gx_clearBuffers(colorBuffer, clearColor, depthBuffer, clearDepth);
     }
 }
