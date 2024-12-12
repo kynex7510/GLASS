@@ -209,7 +209,7 @@ void GLASS_gx_sendGPUCommands(void) {
         extern u32 __ctru_linear_heap_size;
         ASSERT(R_SUCCEEDED(GSPGPU_FlushDataCache((void*)__ctru_linear_heap, __ctru_linear_heap_size)));
         params.flush = false;
-        } else {
+    } else {
         params.flush = true;
     }
 
