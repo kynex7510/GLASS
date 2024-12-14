@@ -1,5 +1,5 @@
 #include "Base/Context.h"
-#include "Texture/TexCommon.h"
+#include "Texture/Texture.h"
 
 #include <string.h>
 
@@ -395,7 +395,7 @@ static void GLASS_setTex(GLenum target, GLint level, GLsizei width, GLsizei heig
 
     // Write data.
     if (data) {
-        GLASS_tex_write(tex, data, dataSize, face, level);
+        GLASS_tex_write(tex, data, dataSize, face, level, true);
         status = TexStatus_Updated;
     }
     
@@ -419,7 +419,7 @@ void glTexImage2D(GLenum target, GLint level, GLint internalformat, GLsizei widt
         return;
     }
 
-    GLASS_setTex(target, level, width, height, format, type, (const u8*)data, 0, 0xFFFFFFFF);    
+    GLASS_setTex(target, level, width, height, format, type, (const u8*)data, 0, width * height * 1);    
 }
 
 void glCompressedTexImage2D(GLenum target, GLint level, GLenum internalformat, GLsizei width, GLsizei height, GLint border, GLsizei imageSize, const GLvoid* data) {

@@ -6,8 +6,8 @@
 
 #define FILL_CONTROL(fillWidth) (((fillWidth) << 8) | 1)
 
-#define TRANSFER_FLAGS(srcFormat, dstFormat, verticalFlip, scaling) \
-    GX_TRANSFER_IN_FORMAT(srcFormat) | GX_TRANSFER_OUT_FORMAT(dstFormat) | GX_TRANSFER_FLIP_VERT(verticalFlip) | GX_TRANSFER_SCALING(scaling)
+#define TRANSFER_FLAGS(srcFormat, dstFormat, verticalFlip, makeTiled, scaling) \
+    (GX_TRANSFER_IN_FORMAT(srcFormat) | GX_TRANSFER_OUT_FORMAT(dstFormat) | GX_TRANSFER_FLIP_VERT(verticalFlip) | GX_TRANSFER_OUT_TILED(makeTiled) | GX_TRANSFER_SCALING(scaling))
 
 typedef struct {
     u32 addr;
@@ -26,6 +26,7 @@ typedef struct {
     u16 dstHeight;
     GX_TRANSFER_FORMAT dstFormat;
     bool verticalFlip;
+    bool makeTiled;
     GX_TRANSFER_SCALE scaling;
 } GXDisplayTransferParams;
 
@@ -76,14 +77,14 @@ static void GLASS_displayTransfer(const GXDisplayTransferParams* transfer) {
 
     GX_DisplayTransfer((u32*)(transfer->srcAddr), GX_BUFFER_DIM(transfer->srcHeight, transfer->srcWidth),
         (u32*)(transfer->dstAddr), GX_BUFFER_DIM(transfer->dstHeight, transfer->dstWidth),
-        TRANSFER_FLAGS(transfer->srcFormat, transfer->dstFormat, transfer->verticalFlip, transfer->scaling));
+        TRANSFER_FLAGS(transfer->srcFormat, transfer->dstFormat, transfer->verticalFlip, transfer->makeTiled, transfer->scaling));
 }
 
 static void GLASS_textureCopy(const GXTextureCopyParams* copy) {
     ASSERT(copy);
     ASSERT(glassIsLinear((void*)copy->srcAddr) || glassIsVRAM((void*)copy->srcAddr));
     ASSERT(glassIsLinear((void*)copy->dstAddr) || glassIsVRAM((void*)copy->dstAddr));
-    GX_TextureCopy((u32*)copy->srcAddr, 0, (u32*)copy->dstAddr, 0, copy->size, 0x8);
+    GX_TextureCopy((u32*)copy->srcAddr, 0, (u32*)copy->dstAddr, 0, copy->size, 0x8 | GX_TRANSFER_OUT_TILED(true));
 }
 
 static void GLASS_processCommandList(const GXProcessCommandListParams* cmdList) {
@@ -161,8 +162,8 @@ static GX_TRANSFER_FORMAT GLASS_unwrapTransferFormat(GLenum format) {
     switch (format) {
         case GL_RGBA8_OES:
             return GX_TRANSFER_FMT_RGBA8;
-        case GL_BGR8_PICA:
-            return GX_TRANSFER_FMT_RGB8; // Misnomer.
+        case GL_RGB8_OES:
+            return GX_TRANSFER_FMT_RGB8;
         case GL_RGB565:
             return GX_TRANSFER_FMT_RGB565;
         case GL_RGB5_A1:
@@ -192,6 +193,7 @@ void GLASS_gx_transferAndSwap(const RenderbufferInfo* colorBuffer, const Renderb
     params.dstFormat = GLASS_unwrapTransferFormat(displayBuffer->format);
 
     params.verticalFlip = ctx->settings.verticalFlip;
+    params.makeTiled = false;
     params.scaling = ctx->settings.transferScale;
 
     gxCmdQueueWait(&ctx->gxQueue, -1);
@@ -210,6 +212,27 @@ void GLASS_gx_copyTexture(u32 srcAddr, u32 dstAddr, size_t size) {
 
     GX_BindQueue(NULL);
     GLASS_textureCopy(&params);
+    gspWaitForPPF();
+    GX_BindQueue(&ctx->gxQueue);
+}
+
+void GLASS_gx_transformTexture(u32 srcAddr, u32 dstAddr, const TexTransformationParams* cvtParams) {
+    ASSERT(cvtParams);
+    CtxCommon* ctx = GLASS_context_getCommon();
+    GXDisplayTransferParams params;
+    params.srcAddr = srcAddr;
+    params.srcWidth = cvtParams->inputWidth;
+    params.srcHeight = cvtParams->inputHeight;
+    params.srcFormat = GLASS_unwrapTransferFormat(cvtParams->inputFormat);
+    params.dstAddr = dstAddr;
+    params.dstWidth = cvtParams->outputWidth;
+    params.dstHeight = cvtParams->outputHeight;
+    params.dstFormat = GLASS_unwrapTransferFormat(cvtParams->outputFormat);
+    params.verticalFlip = cvtParams->verticalFlip;
+    params.makeTiled = cvtParams->makeTiled;
+    params.scaling = GX_TRANSFER_SCALE_NO;
+    GX_BindQueue(NULL);
+    GLASS_displayTransfer(&params);
     gspWaitForPPF();
     GX_BindQueue(&ctx->gxQueue);
 }

@@ -63,9 +63,7 @@ static GLenum GLASS_wrapFBFormat(GSPGPU_FramebufferFormat format) {
         case GSP_RGBA8_OES:
             return GL_RGBA8_OES;
         case GSP_BGR8_OES:
-            // This is not supported by OpenGL framebuffers; however it's required
-            // for correctly wrapping libctru framebuffer formats.
-            return GL_BGR8_PICA;
+            return GL_RGB8_OES;
         case GSP_RGB565_OES:
             return GL_RGB565;
         case GSP_RGB5_A1_OES:

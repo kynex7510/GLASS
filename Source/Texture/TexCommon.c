@@ -1,10 +1,34 @@
-#include "Texture/TexCommon.h"
+#include "Texture/Texture.h"
 #include "Base/Utility.h"
 #include "Base/GX.h"
 
 #include <string.h>
 
+size_t GLASS_tex_bpp(GLenum format, GLenum type) {
+    switch (GLASS_tex_unwrapFormat(format, type)) {
+        case GPU_RGBA8:
+            return 32;
+        case GPU_RGB8:
+            return 24;
+        case GPU_RGBA5551:
+        case GPU_RGB565:
+        case GPU_RGBA4:
+        case GPU_LA8:
+        case GPU_HILO8:
+            return 16;
+        case GPU_L8:
+        case GPU_A8:
+        case GPU_LA4:
+        case GPU_ETC1A4:
+            return 8;
+        case GPU_L4:
+        case GPU_A4:
+        case GPU_ETC1:
+            return 4;
+    }
 
+    UNREACHABLE("Invalid GPU texture format!");
+}
 
 static GPU_TEXCOLOR GLASS_unwrapTexFormatImpl(GLenum format, GLenum dataType) {
     if (format == GL_ALPHA) {
@@ -72,32 +96,6 @@ GPU_TEXCOLOR GLASS_tex_unwrapFormat(GLenum format, GLenum type) {
         return texFmt;
 
     UNREACHABLE("Invalid texture format!");
-}
-
-static size_t GLASS_getTexBPP(GLenum format, GLenum type) {
-    switch (GLASS_tex_unwrapFormat(format, type)) {
-        case GPU_RGBA8:
-            return 32;
-        case GPU_RGB8:
-            return 24;
-        case GPU_RGBA5551:
-        case GPU_RGB565:
-        case GPU_RGBA4:
-        case GPU_LA8:
-        case GPU_HILO8:
-            return 16;
-        case GPU_L8:
-        case GPU_A8:
-        case GPU_LA4:
-        case GPU_ETC1A4:
-            return 8;
-        case GPU_L4:
-        case GPU_A4:
-        case GPU_ETC1:
-            return 4;
-    }
-
-    UNREACHABLE("Invalid GPU texture format!");
 }
 
 GLenum GLASS_tex_wrapFormat(GPU_TEXCOLOR format) {
@@ -180,7 +178,7 @@ size_t GLASS_tex_getOffset(u16 width, u16 height, GLenum format, GLenum type, si
         // B * W(L-1) * H(L-1) * (2^2(L-1) + 2^2(L-2) + ... + 2^2(L-L)) / 8
         const u16 prevWidth = (width >> (level - 1));
         const u16 prevHeight = (height >> (level - 1));
-        const size_t bpp = GLASS_getTexBPP(format, type);
+        const size_t bpp = GLASS_tex_bpp(format, type);
         return ((bpp * prevWidth * prevHeight * (((1u << (level << 1)) - 1) & 0x55555)) >> 3);
     }
 
@@ -188,7 +186,7 @@ size_t GLASS_tex_getOffset(u16 width, u16 height, GLenum format, GLenum type, si
 }
 
 size_t GLASS_tex_getSize(u16 width, u16 height, GLenum format, GLenum type, size_t level) {
-    return (((width >> level) * (height >> level) * GLASS_getTexBPP(format, type)) >> 3);
+    return (((width >> level) * (height >> level) * GLASS_tex_bpp(format, type)) >> 3);
 }
 
 static size_t GLASS_dimLevels(size_t dim) {
@@ -277,7 +275,7 @@ TexStatus GLASS_tex_reallocIfNeeded(TextureInfo* tex, GLsizei width, GLsizei hei
     return GLASS_tex_realloc(tex, width, height, format, type, vram) ? TexStatus_Updated : TexStatus_Failed;
 }
 
-void GLASS_tex_write(TextureInfo* tex, const u8* data, size_t size, size_t face, size_t level) {
+void GLASS_tex_write(TextureInfo* tex, const u8* data, size_t size, size_t face, size_t level, bool makeTiled) {
     ASSERT(tex);
     ASSERT(tex->flags & TEXTURE_FLAG_BOUND);
     ASSERT(face < GLASS_tex_getNumFaces(tex->target));
@@ -287,14 +285,18 @@ void GLASS_tex_write(TextureInfo* tex, const u8* data, size_t size, size_t face,
     const size_t mipmapOffset = GLASS_tex_getOffset(tex->width, tex->height, tex->format, tex->type, level);
     u8* dest = tex->faces[face] + mipmapOffset;
 
-    if (tex->flags & TEXTURE_FLAG_VRAM) {
-        ASSERT(R_SUCCEEDED(GSPGPU_FlushDataCache(data, size)));
-        GLASS_gx_copyTexture((u32)data, (u32)dest, size);
+    const bool vram = tex->flags & TEXTURE_FLAG_VRAM;
+    if (makeTiled) {
+        GLASS_tex_makeTiled((u32)data, (u32)dest, tex->width, tex->height, tex->format, tex->dataType);
     } else {
-        memcpy(dest, data, size);
-
-        if (!ctx->initParams.flushAllLinearMem) {
-            ASSERT(R_SUCCEEDED(GSPGPU_FlushDataCache(dest, size)));
+        if (vram) {
+            GLASS_gx_copyTexture((u32)data, (u32)dest, size);
+        } else {
+            memcpy(dest, data, size);
         }
+    }
+
+    if (!ctx->initParams.flushAllLinearMem) {
+        ASSERT(R_SUCCEEDED(GSPGPU_FlushDataCache(dest, size)));
     }
 }

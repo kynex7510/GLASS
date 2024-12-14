@@ -1,6 +1,6 @@
 #include "Base/Context.h"
 #include "Base/Utility.h"
-#include "Texture/TexCommon.h"
+#include "Texture/Texture.h"
 
 #include <string.h> // memcpy
 
@@ -223,7 +223,7 @@ void glassMoveTextureData(glassTexture* tex) {
         const size_t numFaces = GLASS_getNumFaces(tex->isCubeMap);
 
         for (size_t i = 0; i < numFaces; ++i) {
-            GLASS_tex_write(dest, tex->faces[i], allocSize, i, 0);
+            GLASS_tex_write(dest, tex->faces[i], allocSize, i, 0, false);
             glassLinearFree(tex->faces[i]);
         }
     } else {
