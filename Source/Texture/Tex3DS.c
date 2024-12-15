@@ -214,8 +214,8 @@ void glassMoveTextureData(glassTexture* tex) {
     }
 
     if (dest->flags & TEXTURE_FLAG_VRAM) {
-        const TexStatus status = GLASS_tex_reallocIfNeeded(dest, tex->width, tex->height, tex->format, tex->type, true);
-        if (status == TexStatus_Failed)
+        const TexReallocStatus reallocStatus = GLASS_tex_realloc(dest, tex->width, tex->height, tex->format, tex->type, true);
+        if (reallocStatus == TexReallocStatus_Failed)
             return;
 
         // Move data.
@@ -223,7 +223,7 @@ void glassMoveTextureData(glassTexture* tex) {
         const size_t numFaces = GLASS_getNumFaces(tex->isCubeMap);
 
         for (size_t i = 0; i < numFaces; ++i) {
-            GLASS_tex_write(dest, tex->faces[i], allocSize, i, 0, false);
+            GLASS_tex_write(dest, tex->faces[i], allocSize, i, 0);
             glassLinearFree(tex->faces[i]);
         }
     } else {

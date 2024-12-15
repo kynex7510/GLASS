@@ -42,18 +42,18 @@ void glassSwapBuffers(void);
 
 void* glassVirtualAlloc(size_t size);
 void glassVirtualFree(void* p);
-size_t glassVirtualSize(void* p);
-bool glassIsVirtual(void* p);
+size_t glassVirtualSize(const void* p);
+bool glassIsVirtual(const void* p);
 
 void* glassLinearAlloc(size_t size);
 void glassLinearFree(void* p);
-size_t glassLinearSize(void* p);
-bool glassIsLinear(void* p);
+size_t glassLinearSize(const void* p);
+bool glassIsLinear(const void* p);
 
 void* glassVRAMAlloc(size_t size, vramAllocPos pos);
 void glassVRAMFree(void* p);
-size_t glassVRAMSize(void* p);
-bool glassIsVRAM(void* p);
+size_t glassVRAMSize(const void* p);
+bool glassIsVRAM(const void* p);
 
 #if defined(__cplusplus)
 }

@@ -13,8 +13,8 @@ void* GLASS_virtualAllocDefault(size_t size) {
 }
 
 void GLASS_virtualFreeDefault(void* p) { free(p); }
-size_t GLASS_virtualSizeDefault(void* p) { return malloc_usable_size(p); }
-bool GLASS_isVirtualDefault(void* p) { return GLASS_virtualSizeDefault(p) > 0; }
+size_t GLASS_virtualSizeDefault(const void* p) { return malloc_usable_size((void*)p); }
+bool GLASS_isVirtualDefault(const void* p) { return GLASS_virtualSizeDefault(p) > 0; }
 
 void* GLASS_linearAllocDefault(size_t size) {
     void* p = linearAlloc(size);
@@ -25,25 +25,33 @@ void* GLASS_linearAllocDefault(size_t size) {
 }
 
 void GLASS_linearFreeDefault(void* p) { linearFree(p); }
-size_t GLASS_linearSizeDefault(void* p) { return linearGetSize(p); }
-bool GLASS_isLinearDefault(void* p) { return GLASS_linearSizeDefault(p) > 0; }
+size_t GLASS_linearSizeDefault(const void* p) { return linearGetSize((void*)p); }
+
+bool GLASS_isLinearDefault(const void* p) {
+    const u32 addr = (u32)p;
+    return ((addr >= OS_FCRAM_VADDR) && (addr < (OS_FCRAM_VADDR + OS_FCRAM_SIZE)));
+}
 
 void* GLASS_vramAllocDefault(size_t size, vramAllocPos pos) { return vramAllocAt(size, pos); }
 void GLASS_vramFreeDefault(void* p) { vramFree(p); }
-size_t GLASS_vramSizeDefault(void* p) { return vramGetSize(p); }
-bool GLASS_isVramDefault(void* p) { return GLASS_vramSizeDefault(p) > 0; }
+size_t GLASS_vramSizeDefault(const void* p) { return vramGetSize((void*)p); }
+
+bool GLASS_isVramDefault(const void* p){
+    const u32 addr = (u32)p;
+    return ((addr >= OS_VRAM_VADDR) && (addr < (OS_VRAM_VADDR + OS_VRAM_SIZE)));
+}
 
 WEAK void* glassVirtualAlloc(size_t size) { return GLASS_virtualAllocDefault(size); }
 WEAK void glassVirtualFree(void* p) { GLASS_virtualFreeDefault(p); }
-WEAK size_t glassVirtualSize(void* p) { return GLASS_virtualSizeDefault(p); }
-WEAK bool glassIsVirtual(void* p) { return GLASS_isVirtualDefault(p); }
+WEAK size_t glassVirtualSize(const void* p) { return GLASS_virtualSizeDefault(p); }
+WEAK bool glassIsVirtual(const void* p) { return GLASS_isVirtualDefault(p); }
 
 WEAK void* glassLinearAlloc(size_t size) { return GLASS_linearAllocDefault(size); }
 WEAK void glassLinearFree(void* p) { GLASS_linearFreeDefault(p); }
-WEAK size_t glassLinearSize(void* p) { return GLASS_linearSizeDefault(p); }
-WEAK bool glassIsLinear(void* p) { return GLASS_isLinearDefault(p); }
+WEAK size_t glassLinearSize(const void* p) { return GLASS_linearSizeDefault(p); }
+WEAK bool glassIsLinear(const void* p) { return GLASS_isLinearDefault(p); }
 
 WEAK void* glassVRAMAlloc(size_t size, vramAllocPos pos) { return GLASS_vramAllocDefault(size, pos); }
 WEAK void glassVRAMFree(void* p) { GLASS_vramFreeDefault(p); }
-WEAK size_t glassVRAMSize(void* p) { return GLASS_vramSizeDefault(p); }
-WEAK bool glassIsVRAM(void* p) { return GLASS_isVramDefault(p); }
+WEAK size_t glassVRAMSize(const void* p) { return GLASS_vramSizeDefault(p); }
+WEAK bool glassIsVRAM(const void* p) { return GLASS_isVramDefault(p); }

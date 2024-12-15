@@ -52,10 +52,14 @@ static void GLASS_swTiling(const u8* src, u8* dst, size_t width, size_t height, 
     }
 }
 
-void GLASS_tilingImpl(u32 srcAddr, u32 dstAddr, GLsizei width, GLsizei height, GLenum format, GLenum type, bool makeTiled) {
+void GLASS_tilingImpl(const u8* srcAddr, u8* dstAddr, size_t width, size_t height, GLenum format, GLenum type, bool makeTiled) {
+    ASSERT(glassIsLinear((void*)srcAddr));
+    ASSERT(glassIsLinear((void*)dstAddr));
+
     // Use the hardware if possible.
     const GLenum tilingFormat = GLASS_getHwTilingFormat(format, type);
-    if (tilingFormat) {
+    // TODO: hangs on HW.
+    if (0 /*tilingFormat*/) {
         TexTransformationParams params;
         params.inputWidth = width;
         params.inputHeight = height;
@@ -64,19 +68,17 @@ void GLASS_tilingImpl(u32 srcAddr, u32 dstAddr, GLsizei width, GLsizei height, G
         params.outputHeight = params.inputHeight;
         params.outputFormat = params.inputFormat;
         params.verticalFlip = false;
-        params.makeTiled = true;
-        GLASS_gx_transformTexture(srcAddr, dstAddr, &params);
+        params.makeTiled = makeTiled;
+        GLASS_gx_transformTexture((u32)srcAddr, (u32)dstAddr, &params);
     } else {
-        ASSERT(!glassIsVRAM((void*)srcAddr));
-        ASSERT(!glassIsVRAM((void*)dstAddr));
-        GLASS_swTiling((u8*)srcAddr, (u8*)dstAddr, width, height, GLASS_tex_bpp(format, type), makeTiled);
+        GLASS_swTiling(srcAddr, dstAddr, width, height, GLASS_tex_bpp(format, type), makeTiled);
     }
 }
 
-void GLASS_tex_makeTiled(u32 srcAddr, u32 dstAddr, GLsizei width, GLsizei height, GLenum format, GLenum type) {
+void GLASS_tex_makeTiled(const u8* srcAddr, u8* dstAddr, size_t width, size_t height, GLenum format, GLenum type) {
     GLASS_tilingImpl(srcAddr, dstAddr, width, height, format, type, true);
 }
 
-void GLASS_tex_makeLinear(u32 srcAddr, u32 dstAddr, GLsizei width, GLsizei height, GLenum format, GLenum type) {
+void GLASS_tex_makeLinear(const u8* srcAddr, u8* dstAddr, size_t width, size_t height, GLenum format, GLenum type) {
     GLASS_tilingImpl(srcAddr, dstAddr, width, height, format, type, false);
 }

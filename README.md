@@ -17,5 +17,7 @@ Additionally, many thanks to:
 - **[Swiftloke](https://github.com/Swiftloke)**
 - **[PSI](https://github.com/PSI-Rockin)**
 - **[DeltaV](https://github.com/LiquidFenrir)**
+- **[neobrain](https://github.com/neobrain)**
+- **[profi200](https://github.com/profi200)**
 
 for providing informations about the GPU, graphics, and generally being helpful.
