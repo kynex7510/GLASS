@@ -89,16 +89,23 @@ void glClear(GLbitfield mask) {
 
     // Clear early depth buffer.
     if (HAS_EARLY_DEPTH(mask))
-        ctx->flags |= CONTEXT_FLAG_EARLY_DEPTH_CLEAR;
+        ctx->flags |= GLASS_CONTEXT_FLAG_EARLY_DEPTH_CLEAR;
 
     // Clear framebuffers.
-    if (HAS_COLOR(mask) || HAS_DEPTH(mask)) {
-        FramebufferInfo* fb = (FramebufferInfo*)ctx->framebuffer;
-        RenderbufferInfo* colorBuffer = HAS_COLOR(mask) ? fb->colorBuffer : NULL;
-        const u32 clearColor = colorBuffer ? GLASS_makeClearColor(colorBuffer->format, ctx->clearColor) : 0;
-        RenderbufferInfo* depthBuffer = HAS_DEPTH(mask) ? fb->depthBuffer : NULL;
-        const u32 clearDepth = depthBuffer ? GLASS_makeClearDepth(depthBuffer->format, ctx->clearDepth, ctx->clearStencil) : 0;
-        GLASS_gx_clearBuffers(colorBuffer, clearColor, depthBuffer, clearDepth);
+    FramebufferInfo* fb = (FramebufferInfo*)ctx->framebuffer;
+
+    RenderbufferInfo* cb = NULL;
+    if (HAS_COLOR(mask))
+        cb = (RenderbufferInfo*)fb->colorBuffer;
+    
+    RenderbufferInfo* db = NULL;
+    if (HAS_DEPTH(mask))
+        db = (RenderbufferInfo*)fb->depthBuffer;
+
+    if (cb || db) {
+        const u32 clearColor = cb ? GLASS_makeClearColor(cb->format, ctx->clearColor) : 0;
+        const u32 clearDepth = db ? GLASS_makeClearDepth(db->format, ctx->clearDepth, ctx->clearStencil) : 0;
+        GLASS_gx_clearBuffers(cb, clearColor, db, clearDepth);
     }
 }
 
@@ -154,7 +161,7 @@ void glDrawArrays(GLenum mode, GLint first, GLsizei count) {
     GLASS_gpu_enableCommands();
     GLASS_gpu_drawArrays(mode, first, count);
     GLASS_gpu_disableCommands();
-    ctx->flags |= CONTEXT_FLAG_DRAW;
+    ctx->flags |= GLASS_CONTEXT_FLAG_DRAW;
 }
 
 void glDrawElements(GLenum mode, GLsizei count, GLenum type, const GLvoid* indices) {
@@ -195,7 +202,7 @@ void glDrawElements(GLenum mode, GLsizei count, GLenum type, const GLvoid* indic
     GLASS_gpu_enableCommands();
     GLASS_gpu_drawElements(mode, count, type, physAddr);
     GLASS_gpu_disableCommands();
-    ctx->flags |= CONTEXT_FLAG_DRAW;
+    ctx->flags |= GLASS_CONTEXT_FLAG_DRAW;
 }
 
 void glFlush(void) { GLASS_context_flush(); }

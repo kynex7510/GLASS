@@ -94,7 +94,7 @@ static void GLASS_decShaderRefc(ShaderInfo* shader) {
         --shader->refc;
 
     if (!shader->refc) {
-        ASSERT(shader->flags & SHADER_FLAG_DELETE);
+        ASSERT(shader->flags & GLASS_SHADER_FLAG_DELETE);
 
         if (shader->sharedData)
             GLASS_decSharedDataRefc(shader->sharedData);
@@ -110,7 +110,7 @@ static void GLASS_detachFromProgram(ProgramInfo* pinfo, ShaderInfo* sinfo) {
 
     const GLuint sobj = (GLuint)sinfo;
 
-    if (sinfo->flags & SHADER_FLAG_GEOMETRY) {
+    if (sinfo->flags & GLASS_SHADER_FLAG_GEOMETRY) {
         if (pinfo->attachedGeometry != sobj) {
             GLASS_context_setError(GL_INVALID_OPERATION);
             return;
@@ -131,18 +131,18 @@ static void GLASS_detachFromProgram(ProgramInfo* pinfo, ShaderInfo* sinfo) {
 
 static void GLASS_freeProgram(ProgramInfo* info) {
     ASSERT(info);
-    ASSERT(info->flags & PROGRAM_FLAG_DELETE);
+    ASSERT(info->flags & GLASS_PROGRAM_FLAG_DELETE);
 
-    if (OBJ_IS_SHADER(info->attachedVertex))
+    if (GLASS_OBJ_IS_SHADER(info->attachedVertex))
         GLASS_decShaderRefc((ShaderInfo*)info->attachedVertex);
 
-    if (OBJ_IS_SHADER(info->attachedGeometry))
+    if (GLASS_OBJ_IS_SHADER(info->attachedGeometry))
         GLASS_decShaderRefc((ShaderInfo*)info->attachedGeometry);
 
-    if (OBJ_IS_SHADER(info->linkedVertex))
+    if (GLASS_OBJ_IS_SHADER(info->linkedVertex))
         GLASS_decShaderRefc((ShaderInfo*)info->linkedVertex);
 
-    if (OBJ_IS_SHADER(info->linkedGeometry))
+    if (GLASS_OBJ_IS_SHADER(info->linkedGeometry))
         GLASS_decShaderRefc((ShaderInfo*)info->linkedGeometry);
 
     glassVirtualFree(info);
@@ -153,12 +153,12 @@ static size_t GLASS_numActiveUniforms(ProgramInfo* info) {
 
     size_t numOfActiveUniforms = 0;
 
-    if (OBJ_IS_SHADER(info->linkedVertex)) {
+    if (GLASS_OBJ_IS_SHADER(info->linkedVertex)) {
         ShaderInfo* vshad = (ShaderInfo*)info->linkedVertex;
         numOfActiveUniforms = vshad->numOfActiveUniforms;
     }
 
-    if (OBJ_IS_SHADER(info->linkedGeometry)) {
+    if (GLASS_OBJ_IS_SHADER(info->linkedGeometry)) {
         ShaderInfo* gshad = (ShaderInfo*)info->linkedGeometry;
         numOfActiveUniforms += gshad->numOfActiveUniforms;
     }
@@ -171,12 +171,12 @@ static size_t GLASS_lenActiveUniforms(ProgramInfo* info) {
 
     size_t lenOfActiveUniforms = 0;
 
-    if (OBJ_IS_SHADER(info->linkedVertex)) {
+    if (GLASS_OBJ_IS_SHADER(info->linkedVertex)) {
         ShaderInfo* vshad = (ShaderInfo*)info->linkedVertex;
         if (vshad->activeUniformsMaxLen > lenOfActiveUniforms)
             lenOfActiveUniforms = vshad->activeUniformsMaxLen;
 
-        if (OBJ_IS_SHADER(info->linkedGeometry)) {
+        if (GLASS_OBJ_IS_SHADER(info->linkedGeometry)) {
             ShaderInfo* gshad = (ShaderInfo*)info->linkedGeometry;
             if (gshad->activeUniformsMaxLen > lenOfActiveUniforms)
                 lenOfActiveUniforms = gshad->activeUniformsMaxLen;
@@ -192,12 +192,12 @@ static size_t GLASS_numActiveAttribs(ProgramInfo* info) {
 
     size_t numOfActiveAttribs = 0;
 
-    if (OBJ_IS_SHADER(info->linkedVertex)) {
+    if (GLASS_OBJ_IS_SHADER(info->linkedVertex)) {
         ShaderInfo* vshad = (ShaderInfo*)info->linkedVertex;
         numOfActiveAttribs = vshad->numOfActiveAttribs;
     }
 
-    if (OBJ_IS_SHADER(info->linkedGeometry)) {
+    if (GLASS_OBJ_IS_SHADER(info->linkedGeometry)) {
         ShaderInfo* gshad = (ShaderInfo*)info->linkedGeometry;
         numOfActiveAttribs += gshad->numOfActiveAttribs;
     }
@@ -210,12 +210,12 @@ static size_t GLASS_lenActiveAttribs(ProgramInfo* info) {
 
     size_t lenOfActiveAttribs = 0;
 
-    if (OBJ_IS_SHADER(info->linkedVertex)) {
+    if (GLASS_OBJ_IS_SHADER(info->linkedVertex)) {
         ShaderInfo* vshad = (ShaderInfo*)info->linkedVertex;
         if (vshad->activeAttribsMaxLen > lenOfActiveAttribs)
             lenOfActiveAttribs = vshad->activeAttribsMaxLen;
 
-        if (OBJ_IS_SHADER(info->linkedGeometry)) {
+        if (GLASS_OBJ_IS_SHADER(info->linkedGeometry)) {
             ShaderInfo* gshad = (ShaderInfo*)info->linkedGeometry;
             if (gshad->activeAttribsMaxLen > lenOfActiveAttribs)
                 lenOfActiveAttribs = gshad->activeAttribsMaxLen;
@@ -232,11 +232,11 @@ static size_t GLASS_lookupShader(const GLuint* shaders, size_t maxShaders, size_
         GLuint name = shaders[i];
 
         // Force failure if one of the shaders is invalid.
-        if (!OBJ_IS_SHADER(name))
+        if (!GLASS_OBJ_IS_SHADER(name))
             break;
 
         ShaderInfo* shader = (ShaderInfo*)name;
-        if (((shader->flags & SHADER_FLAG_GEOMETRY) == SHADER_FLAG_GEOMETRY) == isGeometry)
+        if (((shader->flags & GLASS_SHADER_FLAG_GEOMETRY) == GLASS_SHADER_FLAG_GEOMETRY) == isGeometry)
             return i;
     }
 
@@ -482,9 +482,9 @@ static void GLASS_generateOutmaps(const DVLEInfo* info, ShaderInfo* out) {
     }
 
     if (useTexcoords) {
-        out->flags |= SHADER_FLAG_USE_TEXCOORDS;
+        out->flags |= GLASS_SHADER_FLAG_USE_TEXCOORDS;
     } else {
-        out->flags &= ~SHADER_FLAG_USE_TEXCOORDS;
+        out->flags &= ~GLASS_SHADER_FLAG_USE_TEXCOORDS;
     }
 }
 
@@ -661,7 +661,7 @@ static bool GLASS_loadUniforms(const DVLEInfo* info, ShaderInfo* out) {
 }
 
 void glAttachShader(GLuint program, GLuint shader) {
-    if (!OBJ_IS_PROGRAM(program) || !OBJ_IS_SHADER(shader)) {
+    if (!GLASS_OBJ_IS_PROGRAM(program) || !GLASS_OBJ_IS_SHADER(shader)) {
         GLASS_context_setError(GL_INVALID_OPERATION);
         return;
     }
@@ -670,15 +670,15 @@ void glAttachShader(GLuint program, GLuint shader) {
     ShaderInfo* sinfo = (ShaderInfo*)shader;
 
     // Attach shader to program.
-    if (sinfo->flags & SHADER_FLAG_GEOMETRY) {
-        if (OBJ_IS_SHADER(pinfo->attachedGeometry)) {
+    if (sinfo->flags & GLASS_SHADER_FLAG_GEOMETRY) {
+        if (GLASS_OBJ_IS_SHADER(pinfo->attachedGeometry)) {
             GLASS_context_setError(GL_INVALID_OPERATION);
             return;
         }
 
         pinfo->attachedGeometry = shader;
     } else {
-        if (OBJ_IS_SHADER(pinfo->attachedVertex)) {
+        if (GLASS_OBJ_IS_SHADER(pinfo->attachedVertex)) {
             GLASS_context_setError(GL_INVALID_OPERATION);
             return;
         }
@@ -692,7 +692,7 @@ void glAttachShader(GLuint program, GLuint shader) {
 
 GLuint glCreateProgram(void) {
     GLuint name = GLASS_createObject(GLASS_PROGRAM_TYPE);
-    if (OBJ_IS_PROGRAM(name)) {
+    if (GLASS_OBJ_IS_PROGRAM(name)) {
         ProgramInfo* info = (ProgramInfo*)name;
         info->attachedVertex = GLASS_INVALID_OBJECT;
         info->linkedVertex = GLASS_INVALID_OBJECT;
@@ -713,7 +713,7 @@ GLuint glCreateShader(GLenum shaderType) {
         case GL_VERTEX_SHADER:
             break;
         case GL_GEOMETRY_SHADER_PICA:
-            flags = SHADER_FLAG_GEOMETRY;
+            flags = GLASS_SHADER_FLAG_GEOMETRY;
             break;
         default:
             GLASS_context_setError(GL_INVALID_ENUM);
@@ -722,7 +722,7 @@ GLuint glCreateShader(GLenum shaderType) {
 
     // Create shader.
     GLuint name = GLASS_createObject(GLASS_SHADER_TYPE);
-    if (OBJ_IS_SHADER(name)) {
+    if (GLASS_OBJ_IS_SHADER(name)) {
         ShaderInfo* info = (ShaderInfo*)name;
         info->flags = flags;
         info->refc = 1;
@@ -738,7 +738,7 @@ void glDeleteProgram(GLuint program) {
     if (program == GLASS_INVALID_OBJECT)
         return;
 
-    if (!OBJ_IS_PROGRAM(program)) {
+    if (!GLASS_OBJ_IS_PROGRAM(program)) {
         GLASS_context_setError(GL_INVALID_VALUE);
         return;
     }
@@ -747,8 +747,8 @@ void glDeleteProgram(GLuint program) {
     ProgramInfo* info = (ProgramInfo*)program;
 
     // Flag for deletion.
-    if (!(info->flags & PROGRAM_FLAG_DELETE)) {
-        info->flags |= PROGRAM_FLAG_DELETE;
+    if (!(info->flags & GLASS_PROGRAM_FLAG_DELETE)) {
+        info->flags |= GLASS_PROGRAM_FLAG_DELETE;
         if (ctx->currentProgram != program)
             GLASS_freeProgram(info);
     }
@@ -759,7 +759,7 @@ void glDeleteShader(GLuint shader) {
     if (shader == GLASS_INVALID_OBJECT)
         return;
 
-    if (!OBJ_IS_SHADER(shader)) {
+    if (!GLASS_OBJ_IS_SHADER(shader)) {
         GLASS_context_setError(GL_INVALID_VALUE);
         return;
     }
@@ -767,14 +767,14 @@ void glDeleteShader(GLuint shader) {
     ShaderInfo* info = (ShaderInfo*)shader;
 
     // Flag for deletion.
-    if (!(info->flags & SHADER_FLAG_DELETE)) {
-        info->flags |= SHADER_FLAG_DELETE;
+    if (!(info->flags & GLASS_SHADER_FLAG_DELETE)) {
+        info->flags |= GLASS_SHADER_FLAG_DELETE;
         GLASS_decShaderRefc(info);
     }
 }
 
 void glDetachShader(GLuint program, GLuint shader) {
-    if (!OBJ_IS_PROGRAM(program) || !OBJ_IS_SHADER(shader)) {
+    if (!GLASS_OBJ_IS_PROGRAM(program) || !GLASS_OBJ_IS_SHADER(shader)) {
         GLASS_context_setError(GL_INVALID_OPERATION);
         return;
     }
@@ -789,7 +789,7 @@ void glGetAttachedShaders(GLuint program, GLsizei maxCount, GLsizei* count, GLui
 
     GLsizei shaderCount = 0;
 
-    if (!OBJ_IS_PROGRAM(program)) {
+    if (!GLASS_OBJ_IS_PROGRAM(program)) {
         GLASS_context_setError(GL_INVALID_OPERATION);
         return;
     }
@@ -803,12 +803,12 @@ void glGetAttachedShaders(GLuint program, GLsizei maxCount, GLsizei* count, GLui
 
     // Get shaders.
     if (shaderCount < maxCount) {
-        if (OBJ_IS_SHADER(info->attachedVertex))
+        if (GLASS_OBJ_IS_SHADER(info->attachedVertex))
             shaders[shaderCount++] = info->attachedVertex;
     }
 
     if (shaderCount < maxCount) {
-        if (OBJ_IS_SHADER(info->attachedGeometry))
+        if (GLASS_OBJ_IS_SHADER(info->attachedGeometry))
             shaders[shaderCount++] = info->attachedGeometry;
     }
 
@@ -820,7 +820,7 @@ void glGetAttachedShaders(GLuint program, GLsizei maxCount, GLsizei* count, GLui
 void glGetProgramiv(GLuint program, GLenum pname, GLint* params) {
     ASSERT(params);
 
-    if (!OBJ_IS_PROGRAM(program)) {
+    if (!GLASS_OBJ_IS_PROGRAM(program)) {
         GLASS_context_setError(GL_INVALID_OPERATION);
         return;
     }
@@ -830,10 +830,10 @@ void glGetProgramiv(GLuint program, GLenum pname, GLint* params) {
     // Get parameter.
     switch (pname) {
         case GL_DELETE_STATUS:
-            *params = (info->flags & PROGRAM_FLAG_DELETE) ? GL_TRUE : GL_FALSE;
+            *params = (info->flags & GLASS_PROGRAM_FLAG_DELETE) ? GL_TRUE : GL_FALSE;
             break;
         case GL_LINK_STATUS:
-            *params = (info->flags & PROGRAM_FLAG_LINK_FAILED) ? GL_FALSE : GL_TRUE;
+            *params = (info->flags & GLASS_PROGRAM_FLAG_LINK_FAILED) ? GL_FALSE : GL_TRUE;
             break;
         case GL_VALIDATE_STATUS:
             *params = GL_TRUE;
@@ -842,9 +842,9 @@ void glGetProgramiv(GLuint program, GLenum pname, GLint* params) {
             *params = 0;
             break;
         case GL_ATTACHED_SHADERS:
-            if (OBJ_IS_SHADER(info->attachedVertex) && OBJ_IS_SHADER(info->attachedGeometry)) {
+            if (GLASS_OBJ_IS_SHADER(info->attachedVertex) && GLASS_OBJ_IS_SHADER(info->attachedGeometry)) {
                *params = 2;
-            } else if (OBJ_IS_SHADER(info->attachedVertex) || OBJ_IS_SHADER(info->attachedGeometry)) {
+            } else if (GLASS_OBJ_IS_SHADER(info->attachedVertex) || GLASS_OBJ_IS_SHADER(info->attachedGeometry)) {
                *params = 1;
             }  else {
                *params = 0;
@@ -870,7 +870,7 @@ void glGetProgramiv(GLuint program, GLenum pname, GLint* params) {
 void glGetShaderiv(GLuint shader, GLenum pname, GLint* params) {
     ASSERT(params);
 
-    if (!OBJ_IS_SHADER(shader)) {
+    if (!GLASS_OBJ_IS_SHADER(shader)) {
         GLASS_context_setError(GL_INVALID_OPERATION);
         return;
     }
@@ -880,10 +880,10 @@ void glGetShaderiv(GLuint shader, GLenum pname, GLint* params) {
     // Get parameter.
     switch (pname) {
         case GL_SHADER_TYPE:
-            *params = (info->flags & SHADER_FLAG_GEOMETRY) ? GL_GEOMETRY_SHADER_PICA : GL_VERTEX_SHADER;
+            *params = (info->flags & GLASS_SHADER_FLAG_GEOMETRY) ? GL_GEOMETRY_SHADER_PICA : GL_VERTEX_SHADER;
             break;
         case GL_DELETE_STATUS:
-            *params = (info->flags & SHADER_FLAG_DELETE) ? GL_TRUE : GL_FALSE;
+            *params = (info->flags & GLASS_SHADER_FLAG_DELETE) ? GL_TRUE : GL_FALSE;
             break;
         case GL_COMPILE_STATUS:
         case GL_INFO_LOG_LENGTH:
@@ -895,11 +895,11 @@ void glGetShaderiv(GLuint shader, GLenum pname, GLint* params) {
     }
 }
 
-GLboolean glIsProgram(GLuint program) { return OBJ_IS_PROGRAM(program) ? GL_TRUE : GL_FALSE; }
-GLboolean glIsShader(GLuint shader) { return OBJ_IS_SHADER(shader) ? GL_TRUE : GL_FALSE; }
+GLboolean glIsProgram(GLuint program) { return GLASS_OBJ_IS_PROGRAM(program) ? GL_TRUE : GL_FALSE; }
+GLboolean glIsShader(GLuint shader) { return GLASS_OBJ_IS_SHADER(shader) ? GL_TRUE : GL_FALSE; }
 
 void glLinkProgram(GLuint program) {
-    if (!OBJ_IS_PROGRAM(program)) {
+    if (!GLASS_OBJ_IS_PROGRAM(program)) {
         GLASS_context_setError(GL_INVALID_OPERATION);
         return;
     }
@@ -907,8 +907,8 @@ void glLinkProgram(GLuint program) {
     ProgramInfo* pinfo = (ProgramInfo*)program;
 
     // Check for attached vertex shader (required).
-    if (!OBJ_IS_SHADER(pinfo->attachedVertex)) {
-        pinfo->flags |= PROGRAM_FLAG_LINK_FAILED;
+    if (!GLASS_OBJ_IS_SHADER(pinfo->attachedVertex)) {
+        pinfo->flags |= GLASS_PROGRAM_FLAG_LINK_FAILED;
         return;
     }
 
@@ -918,41 +918,41 @@ void glLinkProgram(GLuint program) {
 
         // Check load.
         if (!vsinfo->sharedData) {
-            pinfo->flags |= PROGRAM_FLAG_LINK_FAILED;
+            pinfo->flags |= GLASS_PROGRAM_FLAG_LINK_FAILED;
             return;
         }
 
         // Unlink old vertex shader.
-        if (OBJ_IS_SHADER(pinfo->linkedVertex))
+        if (GLASS_OBJ_IS_SHADER(pinfo->linkedVertex))
             GLASS_decShaderRefc((ShaderInfo*)pinfo->linkedVertex);
 
         // Link new vertex shader.
-        pinfo->flags |= PROGRAM_FLAG_UPDATE_VERTEX;
+        pinfo->flags |= GLASS_PROGRAM_FLAG_UPDATE_VERTEX;
         pinfo->linkedVertex = pinfo->attachedVertex;
         ++vsinfo->refc;
     }
 
     // Check for attached geometry shader (optional).
-    if (OBJ_IS_SHADER(pinfo->attachedGeometry) && (pinfo->attachedGeometry != pinfo->linkedGeometry)) {
+    if (GLASS_OBJ_IS_SHADER(pinfo->attachedGeometry) && (pinfo->attachedGeometry != pinfo->linkedGeometry)) {
         ShaderInfo* gsinfo = (ShaderInfo*)pinfo->attachedGeometry;
 
         // Check load.
         if (!gsinfo->sharedData) {
-            pinfo->flags |= PROGRAM_FLAG_LINK_FAILED;
+            pinfo->flags |= GLASS_PROGRAM_FLAG_LINK_FAILED;
             return;
         }
 
         // Unlink old geometry shader.
-        if (OBJ_IS_SHADER(pinfo->linkedGeometry))
+        if (GLASS_OBJ_IS_SHADER(pinfo->linkedGeometry))
             GLASS_decShaderRefc((ShaderInfo*)pinfo->linkedGeometry);
 
         // Link new geometry shader.
-        pinfo->flags |= PROGRAM_FLAG_UPDATE_GEOMETRY;
+        pinfo->flags |= GLASS_PROGRAM_FLAG_UPDATE_GEOMETRY;
         pinfo->linkedGeometry = pinfo->attachedGeometry;
         ++gsinfo->refc;
     }
 
-    pinfo->flags &= ~PROGRAM_FLAG_LINK_FAILED;
+    pinfo->flags &= ~GLASS_PROGRAM_FLAG_LINK_FAILED;
 }
 
 void glShaderBinary(GLsizei n, const GLuint* shaders, GLenum binaryformat, const void* binary, GLsizei length) {
@@ -1013,9 +1013,9 @@ void glShaderBinary(GLsizei n, const GLuint* shaders, GLenum binaryformat, const
         // Build shader.
         ShaderInfo* shader = (ShaderInfo*)shaders[index];
         if (info.mergeOutmaps) {
-            shader->flags |= SHADER_FLAG_MERGE_OUTMAPS;
+            shader->flags |= GLASS_SHADER_FLAG_MERGE_OUTMAPS;
         } else {
-            shader->flags &= ~SHADER_FLAG_MERGE_OUTMAPS;
+            shader->flags &= ~GLASS_SHADER_FLAG_MERGE_OUTMAPS;
         }
 
         shader->codeEntrypoint = info.entrypoint;
@@ -1069,7 +1069,7 @@ glShaderBinary_skip:
 }
 
 void glUseProgram(GLuint program) {
-    if (!OBJ_IS_PROGRAM(program) && (program != GLASS_INVALID_OBJECT)) {
+    if (!GLASS_OBJ_IS_PROGRAM(program) && (program != GLASS_INVALID_OBJECT)) {
         GLASS_context_setError(GL_INVALID_OPERATION);
         return;
     }
@@ -1079,21 +1079,21 @@ void glUseProgram(GLuint program) {
     // Check if already in use.
     if (ctx->currentProgram != program) {
         // Check if program is linked.
-        if (OBJ_IS_PROGRAM(program)) {
+        if (GLASS_OBJ_IS_PROGRAM(program)) {
         ProgramInfo* info = (ProgramInfo*)program;
-            if (info->flags & PROGRAM_FLAG_LINK_FAILED) {
+            if (info->flags & GLASS_PROGRAM_FLAG_LINK_FAILED) {
                 GLASS_context_setError(GL_INVALID_VALUE);
                 return;
             }
         }
 
         // Remove program.
-        if (OBJ_IS_PROGRAM(ctx->currentProgram))
+        if (GLASS_OBJ_IS_PROGRAM(ctx->currentProgram))
             GLASS_freeProgram((ProgramInfo*)ctx->currentProgram);
 
         // Set program.
         ctx->currentProgram = program;
-        ctx->flags |= CONTEXT_FLAG_PROGRAM;
+        ctx->flags |= GLASS_CONTEXT_FLAG_PROGRAM;
     }
 }
 

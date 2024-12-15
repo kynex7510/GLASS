@@ -6,15 +6,15 @@ static void GLASS_setCapability(GLenum cap, bool enabled) {
     switch (cap) {
         case GL_CULL_FACE:
             ctx->cullFace = enabled;
-            ctx->flags |= CONTEXT_FLAG_CULL_FACE;
+            ctx->flags |= GLASS_CONTEXT_FLAG_CULL_FACE;
             return;
         case GL_SCISSOR_TEST:
             ctx->scissorMode = (enabled ? GPU_SCISSOR_NORMAL : GPU_SCISSOR_DISABLE);
-            ctx->flags |= CONTEXT_FLAG_SCISSOR;
+            ctx->flags |= GLASS_CONTEXT_FLAG_SCISSOR;
             return;
         case GL_SCISSOR_TEST_INVERTED_PICA:
             ctx->scissorMode = (enabled ? GPU_SCISSOR_INVERT : GPU_SCISSOR_DISABLE);
-            ctx->flags |= CONTEXT_FLAG_SCISSOR;
+            ctx->flags |= GLASS_CONTEXT_FLAG_SCISSOR;
             return;
     }
 

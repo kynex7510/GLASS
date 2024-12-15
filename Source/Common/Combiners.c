@@ -114,7 +114,7 @@ void glCombinerSrcPICA(GLenum pname, GLenum src) {
 
     if (*combinerSrc != src) {
         *combinerSrc = src;
-        ctx->flags |= CONTEXT_FLAG_COMBINERS;
+        ctx->flags |= GLASS_CONTEXT_FLAG_COMBINERS;
     }
 }
 
@@ -129,7 +129,7 @@ void glCombinerColorPICA(GLclampf red, GLclampf green, GLclampf blue, GLclampf a
 
     if (combiner->color != color) {
         combiner->color = color;
-        ctx->flags |= CONTEXT_FLAG_COMBINERS;
+        ctx->flags |= GLASS_CONTEXT_FLAG_COMBINERS;
     }
 }
 
@@ -175,7 +175,7 @@ void glCombinerOpPICA(GLenum pname, GLenum op) {
 
     if (*combinerOp != op) {
         *combinerOp = op;
-        ctx->flags |= CONTEXT_FLAG_COMBINERS;
+        ctx->flags |= GLASS_CONTEXT_FLAG_COMBINERS;
     }
 }
 
@@ -205,7 +205,7 @@ void glCombinerFuncPICA(GLenum pname, GLenum func) {
 
     if (*combinerFunc != func) {
         *combinerFunc = func;
-        ctx->flags |= CONTEXT_FLAG_COMBINERS;
+        ctx->flags |= GLASS_CONTEXT_FLAG_COMBINERS;
     }
 }
 
@@ -235,6 +235,6 @@ void glCombinerScalePICA(GLenum pname, GLfloat scale) {
 
     if (*combinerScale != scale) {
         *combinerScale = scale;
-        ctx->flags |= CONTEXT_FLAG_COMBINERS;
+        ctx->flags |= GLASS_CONTEXT_FLAG_COMBINERS;
     }
 }

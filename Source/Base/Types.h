@@ -6,68 +6,55 @@
 
 #include <stddef.h>
 
-#define OBJ_IS_BUFFER(x) GLASS_checkObjectType((x), GLASS_BUFFER_TYPE)
-#define OBJ_IS_TEXTURE(x) GLASS_checkObjectType((x), GLASS_TEXTURE_TYPE)
-#define OBJ_IS_PROGRAM(x) GLASS_checkObjectType((x), GLASS_PROGRAM_TYPE)
-#define OBJ_IS_SHADER(x) GLASS_checkObjectType((x), GLASS_SHADER_TYPE)
-#define OBJ_IS_FRAMEBUFFER(x) GLASS_checkObjectType((x), GLASS_FRAMEBUFFER_TYPE)
-#define OBJ_IS_RENDERBUFFER(x) GLASS_checkObjectType((x), GLASS_RENDERBUFFER_TYPE)
+#define GLASS_OBJ_IS_BUFFER(x) GLASS_checkObjectType((x), GLASS_BUFFER_TYPE)
+#define GLASS_OBJ_IS_RENDERBUFFER(x) GLASS_checkObjectType((x), GLASS_RENDERBUFFER_TYPE)
+#define GLASS_OBJ_IS_FRAMEBUFFER(x) GLASS_checkObjectType((x), GLASS_FRAMEBUFFER_TYPE)
+
+#define GLASS_OBJ_IS_PROGRAM(x) GLASS_checkObjectType((x), GLASS_PROGRAM_TYPE)
+#define GLASS_OBJ_IS_SHADER(x) GLASS_checkObjectType((x), GLASS_SHADER_TYPE)
+
+
+#define GLASS_OBJ_IS_TEXTURE(x) GLASS_checkObjectType((x), GLASS_TEXTURE_TYPE)
+
+#define GLASS_OBJ(name) u32 _glObjectType
 
 typedef struct {
-    u32 type;     // GL type (GLASS_BUFFER_TYPE).
+    u32 glObjectType; // GL object type.
+} GLObjectInfo;
+
+typedef struct {
+    GLASS_OBJ(GLASS_BUFFER_TYPE);
     u8* address;  // Data address.
     GLenum usage; // Buffer usage type.
-    u16 flags;    // Buffer flags.
+    bool bound;   // If this buffer has been bound.
 } BufferInfo;
 
 typedef struct {
-    u32 type;                       // GL type (GLASS_TEXTURE_TYPE).
-    GLenum target;                  // Texture target.
-    GLenum format;                  // Texture format.
-    GLenum dataType;                // Texture data type.
-    u32 borderColor;                // Border color (ABGR).
-    u16 width;                      // Texture width.
-    u16 height;                     // Texture height.
-    GLenum minFilter;               // Min filter.
-    GLenum magFilter;               // Mag filter.
-    GLenum wrapS;                   // Wrap S.
-    GLenum wrapT;                   // Wrap T.
-    u8 minLod;                      // Min level of details.
-    u8 maxLod;                      // Max level of details.
-    u16 flags;                      // Texture flags.
-    float lodBias;                  // LOD bias.
-    u8* faces[GLASS_NUM_TEX_FACES]; // Texture data.
-} TextureInfo;
-
-typedef struct {
-    u32 type;       // GL type (GLASS_RENDERBUFFER_TYPE).
+    GLASS_OBJ(GLASS_RENDERBUFFER_TYPE);
     u8* address;    // Data address.
     GLsizei width;  // Buffer width.
     GLsizei height; // Buffer height.
     GLenum format;  // Buffer format.
-    u16 flags;      // Renderbuffer flags.
+    bool bound;     // If this renderbuffer has been bound.
 } RenderbufferInfo;
 
 typedef struct {
-    u32 type;                      // GL type (GLASS_FRAMEBUFFER_TYPE).
-    RenderbufferInfo* colorBuffer; // Bound color buffer.
-    RenderbufferInfo* depthBuffer; // Bound depth (+ stencil) buffer.
-    u32 flags;                     // Framebuffer flags.
+    GLASS_OBJ(GLASS_FRAMEBUFFER_TYPE);
+    GLuint colorBuffer; // Bound color buffer.
+    GLuint depthBuffer; // Bound depth (+ stencil) buffer.
+    bool bound;         // If this framebuffer has been bound.
 } FramebufferInfo;
 
 typedef struct {
-    GLenum type;           // Type of each component.
-    GLint count;           // Num of components.
-    GLsizei stride;        // Buffer stride.
-    GLuint boundBuffer;    // Bound array buffer.
-    u32 physAddr;          // Physical address to component data.
-    size_t bufferOffset;   // Offset to component data.
-    size_t bufferSize;     // Buffer size (actual stride).
-    GLfloat components[4]; // Fixed attrib X-Y-Z-W.
-    size_t sizeOfPrePad;   // Size of padding preceeding component data.
-    size_t sizeOfPostPad;  // Size of padding succeeding component data. 
-    u16 flags;             // Attribute flags.
-} AttributeInfo;
+    GLASS_OBJ(GLASS_PROGRAM_TYPE);
+    // Attached = result of glAttachShader.
+    // Linked = result of glLinkProgram.
+    GLuint attachedVertex;   // Attached vertex shader.
+    GLuint linkedVertex;     // Linked vertex shader.
+    GLuint attachedGeometry; // Attached geometry shader.
+    GLuint linkedGeometry;   // Linked geometry shader.
+    u32 flags;               // Program flags.
+} ProgramInfo;
 
 typedef struct {
     u32 refc;           // Reference count.
@@ -95,14 +82,13 @@ typedef struct {
     char* symbol; // Pointer to symbol.
 } ActiveAttribInfo;
 
-// Represents a constant float uniform.
 typedef struct {
     u8 ID;       // Constant ID.
     u32 data[3]; // Constant data.
 } ConstFloatInfo;
 
 typedef struct {
-    u32 type;                           // GL type (GLASS_SHADER_TYPE).
+    GLASS_OBJ(GLASS_SHADER_TYPE);
     SharedShaderData* sharedData;       // Shared shader data.
     size_t codeEntrypoint;              // Code entrypoint.
     DVLE_geoShaderMode gsMode;          // Mode for geometry shader.
@@ -128,26 +114,48 @@ typedef struct {
 } ShaderInfo;
 
 typedef struct {
-  u32 type; // GL type (GLASS_PROGRAM_TYPE).
-  // Attached = result of glAttachShader.
-  // Linked = result of glLinkProgram.
-  GLuint attachedVertex;   // Attached vertex shader.
-  GLuint linkedVertex;     // Linked vertex shader.
-  GLuint attachedGeometry; // Attached geometry shader.
-  GLuint linkedGeometry;   // Linked geometry shader.
-  u32 flags;               // Program flags.
-} ProgramInfo;
+    GLASS_OBJ(GLASS_TEXTURE_TYPE);
+    GLenum target;                  // Texture target.
+    GLenum format;                  // Texture format.
+    GLenum type;                    // Texture data type.
+    u16 width;                      // Texture width.
+    u16 height;                     // Texture height.
+    u8* faces[GLASS_NUM_TEX_FACES]; // Texture data.
+    u32 borderColor;                // Border color (ABGR).
+    GLenum minFilter;               // Minification filter.
+    GLenum magFilter;               // Magnification filter.
+    GLenum wrapS;                   // Wrap on the horizontal axis.
+    GLenum wrapT;                   // Wrap on the vertical axis.
+    float lodBias;                  // LOD bias.
+    u8 minLod;                      // Min level of details.
+    u8 maxLod;                      // Max level of details.
+    bool vram;                      // Allocate data on VRAM.
+} TextureInfo;
 
 typedef struct {
-  GLenum rgbSrc[3];   // RGB source 0-1-2.
-  GLenum alphaSrc[3]; // Alpha source 0-1-2.
-  GLenum rgbOp[3];    // RGB operand 0-1-2.
-  GLenum alphaOp[3];  // Alpha operand 0-1-2.
-  GLenum rgbFunc;     // RGB function.
-  GLenum alphaFunc;   // Alpha function.
-  GLfloat rgbScale;   // RGB scale.
-  GLfloat alphaScale; // Alpha scale.
-  u32 color;          // Constant color.
+    GLenum type;           // Type of each component.
+    GLint count;           // Num of components.
+    GLsizei stride;        // Buffer stride.
+    GLuint boundBuffer;    // Bound array buffer.
+    u32 physAddr;          // Physical address to component data.
+    size_t bufferOffset;   // Offset to component data.
+    size_t bufferSize;     // Buffer size (actual stride).
+    GLfloat components[4]; // Fixed attrib X-Y-Z-W.
+    size_t sizeOfPrePad;   // Size of padding preceeding component data.
+    size_t sizeOfPostPad;  // Size of padding succeeding component data. 
+    u16 flags;             // Attribute flags.
+} AttributeInfo;
+
+typedef struct {
+    GLenum rgbSrc[3];   // RGB source 0-1-2.
+    GLenum alphaSrc[3]; // Alpha source 0-1-2.
+    GLenum rgbOp[3];    // RGB operand 0-1-2.
+    GLenum alphaOp[3];  // Alpha operand 0-1-2.
+    GLenum rgbFunc;     // RGB function.
+    GLenum alphaFunc;   // Alpha function.
+    GLfloat rgbScale;   // RGB scale.
+    GLfloat alphaScale; // Alpha scale.
+    u32 color;          // Constant color.
 } CombinerInfo;
 
 typedef struct {

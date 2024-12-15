@@ -37,6 +37,9 @@ void GLASS_utility_abort(void) {
 
 #endif // NDEBUG
 
+bool GLASS_utility_isPowerOf2(u32 v) { return !(v & (v - 1)); }
+u32 GLASS_utility_nextPowerOf2(u32 v) { return 1 << (32 - __builtin_clz(v)); }
+
 void* GLASS_utility_convertPhysToVirt(u32 addr) {
 #define CONVERT_REGION(_name)                                              \
     if (addr >= OS_##_name##_PADDR &&                                      \

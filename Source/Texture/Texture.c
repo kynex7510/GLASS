@@ -190,74 +190,59 @@ size_t GLASS_tex_getSize(size_t width, size_t height, GLenum format, GLenum type
     return (((width >> level) * (height >> level) * GLASS_tex_bpp(format, type)) >> 3);
 }
 
-static size_t GLASS_dimLevels(size_t dim) {
-    size_t n = 1;
-    while (dim > 8) {
-        dim >>= 1;
-        ++n;
-    }
-    return n;
-}
+static size_t GLASS_numTexLevels(GLsizei width, GLsizei height) {
+    if (GLASS_utility_isPowerOf2(width) && GLASS_utility_isPowerOf2(height))
+        return 28 - __builtin_clz(MAX(width, height));
 
-static size_t GLASS_calculateTexLevels(GLsizei width, GLsizei height) {
-    const size_t widthLevels = GLASS_dimLevels(width);
-    const size_t heightLevels = GLASS_dimLevels(height);
-    return MIN(widthLevels, heightLevels);
+    return 1;
 }
 
 size_t GLASS_tex_getAllocSize(size_t width, size_t height, GLenum format, GLenum type) {
-    return GLASS_tex_getOffset(width, height, format, type, GLASS_calculateTexLevels(width, height));
+    return GLASS_tex_getOffset(width, height, format, type, GLASS_numTexLevels(width, height));
 }
 
 void GLASS_tex_set(TextureInfo* tex, size_t width, size_t height, GLenum format, GLenum type, bool vram, u8** faces) {
     ASSERT(tex);
     ASSERT(faces);
-    ASSERT(tex->flags & TEXTURE_FLAG_BOUND);
+    ASSERT(tex->target != GLASS_TEX_TARGET_UNBOUND);
 
     const size_t numFaces = GLASS_tex_getNumFaces(tex->target);
-    const bool hadVRAM = tex->flags & TEXTURE_FLAG_VRAM;
     for (size_t i = 0; i < numFaces; ++i) {
         u8* p = tex->faces[i];
-        hadVRAM ? glassVRAMFree(p) : glassLinearFree(p);
+        tex->vram ? glassVRAMFree(p) : glassLinearFree(p);
         tex->faces[i] = faces[i];
     }
 
     tex->width = width;
     tex->height = height;
     tex->format = format;
-    tex->dataType = type;
-
-    if (vram) {
-        tex->flags |= TEXTURE_FLAG_VRAM;
-    } else {
-        tex->flags &= ~(TEXTURE_FLAG_VRAM);
-    }
-
-    tex->flags |= TEXTURE_FLAG_INITIALIZED;
+    tex->type = type;
+    tex->vram = vram;
 }
 
 bool GLASS_reallocTexImpl(TextureInfo* tex, size_t width, size_t height, GLenum format, GLenum type, bool vram) {
     ASSERT(tex);
-    ASSERT(tex->flags & TEXTURE_FLAG_BOUND);
+    ASSERT(tex->target != GLASS_TEX_TARGET_UNBOUND);
 
     const size_t numFaces = GLASS_tex_getNumFaces(tex->target);
     const size_t allocSize = GLASS_tex_getAllocSize(width, height, format, type);
-    ASSERT(allocSize);
 
     u8* faces[GLASS_NUM_TEX_FACES];
     memset(faces, 0, GLASS_NUM_TEX_FACES * sizeof(u8*));
 
-    for (size_t i = 0; i < numFaces; ++i) {
-        faces[i] = vram ? glassVRAMAlloc(allocSize, VRAM_ALLOC_ANY) : glassLinearAlloc(allocSize);
-        if (!faces[i]) {
-            // Free allocated buffers.
-            for (size_t j = 0; j < i; ++j) {
-                u8* q = faces[j];
-                vram ? glassVRAMFree(q) : glassLinearFree(q);
-            }
+    if (allocSize) {
+        for (size_t i = 0; i < numFaces; ++i) {
+            faces[i] = vram ? glassVRAMAlloc(allocSize, VRAM_ALLOC_ANY) : glassLinearAlloc(allocSize);
+            if (!faces[i]) {
+                // Free allocated buffers.
+                for (size_t j = 0; j < i; ++j) {
+                    u8* q = faces[j];
+                    vram ? glassVRAMFree(q) : glassLinearFree(q);
+                }
 
-            GLASS_context_setError(GL_OUT_OF_MEMORY);
-            return false;
+                GLASS_context_setError(GL_OUT_OF_MEMORY);
+                return false;
+            }
         }
     }
 
@@ -267,10 +252,9 @@ bool GLASS_reallocTexImpl(TextureInfo* tex, size_t width, size_t height, GLenum 
 
 TexReallocStatus GLASS_tex_realloc(TextureInfo* tex, size_t width, size_t height, GLenum format, GLenum type, bool vram) {
     ASSERT(tex);
-    ASSERT(tex->flags & TEXTURE_FLAG_BOUND);
+    ASSERT(tex->target != GLASS_TEX_TARGET_UNBOUND);
 
-    const bool hadVRAM = tex->flags & TEXTURE_FLAG_VRAM;
-    if ((tex->width == width) && (tex->height == height) && (tex->format == format) && (tex->dataType == type) && (hadVRAM == vram))
+    if ((tex->width == width) && (tex->height == height) && (tex->format == format) && (tex->type == type) && (tex->vram == vram))
         return TexReallocStatus_Unchanged;
 
     return GLASS_reallocTexImpl(tex, width, height, format, type, vram) ? TexReallocStatus_Updated : TexReallocStatus_Failed;
@@ -278,16 +262,16 @@ TexReallocStatus GLASS_tex_realloc(TextureInfo* tex, size_t width, size_t height
 
 void GLASS_tex_write(TextureInfo* tex, const u8* data, size_t size, size_t face, size_t level) {
     ASSERT(tex);
-    ASSERT(tex->flags & TEXTURE_FLAG_BOUND);
+    ASSERT(tex->target != GLASS_TEX_TARGET_UNBOUND);
     ASSERT(glassIsLinear(data));
 
-    const size_t mipmapOffset = GLASS_tex_getOffset(tex->width, tex->height, tex->format, tex->dataType, level);
+    const size_t mipmapOffset = GLASS_tex_getOffset(tex->width, tex->height, tex->format, tex->type, level);
     u8* dst = tex->faces[face] + mipmapOffset;
 
     if (!size)
-        size = GLASS_tex_getSize(tex->width, tex->height, tex->format, tex->dataType, level);
+        size = GLASS_tex_getSize(tex->width, tex->height, tex->format, tex->type, level);
 
-    if (tex->flags & TEXTURE_FLAG_VRAM) {
+    if (tex->vram) {
         GLASS_gx_copyTexture((u32)data, (u32)dst, size);
     } else {
         memcpy(dst, data, size);
@@ -301,11 +285,11 @@ void GLASS_tex_write(TextureInfo* tex, const u8* data, size_t size, size_t face,
 
 void GLASS_tex_writeRaw(TextureInfo* tex, const u8* data, size_t face, size_t level) {
     ASSERT(tex);
-    ASSERT(tex->flags & TEXTURE_FLAG_BOUND);
+    ASSERT(tex->target != GLASS_TEX_TARGET_UNBOUND);
 
     const size_t width = tex->width >> level;
     const size_t height = tex->height >> level;
-    const size_t bpp = GLASS_tex_bpp(tex->format, tex->dataType);
+    const size_t bpp = GLASS_tex_bpp(tex->format, tex->type);
 
     u8* flipped = glassLinearAlloc((width * height * bpp) >> 3);
     ASSERT(flipped);
@@ -314,7 +298,7 @@ void GLASS_tex_writeRaw(TextureInfo* tex, const u8* data, size_t face, size_t le
     // TODO: adjust width & height.
     u8* tiled = glassLinearAlloc((width * height * bpp) >> 3);
     ASSERT(tiled);
-    GLASS_tex_makeTiled(flipped, tiled, width, height, tex->format, tex->dataType);
+    GLASS_tex_makeTiled(flipped, tiled, width, height, tex->format, tex->type);
 
     GLASS_tex_write(tex, tiled, 0, face, level);
     glassLinearFree(flipped);

@@ -124,7 +124,7 @@ void glAlphaFunc(GLenum func, GLclampf ref) {
     if (ctx->alphaFunc != func) {
         ctx->alphaFunc = func;
         if (ctx->alphaTest)
-            ctx->flags |= CONTEXT_FLAG_ALPHA;
+            ctx->flags |= GLASS_CONTEXT_FLAG_ALPHA;
     }
 }
 
@@ -139,7 +139,7 @@ void glBlendColor(GLclampf red, GLclampf green, GLclampf blue, GLclampf alpha) {
     if (ctx->blendColor != blendColor) {
         ctx->blendColor = blendColor;
         if (ctx->blendMode)
-            ctx->flags |= CONTEXT_FLAG_BLEND;
+            ctx->flags |= GLASS_CONTEXT_FLAG_BLEND;
     }
 }
 
@@ -154,7 +154,7 @@ void glBlendEquationSeparate(GLenum modeRGB, GLenum modeAlpha) {
         ctx->blendEqRGB = modeRGB;
         ctx->blendEqAlpha = modeAlpha;
         if (ctx->blendMode)
-            ctx->flags |= CONTEXT_FLAG_BLEND;
+            ctx->flags |= GLASS_CONTEXT_FLAG_BLEND;
     }
 }
 
@@ -173,7 +173,7 @@ void glBlendFuncSeparate(GLenum srcRGB, GLenum dstRGB, GLenum srcAlpha, GLenum d
         ctx->blendSrcAlpha = srcAlpha;
         ctx->blendDstAlpha = dstAlpha;
         if (ctx->blendMode)
-            ctx->flags |= CONTEXT_FLAG_BLEND;
+            ctx->flags |= GLASS_CONTEXT_FLAG_BLEND;
     }
 }
 
@@ -186,7 +186,7 @@ void glColorMask(GLboolean red, GLboolean green, GLboolean blue, GLboolean alpha
         ctx->writeGreen = green == GL_TRUE;
         ctx->writeBlue = blue == GL_TRUE;
         ctx->writeAlpha = alpha == GL_TRUE;
-        ctx->flags |= CONTEXT_FLAG_COLOR_DEPTH;
+        ctx->flags |= GLASS_CONTEXT_FLAG_COLOR_DEPTH;
     }
 }
 
@@ -200,7 +200,7 @@ void glCullFace(GLenum mode) {
     if (ctx->cullFaceMode != mode) {
         ctx->cullFaceMode = mode;
         if (ctx->cullFace)
-            ctx->flags |= CONTEXT_FLAG_CULL_FACE;
+            ctx->flags |= GLASS_CONTEXT_FLAG_CULL_FACE;
     }
 }
 
@@ -214,7 +214,7 @@ void glDepthFunc(GLenum func) {
     if (ctx->depthFunc != func) {
         ctx->depthFunc = func;
         if (ctx->depthTest)
-            ctx->flags |= CONTEXT_FLAG_COLOR_DEPTH;
+            ctx->flags |= GLASS_CONTEXT_FLAG_COLOR_DEPTH;
     }
 }
 
@@ -222,7 +222,7 @@ void glDepthMask(GLboolean flag) {
     CtxCommon* ctx = GLASS_context_getCommon();
     if (ctx->writeDepth == (flag == GL_TRUE)) {
         ctx->writeDepth = flag == GL_TRUE;
-        ctx->flags |= CONTEXT_FLAG_COLOR_DEPTH;
+        ctx->flags |= GLASS_CONTEXT_FLAG_COLOR_DEPTH;
     }
 }
 
@@ -231,7 +231,7 @@ void glDepthRangef(GLclampf nearVal, GLclampf farVal) {
     ctx->depthNear = CLAMP(0.0f, 1.0f, nearVal);
     ctx->depthFar = CLAMP(0.0f, 1.0f, farVal);
     if (ctx->depthTest)
-        ctx->flags |= CONTEXT_FLAG_DEPTHMAP;
+        ctx->flags |= GLASS_CONTEXT_FLAG_DEPTHMAP;
 }
 
 void glFrontFace(GLenum mode) {
@@ -244,7 +244,7 @@ void glFrontFace(GLenum mode) {
     if (ctx->frontFaceMode != mode) {
         ctx->frontFaceMode = mode;
         if (ctx->cullFace)
-            ctx->flags |= CONTEXT_FLAG_CULL_FACE;
+            ctx->flags |= GLASS_CONTEXT_FLAG_CULL_FACE;
     }
 }
 
@@ -258,7 +258,7 @@ void glLogicOp(GLenum opcode) {
     if (ctx->logicOp != opcode) {
         ctx->logicOp = opcode;
         if (!ctx->blendMode)
-            ctx->flags |= CONTEXT_FLAG_BLEND;
+            ctx->flags |= GLASS_CONTEXT_FLAG_BLEND;
     }
 }
 
@@ -267,7 +267,7 @@ void glPolygonOffset(GLfloat factor, GLfloat units) {
     ctx->polygonFactor = factor;
     ctx->polygonUnits = units;
     if (ctx->depthTest && ctx->polygonOffset)
-        ctx->flags |= CONTEXT_FLAG_DEPTHMAP;
+        ctx->flags |= GLASS_CONTEXT_FLAG_DEPTHMAP;
 }
 
 static GLsizei GLASS_screenWidth(CtxCommon* ctx) {
@@ -292,7 +292,7 @@ void glScissor(GLint x, GLint y, GLsizei width, GLsizei height) {
         ctx->scissorH = height;
 
         if (ctx->scissorMode != GPU_SCISSOR_DISABLE)
-            ctx->flags |= CONTEXT_FLAG_SCISSOR;
+            ctx->flags |= GLASS_CONTEXT_FLAG_SCISSOR;
     }
 }
 
@@ -308,7 +308,7 @@ void glStencilFunc(GLenum func, GLint ref, GLuint mask) {
         ctx->stencilRef = ref;
         ctx->stencilMask = mask;
         if (ctx->stencilTest)
-            ctx->flags |= CONTEXT_FLAG_STENCIL;
+            ctx->flags |= GLASS_CONTEXT_FLAG_STENCIL;
     }
 }
 
@@ -317,7 +317,7 @@ void glStencilMask(GLuint mask) {
     if (ctx->stencilWriteMask != mask) {
         ctx->stencilWriteMask = mask;
         if (ctx->stencilTest)
-            ctx->flags |= CONTEXT_FLAG_STENCIL;
+            ctx->flags |= GLASS_CONTEXT_FLAG_STENCIL;
     }
 }
 
@@ -333,7 +333,7 @@ void glStencilOp(GLenum sfail, GLenum dpfail, GLenum dppass) {
         ctx->stencilDepthFail = dpfail;
         ctx->stencilPass = dppass;
         if (ctx->stencilTest)
-            ctx->flags |= CONTEXT_FLAG_STENCIL;
+            ctx->flags |= GLASS_CONTEXT_FLAG_STENCIL;
     }
 }
 
@@ -351,6 +351,6 @@ void glViewport(GLint x, GLint y, GLsizei width, GLsizei height) {
         ctx->viewportW = width;
         ctx->viewportH = height;
         ctx->scissorMode = GPU_SCISSOR_DISABLE;
-        ctx->flags |= (CONTEXT_FLAG_VIEWPORT | CONTEXT_FLAG_SCISSOR);
+        ctx->flags |= (GLASS_CONTEXT_FLAG_VIEWPORT | GLASS_CONTEXT_FLAG_SCISSOR);
     }
 }

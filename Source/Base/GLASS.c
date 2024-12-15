@@ -83,14 +83,15 @@ void glassSwapBuffers(void) {
     GLASS_gx_sendGPUCommands();
 
     // Framebuffer might not be set.
-    if (!OBJ_IS_FRAMEBUFFER(ctx->framebuffer))
+    if (!GLASS_OBJ_IS_FRAMEBUFFER(ctx->framebuffer))
         return;
 
     // Get color buffer.
     FramebufferInfo* fb = (FramebufferInfo*)ctx->framebuffer;
-    RenderbufferInfo* colorBuffer = fb->colorBuffer;
-    if (!colorBuffer)
+    if (fb->colorBuffer == GLASS_INVALID_OBJECT)
         return;
+
+    const RenderbufferInfo* cb = (RenderbufferInfo*)fb->colorBuffer;
 
     // Get display buffer.
     RenderbufferInfo displayBuffer;
@@ -100,6 +101,5 @@ void glassSwapBuffers(void) {
     displayBuffer.format = GLASS_wrapFBFormat(gfxGetScreenFormat(ctx->settings.targetScreen));
     displayBuffer.width = width;
     displayBuffer.height = height;
-
-    GLASS_gx_transferAndSwap(colorBuffer, &displayBuffer);
+    GLASS_gx_transferAndSwap(cb, &displayBuffer);
 }

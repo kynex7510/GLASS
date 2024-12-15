@@ -213,7 +213,7 @@ void glassMoveTextureData(glassTexture* tex) {
         return;
     }
 
-    if (dest->flags & TEXTURE_FLAG_VRAM) {
+    if (dest->vram) {
         const TexReallocStatus reallocStatus = GLASS_tex_realloc(dest, tex->width, tex->height, tex->format, tex->type, true);
         if (reallocStatus == TexReallocStatus_Failed)
             return;
@@ -232,7 +232,7 @@ void glassMoveTextureData(glassTexture* tex) {
     }
 
     memset(tex->faces, 0, GLASS_NUM_TEX_FACES * sizeof(u8*));
-    ctx->flags |= CONTEXT_FLAG_TEXTURE;
+    ctx->flags |= GLASS_CONTEXT_FLAG_TEXTURE;
 }
 
 void glassDestroyTexture(glassTexture* tex) {

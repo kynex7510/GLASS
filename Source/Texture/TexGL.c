@@ -93,8 +93,8 @@ static GLenum GLASS_texTargetForSubtarget(GLenum target) {
     UNREACHABLE("Invalid texture subtarget!");
 }
 
-void glBindTexture(GLenum target, GLuint texture) {
-    ASSERT(OBJ_IS_TEXTURE(texture) || texture == GLASS_INVALID_OBJECT);
+void glBindTexture(GLenum target, GLuint name) {
+    ASSERT(GLASS_OBJ_IS_TEXTURE(name) || name == GLASS_INVALID_OBJECT);
 
     if ((target != GL_TEXTURE_2D) && (target != GL_TEXTURE_CUBE_MAP)) {
         GLASS_context_setError(GL_INVALID_ENUM);
@@ -102,8 +102,8 @@ void glBindTexture(GLenum target, GLuint texture) {
     }
 
     // Check for previous binding.
-    TextureInfo* tex = (TextureInfo*)texture;
-    if (tex && (tex->flags & TEXTURE_FLAG_BOUND) && (tex->target != target)) {
+    TextureInfo* tex = (TextureInfo*)name;
+    if (tex && (tex->target != GLASS_TEX_TARGET_UNBOUND) && (tex->target != target)) {
         GLASS_context_setError(GL_INVALID_OPERATION);
         return;
     }
@@ -118,14 +118,12 @@ void glBindTexture(GLenum target, GLuint texture) {
     }
 
     // Bind texture to context.
-    if (texture != ctx->textureUnits[ctx->activeTextureUnit]) {
-        ctx->textureUnits[ctx->activeTextureUnit] = texture;
-        ctx->flags |= CONTEXT_FLAG_TEXTURE;
-    }
+    if (name != ctx->textureUnits[ctx->activeTextureUnit]) {
+        ctx->textureUnits[ctx->activeTextureUnit] = name;
+        ctx->flags |= GLASS_CONTEXT_FLAG_TEXTURE;
 
-    if (tex) {
-        tex->target = target;
-        tex->flags |= TEXTURE_FLAG_BOUND;
+        if (tex)
+            tex->target = target;
     }
 }
 
@@ -143,7 +141,7 @@ void glDeleteTextures(GLsizei n, const GLuint* textures) {
         GLuint name = textures[i];
 
         // Validate name.
-        if (!OBJ_IS_TEXTURE(name))
+        if (!GLASS_OBJ_IS_TEXTURE(name))
             continue;
 
         TextureInfo* tex = (TextureInfo*)name;
@@ -152,15 +150,14 @@ void glDeleteTextures(GLsizei n, const GLuint* textures) {
         for (size_t i = 0; i < GLASS_NUM_TEX_UNITS; ++i) {
             if (ctx->textureUnits[i] == name) {
                 ctx->textureUnits[i] = GLASS_INVALID_OBJECT;
-                ctx->flags |= CONTEXT_FLAG_TEXTURE;
+                ctx->flags |= GLASS_CONTEXT_FLAG_TEXTURE;
             }
         }
 
         // Delete texture.
-        const bool useVRAM = tex->flags |= TEXTURE_FLAG_VRAM;
         for (size_t j = 0; j < GLASS_NUM_TEX_FACES; ++j) {
             u8* p = tex->faces[i];
-            useVRAM ? glassVRAMFree(p) : glassLinearFree(p);
+            tex->vram ? glassVRAMFree(p) : glassLinearFree(p);
         }
 
         glassVirtualFree(tex);
@@ -177,38 +174,28 @@ void glGenTextures(GLsizei n, GLuint* textures) {
 
     for (size_t i = 0; i < n; ++i) {
         GLuint name = GLASS_createObject(GLASS_TEXTURE_TYPE);
-        if (!OBJ_IS_TEXTURE(name)) {
+        if (!GLASS_OBJ_IS_TEXTURE(name)) {
             GLASS_context_setError(GL_OUT_OF_MEMORY);
             return;
         }
 
         TextureInfo* tex = (TextureInfo*)name;
-        tex->target = 0;
-        tex->format = 0;
-        tex->dataType = 0;
-        tex->borderColor = 0;
-        tex->width = 0;
-        tex->height = 0;
+        tex->target = GLASS_TEX_TARGET_UNBOUND;
+        tex->format = GL_RGBA;
+        tex->type = GL_UNSIGNED_BYTE;
         tex->minFilter = GL_NEAREST_MIPMAP_LINEAR;
         tex->magFilter = GL_LINEAR;
         tex->wrapS = GL_REPEAT;
         tex->wrapT = GL_REPEAT;
-        tex->minLod = 0;
-        tex->maxLod = 0;
-        tex->flags = 0;
-        tex->lodBias = 0;
-
-        for (size_t j = 0; j < GLASS_NUM_TEX_FACES; ++j)
-            tex->faces[j] = NULL;
-
         textures[i] = name;
     }
 }
 
 GLboolean glIsTexture(GLuint texture) {
-    if (OBJ_IS_TEXTURE(texture)) {
+    if (GLASS_OBJ_IS_TEXTURE(texture)) {
         const TextureInfo* tex = (TextureInfo*)texture;
-        return tex->flags & TEXTURE_FLAG_BOUND;
+        if (tex->target != GLASS_TEX_TARGET_UNBOUND)
+            return GL_TRUE;
     }
 
     return GL_FALSE;
@@ -323,6 +310,12 @@ void glTexParameterf(GLenum target, GLenum pname, GLfloat param) { glTexParamete
 void glTexParameteri(GLenum target, GLenum pname, GLint param) { glTexParameteriv(target, pname, &param); }
 
 static bool GLASS_checkTexArgs(GLenum target, GLint level, GLsizei width, GLsizei height, GLint border) {
+    width <<= level;
+    height <<= level;
+    
+    if ((level < 0) || (level >= GLASS_NUM_TEX_LEVELS) || (border != 0))
+        return false;
+
     if ((target != GL_TEXTURE_2D) && (width != height))
         return false;
 
@@ -330,9 +323,6 @@ static bool GLASS_checkTexArgs(GLenum target, GLint level, GLsizei width, GLsize
         return false;
 
     if ((width > GLASS_MAX_TEX_SIZE) || (height > GLASS_MAX_TEX_SIZE))
-        return false;
-
-    if ((level < 0) || (level >= GLASS_NUM_TEX_LEVELS) || (border != 0))
         return false;
 
     return true;
@@ -388,7 +378,7 @@ static void GLASS_setTex(GLenum target, GLint level, GLsizei width, GLsizei heig
     }
 
     // Prepare memory.
-    TexReallocStatus reallocStatus = GLASS_tex_realloc(tex, width << level, height << level, format, type, tex->flags & TEXTURE_FLAG_VRAM);
+    TexReallocStatus reallocStatus = GLASS_tex_realloc(tex, width << level, height << level, format, type, tex->vram);
     if (reallocStatus == TexReallocStatus_Failed)
         return;
 
@@ -399,7 +389,7 @@ static void GLASS_setTex(GLenum target, GLint level, GLsizei width, GLsizei heig
     }
     
     if (reallocStatus == TexReallocStatus_Updated)
-        ctx->flags |= CONTEXT_FLAG_TEXTURE;
+        ctx->flags |= GLASS_CONTEXT_FLAG_TEXTURE;
 }
 
 void glTexImage2D(GLenum target, GLint level, GLint internalformat, GLsizei width, GLsizei height, GLint border, GLenum format, GLenum type, const GLvoid* data) {
@@ -444,23 +434,11 @@ void glTexVRAMPICA(GLboolean enabled) {
         return;
     }
 
-    const bool hadVRAM = tex->flags & TEXTURE_FLAG_VRAM;
-    if (hadVRAM == enabled)
-        return;
-
-    if (!(tex->flags & TEXTURE_FLAG_INITIALIZED)) {
-        if (enabled) {
-            tex->flags |= TEXTURE_FLAG_VRAM;
-        } else {
-            tex->flags &= ~(TEXTURE_FLAG_VRAM);
-        }
-
-        return;
+    const TexReallocStatus reallocStatus = GLASS_tex_realloc(tex, tex->width, tex->height, tex->format, tex->type, enabled);
+    if (reallocStatus == TexReallocStatus_Updated) {
+        tex->vram = enabled;
+        ctx->flags |= GLASS_CONTEXT_FLAG_TEXTURE;
     }
-
-    const TexReallocStatus reallocStatus = GLASS_tex_realloc(tex, tex->width, tex->height, tex->format, tex->dataType, enabled);
-    if (reallocStatus == TexReallocStatus_Updated)
-        ctx->flags |= CONTEXT_FLAG_TEXTURE;
 }
 
 // TODO

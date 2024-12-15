@@ -2,7 +2,7 @@
 #include "Base/Utility.h"
 
 void glBindFramebuffer(GLenum target, GLuint framebuffer) {
-    ASSERT(OBJ_IS_FRAMEBUFFER(framebuffer) || framebuffer == GLASS_INVALID_OBJECT);
+    ASSERT(GLASS_OBJ_IS_FRAMEBUFFER(framebuffer) || framebuffer == GLASS_INVALID_OBJECT);
 
     if (target != GL_FRAMEBUFFER) {
         GLASS_context_setError(GL_INVALID_ENUM);
@@ -17,14 +17,14 @@ void glBindFramebuffer(GLenum target, GLuint framebuffer) {
         ctx->framebuffer = framebuffer;
 
         if (info)
-            info->flags |= FRAMEBUFFER_FLAG_BOUND;
+            info->bound = true;
 
-        ctx->flags |= CONTEXT_FLAG_FRAMEBUFFER;
+        ctx->flags |= GLASS_CONTEXT_FLAG_FRAMEBUFFER;
     }
 }
 
 void glBindRenderbuffer(GLenum target, GLuint renderbuffer) {
-    ASSERT(OBJ_IS_RENDERBUFFER(renderbuffer) || renderbuffer == GLASS_INVALID_OBJECT);
+    ASSERT(GLASS_OBJ_IS_RENDERBUFFER(renderbuffer) || renderbuffer == GLASS_INVALID_OBJECT);
 
     if (target != GL_RENDERBUFFER) {
         GLASS_context_setError(GL_INVALID_ENUM);
@@ -39,7 +39,7 @@ void glBindRenderbuffer(GLenum target, GLuint renderbuffer) {
         ctx->renderbuffer = renderbuffer;
 
         if (info)
-            info->flags |= RENDERBUFFER_FLAG_BOUND;
+            info->bound = true;
     }
 }
 
@@ -52,30 +52,24 @@ GLenum glCheckFramebufferStatus(GLenum target) {
     CtxCommon* ctx = GLASS_context_getCommon();
 
     // Make sure we have a framebuffer.
-    if (!OBJ_IS_FRAMEBUFFER(ctx->framebuffer))
+    if (!GLASS_OBJ_IS_FRAMEBUFFER(ctx->framebuffer))
         return GL_FRAMEBUFFER_UNSUPPORTED;
 
     FramebufferInfo* info = (FramebufferInfo*)ctx->framebuffer;
 
     // Check that we have at least one attachment.
-    if (!info->colorBuffer && !info->depthBuffer)
+    if ((info->colorBuffer == GLASS_INVALID_OBJECT) && (info->depthBuffer == GLASS_INVALID_OBJECT))
         return GL_FRAMEBUFFER_INCOMPLETE_MISSING_ATTACHMENT;
 
     // Check buffers.
-    if (info->colorBuffer) {
-        if (!info->colorBuffer->address)
-            return GL_FRAMEBUFFER_INCOMPLETE_ATTACHMENT;
-    }
+    const RenderbufferInfo* cb = (RenderbufferInfo*)info->colorBuffer;
+    const RenderbufferInfo* db = (RenderbufferInfo*)info->depthBuffer;
 
-    if (info->depthBuffer) {
-        if (!info->depthBuffer->address)
-            return GL_FRAMEBUFFER_INCOMPLETE_ATTACHMENT;
-    }
+    if ((cb && !cb->address) || (db && !db->address))
+        return GL_FRAMEBUFFER_INCOMPLETE_ATTACHMENT;
 
-    if (info->colorBuffer && info->depthBuffer) {
-        if ((info->colorBuffer->width != info->depthBuffer->width) || (info->colorBuffer->height != info->depthBuffer->height))
-            return GL_FRAMEBUFFER_INCOMPLETE_DIMENSIONS;
-    }
+    if (cb && db && ((cb->width != db->width) || (cb->height != db->height)))
+        return GL_FRAMEBUFFER_INCOMPLETE_DIMENSIONS;
 
     return GL_FRAMEBUFFER_COMPLETE;
 }
@@ -94,7 +88,7 @@ void glDeleteFramebuffers(GLsizei n, const GLuint* framebuffers) {
         GLuint name = framebuffers[i];
 
         // Validate name.
-        if (!OBJ_IS_FRAMEBUFFER(name))
+        if (!GLASS_OBJ_IS_FRAMEBUFFER(name))
             continue;
 
         // Unbind if bound.
@@ -118,24 +112,24 @@ void glDeleteRenderbuffers(GLsizei n, const GLuint* renderbuffers) {
 
     // Get framebuffer.
     FramebufferInfo* fbinfo = NULL;
-    if (OBJ_IS_FRAMEBUFFER(ctx->framebuffer))
+    if (GLASS_OBJ_IS_FRAMEBUFFER(ctx->framebuffer))
         fbinfo = (FramebufferInfo*)ctx->framebuffer;
 
     for (size_t i = 0; i < n; ++i) {
         GLuint name = renderbuffers[i];
 
         // Validate name.
-        if (!OBJ_IS_RENDERBUFFER(name))
+        if (!GLASS_OBJ_IS_RENDERBUFFER(name))
             continue;
 
         RenderbufferInfo* info = (RenderbufferInfo*)name;
 
         // Unbind if bound.
         if (fbinfo) {
-            if (fbinfo->colorBuffer == info) {
-                fbinfo->colorBuffer = NULL;
-            } else if (fbinfo->depthBuffer == info) {
-                fbinfo->depthBuffer = NULL;
+            if (fbinfo->colorBuffer == name) {
+                fbinfo->colorBuffer = GLASS_INVALID_OBJECT;
+            } else if (fbinfo->depthBuffer == name) {
+                fbinfo->depthBuffer = GLASS_INVALID_OBJECT;
             }
         }
 
@@ -153,16 +147,15 @@ void glFramebufferRenderbuffer(GLenum target, GLenum attachment, GLenum renderbu
         return;
     }
 
-    if (!OBJ_IS_RENDERBUFFER(renderbuffer) && renderbuffer != GLASS_INVALID_OBJECT) {
+    if (!GLASS_OBJ_IS_RENDERBUFFER(renderbuffer) && renderbuffer != GLASS_INVALID_OBJECT) {
         GLASS_context_setError(GL_INVALID_OPERATION);
         return;
     }
 
-    RenderbufferInfo* rbinfo = (RenderbufferInfo*)renderbuffer;
     CtxCommon* ctx = GLASS_context_getCommon();
 
     // Get framebuffer.
-    if (!OBJ_IS_FRAMEBUFFER(ctx->framebuffer)) {
+    if (!GLASS_OBJ_IS_FRAMEBUFFER(ctx->framebuffer)) {
         GLASS_context_setError(GL_INVALID_OPERATION);
         return;
     }
@@ -172,19 +165,21 @@ void glFramebufferRenderbuffer(GLenum target, GLenum attachment, GLenum renderbu
     // Set right buffer.
     switch (attachment) {
         case GL_COLOR_ATTACHMENT0:
-            fbinfo->colorBuffer = rbinfo;
+            fbinfo->colorBuffer = renderbuffer;
             break;
         case GL_DEPTH_ATTACHMENT:
         case GL_STENCIL_ATTACHMENT:
-            fbinfo->depthBuffer = rbinfo;
+            fbinfo->depthBuffer = renderbuffer;
             break;
         default:
             GLASS_context_setError(GL_INVALID_ENUM);
             return;
     }
 
-    ctx->flags |= CONTEXT_FLAG_FRAMEBUFFER;
+    ctx->flags |= GLASS_CONTEXT_FLAG_FRAMEBUFFER;
 }
+
+void glFramebufferTexture2D(GLenum target, GLenum attachment, GLenum textarget, GLuint texture, GLint level); // TODO
 
 void glGenFramebuffers(GLsizei n, GLuint* framebuffers) {
     ASSERT(framebuffers);
@@ -196,7 +191,7 @@ void glGenFramebuffers(GLsizei n, GLuint* framebuffers) {
 
     for (size_t i = 0; i < n; ++i) {
         GLuint name = GLASS_createObject(GLASS_FRAMEBUFFER_TYPE);
-        if (!OBJ_IS_FRAMEBUFFER(name)) {
+        if (!GLASS_OBJ_IS_FRAMEBUFFER(name)) {
             GLASS_context_setError(GL_OUT_OF_MEMORY);
             return;
         }
@@ -215,13 +210,13 @@ void glGenRenderbuffers(GLsizei n, GLuint* renderbuffers) {
 
     for (size_t i = 0; i < n; ++i) {
         GLuint name = GLASS_createObject(GLASS_RENDERBUFFER_TYPE);
-        if (!OBJ_IS_RENDERBUFFER(name)) {
+        if (!GLASS_OBJ_IS_RENDERBUFFER(name)) {
             GLASS_context_setError(GL_OUT_OF_MEMORY);
             return;
         }
 
         RenderbufferInfo* info = (RenderbufferInfo*)name;
-        info->format = GL_RGBA4;
+        info->format = GL_RGBA8_OES;
         renderbuffers[i] = name;
     }
 }
@@ -270,7 +265,7 @@ void glGetRenderbufferParameteriv(GLenum target, GLenum pname, GLint* params) {
     CtxCommon* ctx = GLASS_context_getCommon();
 
     // Get renderbuffer.
-    if (!OBJ_IS_RENDERBUFFER(ctx->renderbuffer)) {
+    if (!GLASS_OBJ_IS_RENDERBUFFER(ctx->renderbuffer)) {
         GLASS_context_setError(GL_INVALID_OPERATION);
         return;
     }
@@ -305,9 +300,9 @@ void glGetRenderbufferParameteriv(GLenum target, GLenum pname, GLint* params) {
 }
 
 GLboolean glIsFramebuffer(GLuint framebuffer) {
-    if (OBJ_IS_FRAMEBUFFER(framebuffer)) {
+    if (GLASS_OBJ_IS_FRAMEBUFFER(framebuffer)) {
         FramebufferInfo* info = (FramebufferInfo*)framebuffer;
-        if (info->flags & FRAMEBUFFER_FLAG_BOUND)
+        if (info->bound)
             return GL_TRUE;
     }
 
@@ -315,9 +310,9 @@ GLboolean glIsFramebuffer(GLuint framebuffer) {
 }
 
 GLboolean glIsRenderbuffer(GLuint renderbuffer) {
-    if (OBJ_IS_RENDERBUFFER(renderbuffer)) {
+    if (GLASS_OBJ_IS_RENDERBUFFER(renderbuffer)) {
         RenderbufferInfo* info = (RenderbufferInfo*)renderbuffer;
-        if (info->flags & RENDERBUFFER_FLAG_BOUND)
+        if (info->bound)
             return GL_TRUE;
     }
 
@@ -361,7 +356,7 @@ void glRenderbufferStorage(GLenum target, GLenum internalformat, GLsizei width, 
     CtxCommon* ctx = GLASS_context_getCommon();
 
     // Get renderbuffer.
-    if (!OBJ_IS_RENDERBUFFER(ctx->renderbuffer)) {
+    if (!GLASS_OBJ_IS_RENDERBUFFER(ctx->renderbuffer)) {
         GLASS_context_setError(GL_INVALID_OPERATION);
         return;
     }

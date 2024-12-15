@@ -24,13 +24,13 @@ static UniformInfo* GLASS_getShaderUniform(const ProgramInfo* program, size_t in
 
     ShaderInfo* shader = NULL;
     if (isGeometry) {
-        if (!OBJ_IS_SHADER(program->linkedGeometry)) {
+        if (!GLASS_OBJ_IS_SHADER(program->linkedGeometry)) {
             return NULL;
         }
 
         shader = (ShaderInfo*)program->linkedGeometry;
     } else {
-        if (!OBJ_IS_SHADER(program->linkedVertex)) {
+        if (!GLASS_OBJ_IS_SHADER(program->linkedVertex)) {
             return NULL;
         }
 
@@ -48,7 +48,7 @@ void glGetActiveUniform(GLuint program, GLuint index, GLsizei bufSize, GLsizei* 
     ASSERT(type);
     ASSERT(name);
 
-    if (!OBJ_IS_PROGRAM(program)) {
+    if (!GLASS_OBJ_IS_PROGRAM(program)) {
         GLASS_context_setError(GL_INVALID_OPERATION);
         return;
     }
@@ -59,7 +59,7 @@ void glGetActiveUniform(GLuint program, GLuint index, GLsizei bufSize, GLsizei* 
     }
 
     ProgramInfo* prog = (ProgramInfo*)program;
-    if (prog->flags & PROGRAM_FLAG_LINK_FAILED) {
+    if (prog->flags & GLASS_PROGRAM_FLAG_LINK_FAILED) {
         if (length)
             *length = 0;
 
@@ -140,7 +140,7 @@ static void GLASS_getFloatUniform(const UniformInfo* info, size_t offset, u32* o
 static void GLASS_getUniformValues(GLuint program, GLint location, GLint* intParams, GLfloat* floatParams) {
     ASSERT(intParams || floatParams);
 
-    if (!OBJ_IS_PROGRAM(program)) {
+    if (!GLASS_OBJ_IS_PROGRAM(program)) {
         GLASS_context_setError(GL_INVALID_OPERATION);
         return;
     }
@@ -265,20 +265,20 @@ static GLint GLASS_lookupUniform(const ShaderInfo* shader, const char* name, siz
             break;
 
         // Make location.
-        return (GLint)(((size_t)(shader->flags & SHADER_FLAG_GEOMETRY) << 16) | (i << 8) | (offset & 0xFF));
+        return (GLint)(((size_t)(shader->flags & GLASS_SHADER_FLAG_GEOMETRY) << 16) | (i << 8) | (offset & 0xFF));
     }
 
     return -1;
 }
 
 GLint glGetUniformLocation(GLuint program, const GLchar* name) {
-    if (!OBJ_IS_PROGRAM(program)) {
+    if (!GLASS_OBJ_IS_PROGRAM(program)) {
         GLASS_context_setError(GL_INVALID_OPERATION);
         return -1;
     }
 
     ProgramInfo* prog = (ProgramInfo*)program;
-    if (prog->flags & PROGRAM_FLAG_LINK_FAILED) {
+    if (prog->flags & GLASS_PROGRAM_FLAG_LINK_FAILED) {
         GLASS_context_setError(GL_INVALID_OPERATION);
         return -1;
     }
@@ -290,7 +290,7 @@ GLint glGetUniformLocation(GLuint program, const GLchar* name) {
 
     if (offset != -1) {
         // Lookup uniform.
-        if (OBJ_IS_SHADER(prog->linkedVertex)) {
+        if (GLASS_OBJ_IS_SHADER(prog->linkedVertex)) {
             ShaderInfo* vshad = (ShaderInfo*)prog->linkedVertex;
             ShaderInfo* gshad = (ShaderInfo*)prog->linkedGeometry;
             GLint loc = GLASS_lookupUniform(vshad, name, offset);
@@ -362,7 +362,7 @@ static void GLASS_setUniformValues(GLint location, const GLint* intValues, const
 
     // Get program.
     CtxCommon* ctx = GLASS_context_getCommon();
-    if (!OBJ_IS_PROGRAM(ctx->currentProgram)) {
+    if (!GLASS_OBJ_IS_PROGRAM(ctx->currentProgram)) {
         GLASS_context_setError(GL_INVALID_OPERATION);
         return;
     }
