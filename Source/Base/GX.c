@@ -205,6 +205,8 @@ void GLASS_gx_transferAndSwap(const RenderbufferInfo* colorBuffer, const Renderb
 void GLASS_gx_copyTexture(u32 srcAddr, u32 dstAddr, size_t size) {
     CtxCommon* ctx = GLASS_context_getCommon();
 
+    ASSERT(R_SUCCEEDED(GSPGPU_FlushDataCache((void*)srcAddr, size)));
+
     GXTextureCopyParams params;
     params.srcAddr = srcAddr;
     params.dstAddr = dstAddr;

@@ -272,7 +272,6 @@ void GLASS_tex_write(TextureInfo* tex, const u8* data, size_t size, size_t face,
         size = GLASS_tex_getSize(tex->width, tex->height, tex->format, tex->type, level);
 
     if (tex->vram) {
-        ASSERT(R_SUCCEEDED(GSPGPU_FlushDataCache(data, size)));
         GLASS_gx_copyTexture((u32)data, (u32)dst, size);
     } else {
         memcpy(dst, data, size);
