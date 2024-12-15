@@ -224,13 +224,13 @@ bool GLASS_reallocTexImpl(TextureInfo* tex, size_t width, size_t height, GLenum 
     ASSERT(tex);
     ASSERT(tex->target != GLASS_TEX_TARGET_UNBOUND);
 
-    const size_t numFaces = GLASS_tex_getNumFaces(tex->target);
-    const size_t allocSize = GLASS_tex_getAllocSize(width, height, format, type);
-
     u8* faces[GLASS_NUM_TEX_FACES];
     memset(faces, 0, GLASS_NUM_TEX_FACES * sizeof(u8*));
 
-    if (allocSize) {
+    if (width && height) {
+        const size_t numFaces = GLASS_tex_getNumFaces(tex->target);
+        const size_t allocSize = GLASS_tex_getAllocSize(width, height, format, type);
+
         for (size_t i = 0; i < numFaces; ++i) {
             faces[i] = vram ? glassVRAMAlloc(allocSize, VRAM_ALLOC_ANY) : glassLinearAlloc(allocSize);
             if (!faces[i]) {
