@@ -271,16 +271,13 @@ void GLASS_tex_write(TextureInfo* tex, const u8* data, size_t size, size_t face,
     if (!size)
         size = GLASS_tex_getSize(tex->width, tex->height, tex->format, tex->type, level);
 
-    if (tex->vram) {
-        GLASS_gx_copyTexture((u32)data, (u32)dst, size);
-    } else {
-        memcpy(dst, data, size);
-
-        CtxCommon* ctx = GLASS_context_getCommon();
-        if (!ctx->initParams.flushAllLinearMem) {
-            ASSERT(R_SUCCEEDED(GSPGPU_FlushDataCache(dst, size)));
-        }
-    }
+    TexCopyParams params;
+    params.srcAddr = (u32)data;
+    params.dstAddr = (u32)dst;
+    params.stride = size;
+    params.size = params.stride;
+    params.count = 1;
+    GLASS_gx_copyTexture(&params);
 }
 
 void GLASS_tex_writeRaw(TextureInfo* tex, const u8* data, size_t face, size_t level) {

@@ -34,6 +34,8 @@ typedef struct {
     u32 srcAddr;
     u32 dstAddr;
     size_t size;
+    u16 lineSize;
+    u16 gap;
 } GXTextureCopyParams;
 
 typedef struct {
@@ -84,7 +86,18 @@ static void GLASS_textureCopy(const GXTextureCopyParams* copy) {
     ASSERT(copy);
     ASSERT(glassIsLinear((void*)copy->srcAddr) || glassIsVRAM((void*)copy->srcAddr));
     ASSERT(glassIsLinear((void*)copy->dstAddr) || glassIsVRAM((void*)copy->dstAddr));
-    GX_TextureCopy((u32*)copy->srcAddr, 0, (u32*)copy->dstAddr, 0, copy->size, 0x8 | GX_TRANSFER_OUT_TILED(true));
+
+    u32 flags = 0;
+    if (copy->gap) {
+        ASSERT(copy->size >= 192);
+        ASSERT(copy->lineSize);
+        flags |= 0x4;
+    } else {
+        ASSERT(copy->size >= 16);
+    }
+
+    GX_TextureCopy((u32*)copy->srcAddr, GX_BUFFER_DIM(copy->lineSize >> 1, copy->gap >> 1),
+    (u32*)copy->dstAddr, GX_BUFFER_DIM(copy->lineSize >> 1, copy->gap >> 1), copy->size, 0x8 | flags);
 }
 
 static void GLASS_processCommandList(const GXProcessCommandListParams* cmdList) {
@@ -202,20 +215,29 @@ void GLASS_gx_transferAndSwap(const RenderbufferInfo* colorBuffer, const Renderb
     GLASS_displayTransfer(&params);
 }
 
-void GLASS_gx_copyTexture(u32 srcAddr, u32 dstAddr, size_t size) {
+void GLASS_gx_copyTexture(const TexCopyParams* copyParams) {
+    ASSERT(copyParams);
+    ASSERT(copyParams->size);
+    ASSERT(copyParams->stride >= copyParams->size);
+
     CtxCommon* ctx = GLASS_context_getCommon();
 
-    ASSERT(R_SUCCEEDED(GSPGPU_FlushDataCache((void*)srcAddr, size)));
+    const size_t flushSize = copyParams->stride * copyParams->count;
+    ASSERT(R_SUCCEEDED(GSPGPU_FlushDataCache((void*)copyParams->srcAddr, flushSize)));
 
     GXTextureCopyParams params;
-    params.srcAddr = srcAddr;
-    params.dstAddr = dstAddr;
-    params.size = size;
+    params.srcAddr = copyParams->srcAddr;
+    params.dstAddr = copyParams->dstAddr;
+    params.size = (copyParams->size * copyParams->count);
+    params.lineSize = copyParams->size;
+    params.gap = (copyParams->stride - copyParams->size);
 
     GX_BindQueue(NULL);
     GLASS_textureCopy(&params);
     gspWaitForPPF();
     GX_BindQueue(&ctx->gxQueue);
+
+    ASSERT(R_SUCCEEDED(GSPGPU_InvalidateDataCache((void*)copyParams->dstAddr, flushSize)));
 }
 
 void GLASS_gx_transformTexture(u32 srcAddr, u32 dstAddr, const TexTransformationParams* cvtParams) {
