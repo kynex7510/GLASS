@@ -220,19 +220,24 @@ void GLASS_gx_copyTexture(u32 srcAddr, u32 dstAddr, size_t size) {
 
 void GLASS_gx_transformTexture(u32 srcAddr, u32 dstAddr, const TexTransformationParams* cvtParams) {
     ASSERT(cvtParams);
+
     CtxCommon* ctx = GLASS_context_getCommon();
     GXDisplayTransferParams params;
+
     params.srcAddr = srcAddr;
     params.srcWidth = cvtParams->inputWidth;
     params.srcHeight = cvtParams->inputHeight;
     params.srcFormat = GLASS_unwrapTransferFormat(cvtParams->inputFormat);
+
     params.dstAddr = dstAddr;
     params.dstWidth = cvtParams->outputWidth;
     params.dstHeight = cvtParams->outputHeight;
     params.dstFormat = GLASS_unwrapTransferFormat(cvtParams->outputFormat);
+
     params.verticalFlip = cvtParams->verticalFlip;
     params.makeTiled = cvtParams->makeTiled;
     params.scaling = GX_TRANSFER_SCALE_NO;
+    
     GX_BindQueue(NULL);
     GLASS_displayTransfer(&params);
     gspWaitForPPF();

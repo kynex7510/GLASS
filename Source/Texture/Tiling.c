@@ -4,24 +4,27 @@
 
 #include <string.h> // memcpy
 
-static GLenum GLASS_getHwTilingFormat(GLenum format, GLenum type) {
-    if (format == GL_RGBA) {
-        if (type == GL_UNSIGNED_BYTE)
-            return GL_RGBA8_OES;
+static GLenum GLASS_supportHwTiling(size_t width, size_t height, GLenum format, GLenum type) {
+    // Transfer engine doesn't support anything lower than 64.
+    if ((width >= 64) && (height >= 64)) {
+        if (format == GL_RGBA) {
+            if (type == GL_UNSIGNED_BYTE)
+                return GL_RGBA8_OES;
 
-        if (type == GL_UNSIGNED_SHORT_4_4_4_4)
-            return GL_RGBA4;
-    }
+            if (type == GL_UNSIGNED_SHORT_4_4_4_4)
+                return GL_RGBA4;
+        }
 
-    if (format == GL_RGB) {
-        if (type == GL_UNSIGNED_BYTE)
-            return GL_RGB8_OES;
+        if (format == GL_RGB) {
+            if (type == GL_UNSIGNED_BYTE)
+                return GL_RGB8_OES;
 
-        if (type == GL_UNSIGNED_SHORT_5_6_5)
-            return GL_RGB565;
+            if (type == GL_UNSIGNED_SHORT_5_6_5)
+                return GL_RGB565;
 
-        if (type == GL_UNSIGNED_SHORT_5_5_5_1)
-            return GL_RGB5_A1;
+            if (type == GL_UNSIGNED_SHORT_5_5_5_1)
+                return GL_RGB5_A1;
+        }
     }
 
     return 0;
@@ -52,33 +55,39 @@ static void GLASS_swTiling(const u8* src, u8* dst, size_t width, size_t height, 
     }
 }
 
-void GLASS_tilingImpl(const u8* srcAddr, u8* dstAddr, size_t width, size_t height, GLenum format, GLenum type, bool makeTiled) {
-    ASSERT(glassIsLinear((void*)srcAddr));
-    ASSERT(glassIsLinear((void*)dstAddr));
+void GLASS_tilingImpl(const u8* src, u8* dst, size_t width, size_t height, GLenum format, GLenum type, bool makeTiled) {
+    ASSERT(glassIsLinear(src));
+    ASSERT(glassIsLinear(dst));
 
     // Use the hardware if possible.
-    const GLenum tilingFormat = GLASS_getHwTilingFormat(format, type);
-    // TODO: hangs on HW.
-    if (0 /*tilingFormat*/) {
+    const GLenum hwTilingFormat =GLASS_supportHwTiling(width, height, format, type);
+    if (hwTilingFormat) {
         TexTransformationParams params;
+
         params.inputWidth = width;
         params.inputHeight = height;
-        params.inputFormat = tilingFormat;
+        params.inputFormat = hwTilingFormat;
+
         params.outputWidth = params.inputWidth;
         params.outputHeight = params.inputHeight;
         params.outputFormat = params.inputFormat;
+
         params.verticalFlip = false;
         params.makeTiled = makeTiled;
-        GLASS_gx_transformTexture((u32)srcAddr, (u32)dstAddr, &params);
+
+        // TODO: move in GX.
+        const size_t flushSize = width * height * GLASS_tex_bpp(format, type);
+        ASSERT(R_SUCCEEDED(GSPGPU_FlushDataCache(src, flushSize)));
+        GLASS_gx_transformTexture((u32)src, (u32)dst, &params);
     } else {
-        GLASS_swTiling(srcAddr, dstAddr, width, height, GLASS_tex_bpp(format, type), makeTiled);
+        GLASS_swTiling(src, dst, width, height, GLASS_tex_bpp(format, type), makeTiled);
     }
 }
 
-void GLASS_tex_makeTiled(const u8* srcAddr, u8* dstAddr, size_t width, size_t height, GLenum format, GLenum type) {
-    GLASS_tilingImpl(srcAddr, dstAddr, width, height, format, type, true);
+void GLASS_tex_makeTiled(const u8* src, u8* dst, size_t width, size_t height, GLenum format, GLenum type) {
+    GLASS_tilingImpl(src, dst, width, height, format, type, true);
 }
 
-void GLASS_tex_makeLinear(const u8* srcAddr, u8* dstAddr, size_t width, size_t height, GLenum format, GLenum type) {
-    GLASS_tilingImpl(srcAddr, dstAddr, width, height, format, type, false);
+void GLASS_tex_makeLinear(const u8* src, u8* dst, size_t width, size_t height, GLenum format, GLenum type) {
+    GLASS_tilingImpl(src, dst, width, height, format, type, false);
 }
