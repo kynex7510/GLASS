@@ -192,7 +192,7 @@ size_t GLASS_tex_getSize(size_t width, size_t height, GLenum format, GLenum type
 
 static size_t GLASS_numTexLevels(GLsizei width, GLsizei height) {
     if (GLASS_utility_isPowerOf2(width) && GLASS_utility_isPowerOf2(height))
-        return 28 - __builtin_clz(MAX(width, height));
+        return 29 - __builtin_clz(MAX(width, height));
 
     return 1;
 }
