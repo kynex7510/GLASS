@@ -150,14 +150,14 @@ void GLASS_gx_clearBuffers(RenderbufferInfo* colorBuffer, u32 colorClear, Render
 
     if (colorBuffer) {
         colorFill.addr = (u32)colorBuffer->address;
-        colorFill.size = (colorBuffer->width * colorBuffer->height * (GLASS_utility_getRenderbufferBPP(colorBuffer->format) >> 3));
+        colorFill.size = (colorBuffer->width * colorBuffer->height * (GLASS_utility_getRenderbufferBpp(colorBuffer->format) >> 3));
         colorFill.value = colorClear;
         colorFill.width = GLASS_utility_unwrapRenderbufferPixelSize(colorBuffer->format);
     }
 
     if (depthBuffer) {
         depthFill.addr = (u32)depthBuffer->address;
-        depthFill.size = (depthBuffer->width * depthBuffer->height * (GLASS_utility_getRenderbufferBPP(depthBuffer->format) >> 3));
+        depthFill.size = (depthBuffer->width * depthBuffer->height * (GLASS_utility_getRenderbufferBpp(depthBuffer->format) >> 3));
         depthFill.value = depthClear;
         depthFill.width = GLASS_utility_unwrapRenderbufferPixelSize(depthBuffer->format);
     }
@@ -215,55 +215,61 @@ void GLASS_gx_transferAndSwap(const RenderbufferInfo* colorBuffer, const Renderb
     GLASS_displayTransfer(&params);
 }
 
-void GLASS_gx_copyTexture(const TexCopyParams* copyParams) {
-    ASSERT(copyParams);
-    ASSERT(copyParams->size);
-    ASSERT(copyParams->stride >= copyParams->size);
+void GLASS_gx_copyTexture(const GXTexCopy* copy) {
+    ASSERT(copy);
+    ASSERT(copy->size);
+    ASSERT(copy->stride >= copy->size);
 
     CtxCommon* ctx = GLASS_context_getCommon();
 
-    const size_t flushSize = copyParams->stride * copyParams->count;
-    ASSERT(R_SUCCEEDED(GSPGPU_FlushDataCache((void*)copyParams->srcAddr, flushSize)));
+    const size_t flushSize = copy->stride * copy->count;
+    ASSERT(R_SUCCEEDED(GSPGPU_FlushDataCache((void*)copy->srcAddr, flushSize)));
 
     GXTextureCopyParams params;
-    params.srcAddr = copyParams->srcAddr;
-    params.dstAddr = copyParams->dstAddr;
-    params.size = (copyParams->size * copyParams->count);
-    params.lineSize = copyParams->size;
-    params.gap = (copyParams->stride - copyParams->size);
+    params.srcAddr = copy->srcAddr;
+    params.dstAddr = copy->dstAddr;
+    params.size = (copy->size * copy->count);
+    params.lineSize = copy->size;
+    params.gap = (copy->stride - copy->size);
 
     GX_BindQueue(NULL);
     GLASS_textureCopy(&params);
     gspWaitForPPF();
     GX_BindQueue(&ctx->gxQueue);
 
-    ASSERT(R_SUCCEEDED(GSPGPU_InvalidateDataCache((void*)copyParams->dstAddr, flushSize)));
+    ASSERT(R_SUCCEEDED(GSPGPU_InvalidateDataCache((void*)copy->dstAddr, flushSize)));
 }
 
-void GLASS_gx_transformTexture(u32 srcAddr, u32 dstAddr, const TexTransformationParams* cvtParams) {
-    ASSERT(cvtParams);
+void GLASS_gx_applyTiling(const GXTexTiling* tiling) {
+    ASSERT(tiling);
 
     CtxCommon* ctx = GLASS_context_getCommon();
+
+    const size_t flushSize = tiling->width * tiling->height * GLASS_utility_getRenderbufferBpp(tiling->format);
+    ASSERT(R_SUCCEEDED(GSPGPU_FlushDataCache((void*)tiling->srcAddr, flushSize)));
+
     GXDisplayTransferParams params;
 
-    params.srcAddr = srcAddr;
-    params.srcWidth = cvtParams->inputWidth;
-    params.srcHeight = cvtParams->inputHeight;
-    params.srcFormat = GLASS_unwrapTransferFormat(cvtParams->inputFormat);
+    params.srcAddr = tiling->srcAddr;
+    params.srcWidth = tiling->width;
+    params.srcHeight = tiling->height;
+    params.srcFormat = GLASS_unwrapTransferFormat(tiling->format);
 
-    params.dstAddr = dstAddr;
-    params.dstWidth = cvtParams->outputWidth;
-    params.dstHeight = cvtParams->outputHeight;
-    params.dstFormat = GLASS_unwrapTransferFormat(cvtParams->outputFormat);
+    params.dstAddr = tiling->dstAddr;
+    params.dstWidth = params.srcWidth;
+    params.dstHeight = params.srcHeight;
+    params.dstFormat = params.srcFormat;
 
-    params.verticalFlip = cvtParams->verticalFlip;
-    params.makeTiled = cvtParams->makeTiled;
+    params.verticalFlip = false;
+    params.makeTiled = tiling->makeTiled;
     params.scaling = GX_TRANSFER_SCALE_NO;
     
     GX_BindQueue(NULL);
     GLASS_displayTransfer(&params);
     gspWaitForPPF();
     GX_BindQueue(&ctx->gxQueue);
+
+    ASSERT(R_SUCCEEDED(GSPGPU_InvalidateDataCache((void*)tiling->dstAddr, flushSize)));
 }
 
 void GLASS_gx_sendGPUCommands(void) {

@@ -133,7 +133,7 @@ void GLASS_utility_unpackFloatVector(const u32* in, float* out) {
     out[3] = GLASS_utility_f24tof32(in[0] >> 8);
 }
 
-size_t GLASS_utility_getRenderbufferBPP(GLenum format) {
+size_t GLASS_utility_getRenderbufferBpp(GLenum format) {
     switch (format) {
         case GL_RGBA8_OES:
         case GL_DEPTH24_STENCIL8_OES:

@@ -55,30 +55,21 @@ static void GLASS_swTiling(const u8* src, u8* dst, size_t width, size_t height, 
     }
 }
 
-void GLASS_tilingImpl(const u8* src, u8* dst, size_t width, size_t height, GLenum format, GLenum type, bool makeTiled) {
+static void GLASS_tilingImpl(const u8* src, u8* dst, size_t width, size_t height, GLenum format, GLenum type, bool makeTiled) {
     ASSERT(glassIsLinear(src));
     ASSERT(glassIsLinear(dst));
 
     // Use the hardware if possible.
     const GLenum hwTilingFormat =GLASS_supportHwTiling(width, height, format, type);
     if (hwTilingFormat) {
-        TexTransformationParams params;
-
-        params.inputWidth = width;
-        params.inputHeight = height;
-        params.inputFormat = hwTilingFormat;
-
-        params.outputWidth = params.inputWidth;
-        params.outputHeight = params.inputHeight;
-        params.outputFormat = params.inputFormat;
-
-        params.verticalFlip = false;
+        GXTexTiling params;
+        params.srcAddr = (u32)src;
+        params.dstAddr = (u32)dst;
+        params.width = width;
+        params.height = height;
+        params.format = hwTilingFormat;
         params.makeTiled = makeTiled;
-
-        // TODO: move in GX.
-        const size_t flushSize = width * height * GLASS_tex_bpp(format, type);
-        ASSERT(R_SUCCEEDED(GSPGPU_FlushDataCache(src, flushSize)));
-        GLASS_gx_transformTexture((u32)src, (u32)dst, &params);
+        GLASS_gx_applyTiling(&params);
     } else {
         GLASS_swTiling(src, dst, width, height, GLASS_tex_bpp(format, type), makeTiled);
     }

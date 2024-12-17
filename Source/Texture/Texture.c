@@ -271,7 +271,7 @@ void GLASS_tex_write(TextureInfo* tex, const u8* data, size_t size, size_t face,
     if (!size)
         size = GLASS_tex_getSize(tex->width, tex->height, tex->format, tex->type, level);
 
-    TexCopyParams params;
+    GXTexCopy params;
     params.srcAddr = (u32)data;
     params.dstAddr = (u32)dst;
     params.stride = size;

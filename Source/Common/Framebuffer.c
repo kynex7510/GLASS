@@ -364,7 +364,7 @@ void glRenderbufferStorage(GLenum target, GLenum internalformat, GLsizei width, 
     RenderbufferInfo* info = (RenderbufferInfo* )ctx->renderbuffer;
 
     // Allocate buffer.
-    const size_t bufferSize = (width * height * (GLASS_utility_getRenderbufferBPP(internalformat) >> 3));
+    const size_t bufferSize = (width * height * (GLASS_utility_getRenderbufferBpp(internalformat) >> 3));
 
     if (info->address)
         glassVRAMFree(info->address);
