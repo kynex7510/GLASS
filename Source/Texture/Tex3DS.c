@@ -2,7 +2,7 @@
 #include "Base/Utility.h"
 #include "Texture/Texture.h"
 
-#include <string.h> // memcpy
+#include <string.h> // memcpy, memset
 
 typedef struct {
     void* handle;
@@ -41,9 +41,14 @@ static u8* GLASS_getTexDataPtr(const glassTexture* tex, size_t face, size_t leve
     return NULL;
 }
 
+static size_t GLASS_getTexDataSize(const glassTexture* tex) {
+    ASSERT(tex);
+    return GLASS_tex_getAllocSize(tex->width, tex->height, tex->format, tex->type, tex->levels);
+}
+
 static size_t GLASS_getTexAllocSize(const glassTexture* tex) {
     ASSERT(tex);
-    return GLASS_tex_getAllocSize(tex->width, tex->height, tex->format, tex->type);
+    return GLASS_tex_getAllocSize(tex->width, tex->height, tex->format, tex->type, -1);
 }
 
 static size_t GLASS_getNumFaces(bool isCubeMap) {
@@ -59,9 +64,7 @@ static void GLASS_loadTextureImpl(TexStream* stream, glassTexture* out) {
     stream->read(stream, &header, sizeof(RawHeader));
     ASSERT((header.type == GPU_TEX_2D) || (header.type == GPU_TEX_CUBE_MAP));
 
-    for (size_t i = 0; i < GLASS_NUM_TEX_FACES; ++i)
-        out->faces[i] = NULL;
-
+    memset(out->faces, 0, GLASS_NUM_TEX_FACES * sizeof(u8*));
     out->isCubeMap = header.type == GPU_TEX_CUBE_MAP;
     out->width = (1 << (header.widthLog2 + 3));
     ASSERT(out->width >= GLASS_MIN_TEX_SIZE);
@@ -87,6 +90,7 @@ static void GLASS_loadTextureImpl(TexStream* stream, glassTexture* out) {
     }
     
     // Allocate texture data.
+    const size_t dataSize = GLASS_getTexDataSize(out);
     const size_t allocSize = GLASS_getTexAllocSize(out);
     const size_t numFaces = GLASS_getNumFaces(out->isCubeMap);
     for (size_t i = 0; i < numFaces; ++i) {
@@ -117,7 +121,7 @@ static void GLASS_loadTextureImpl(TexStream* stream, glassTexture* out) {
         u8* p = GLASS_getTexDataPtr(out, i, 0);
         ASSERT(p);
         iov[i].data = p;
-        iov[i].size = allocSize;
+        iov[i].size = dataSize;
     }
 
     ASSERT(decompressV(iov, numFaces, stream->read, (void*)stream, 0));

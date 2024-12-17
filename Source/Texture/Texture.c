@@ -197,8 +197,11 @@ static size_t GLASS_numTexLevels(GLsizei width, GLsizei height) {
     return 1;
 }
 
-size_t GLASS_tex_getAllocSize(size_t width, size_t height, GLenum format, GLenum type) {
-    return GLASS_tex_getOffset(width, height, format, type, GLASS_numTexLevels(width, height));
+size_t GLASS_tex_getAllocSize(size_t width, size_t height, GLenum format, GLenum type, size_t levels) {
+    if (levels == -1)
+        levels = GLASS_numTexLevels(width, height);
+
+    return GLASS_tex_getOffset(width, height, format, type, levels);
 }
 
 void GLASS_tex_set(TextureInfo* tex, size_t width, size_t height, GLenum format, GLenum type, bool vram, u8** faces) {
@@ -229,7 +232,7 @@ bool GLASS_reallocTexImpl(TextureInfo* tex, size_t width, size_t height, GLenum 
 
     if (width && height) {
         const size_t numFaces = GLASS_tex_getNumFaces(tex->target);
-        const size_t allocSize = GLASS_tex_getAllocSize(width, height, format, type);
+        const size_t allocSize = GLASS_tex_getAllocSize(width, height, format, type, -1);
 
         for (size_t i = 0; i < numFaces; ++i) {
             faces[i] = vram ? glassVRAMAlloc(allocSize, VRAM_ALLOC_ANY) : glassLinearAlloc(allocSize);
