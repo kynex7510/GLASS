@@ -84,6 +84,19 @@ bool GLASS_gpu_swapCommandBuffers(u32* buffer, size_t* sizeInWords) {
     return false;
 }
 
+static size_t GLASS_unwrapRBPixelSize(GLenum format) {
+    switch (format) {
+        case GL_RGBA8_OES:
+            return 2;
+        case GL_RGB5_A1:
+        case GL_RGB565:
+        case GL_RGBA4:
+            return 0;
+    }
+
+    UNREACHABLE("Invalid format!");
+}
+
 static GPU_COLORBUF GLASS_unwrapRBFormat(GLenum format) {
     switch (format) {
         case GL_RGBA8_OES:
@@ -104,7 +117,7 @@ static GPU_COLORBUF GLASS_unwrapRBFormat(GLenum format) {
             return GPU_RB_DEPTH24_STENCIL8;
     }
 
-    UNREACHABLE("Invalid renderbuffer format!");
+    UNREACHABLE("Invalid format!");
 }
 
 void GLASS_gpu_bindFramebuffer(const FramebufferInfo* info, bool block32) {
@@ -146,7 +159,7 @@ void GLASS_gpu_bindFramebuffer(const FramebufferInfo* info, bool block32) {
 
     // Set buffer parameters.
     if (colorBuffer) {
-        GPUCMD_AddWrite(GPUREG_COLORBUFFER_FORMAT, (GLASS_unwrapRBFormat(colorFormat) << 16) | GLASS_utility_unwrapRenderbufferPixelSize(colorFormat));
+        GPUCMD_AddWrite(GPUREG_COLORBUFFER_FORMAT, (GLASS_unwrapRBFormat(colorFormat) << 16) | GLASS_unwrapRBPixelSize(colorFormat));
         params[0] = params[1] = 0x0F;
     } else {
         params[0] = params[1] = 0;

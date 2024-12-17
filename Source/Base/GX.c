@@ -137,6 +137,8 @@ void GLASS_gx_unbind(CtxCommon* ctx) {
     GX_BindQueue(NULL);
 }
 
+static u16 GLASS_getFillWidth(GLenum format) { GLASS_utility_getRenderbufferBpp(format) >> 4; }
+
 void GLASS_gx_clearBuffers(RenderbufferInfo* colorBuffer, u32 colorClear, RenderbufferInfo* depthBuffer, u32 depthClear) {
     GXMemoryFillParams colorFill;
     GXMemoryFillParams depthFill;
@@ -152,14 +154,14 @@ void GLASS_gx_clearBuffers(RenderbufferInfo* colorBuffer, u32 colorClear, Render
         colorFill.addr = (u32)colorBuffer->address;
         colorFill.size = (colorBuffer->width * colorBuffer->height * (GLASS_utility_getRenderbufferBpp(colorBuffer->format) >> 3));
         colorFill.value = colorClear;
-        colorFill.width = GLASS_utility_unwrapRenderbufferPixelSize(colorBuffer->format);
+        colorFill.width = GLASS_getFillWidth(colorBuffer->format);
     }
 
     if (depthBuffer) {
         depthFill.addr = (u32)depthBuffer->address;
         depthFill.size = (depthBuffer->width * depthBuffer->height * (GLASS_utility_getRenderbufferBpp(depthBuffer->format) >> 3));
         depthFill.value = depthClear;
-        depthFill.width = GLASS_utility_unwrapRenderbufferPixelSize(depthBuffer->format);
+        depthFill.width = GLASS_getFillWidth(depthBuffer->format);
     }
 
     GLASS_memoryFill(colorBuffer ? &colorFill : NULL, depthBuffer ? &depthFill : NULL);

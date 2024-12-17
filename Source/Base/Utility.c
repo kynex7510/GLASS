@@ -150,16 +150,3 @@ size_t GLASS_utility_getRenderbufferBpp(GLenum format) {
 
     UNREACHABLE("Invalid format!");
 }
-
-size_t GLASS_utility_unwrapRenderbufferPixelSize(GLenum format) {
-    switch (format) {
-        case GL_RGBA8_OES:
-            return 2;
-        case GL_RGB5_A1:
-        case GL_RGB565:
-        case GL_RGBA4:
-            return 0;
-    }
-
-    UNREACHABLE("Invalid format!");
-}
