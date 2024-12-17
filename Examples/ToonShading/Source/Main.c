@@ -1,4 +1,4 @@
-#include "GLES/gl2.h"
+#include <GLES/gl2.h>
 #include <citro3d.h>
 
 #include "Vshader_shbin.h"

@@ -1,7 +1,7 @@
-#include "GLES/gl2.h"
-#include "stb_image.h"
+#include <GLES/gl2.h>
 #include <citro3d.h>
 
+#include "stb_image.h"
 #include "Vshader_shbin.h"
 
 typedef struct {

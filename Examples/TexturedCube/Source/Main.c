@@ -1,4 +1,4 @@
-#include "GLES/gl2.h"
+#include <GLES/gl2.h>
 #include <citro3d.h>
 
 #include "Vshader_shbin.h"
@@ -153,7 +153,7 @@ static void sceneInit(GLuint* vbo, GLuint* tex) {
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
-    // Extension: allocate texture data in VRAM.
+    // Allocate texture data in VRAM.
     glTexVRAMPICA(GL_TRUE);
 
     // Load texture.
