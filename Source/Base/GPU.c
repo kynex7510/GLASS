@@ -88,6 +88,8 @@ static size_t GLASS_unwrapRBPixelSize(GLenum format) {
     switch (format) {
         case GL_RGBA8_OES:
             return 2;
+        case GL_RGB8_OES:
+            return 1;
         case GL_RGB5_A1:
         case GL_RGB565:
         case GL_RGBA4:
