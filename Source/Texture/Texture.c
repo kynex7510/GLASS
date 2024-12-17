@@ -27,7 +27,7 @@ size_t GLASS_tex_bpp(GLenum format, GLenum type) {
             return 4;
     }
 
-    UNREACHABLE("Invalid GPU texture format!");
+    UNREACHABLE("Invalid parameter!");
 }
 
 static GPU_TEXCOLOR GLASS_unwrapTexFormatImpl(GLenum format, GLenum dataType) {
@@ -95,7 +95,7 @@ GPU_TEXCOLOR GLASS_tex_unwrapFormat(GLenum format, GLenum type) {
     if (texFmt != (GPU_TEXCOLOR)-1)
         return texFmt;
 
-    UNREACHABLE("Invalid texture format!");
+    UNREACHABLE("Invalid parameter!");
 }
 
 GLenum GLASS_tex_wrapFormat(GPU_TEXCOLOR format) {
@@ -125,7 +125,7 @@ GLenum GLASS_tex_wrapFormat(GPU_TEXCOLOR format) {
             return GL_ETC1_ALPHA_RGB8_A4_PICA;
     }
 
-    UNREACHABLE("Invalid GPU texture format!");
+    UNREACHABLE("Invalid parameter!");
 }
 
 GLenum GLASS_tex_wrapType(GPU_TEXCOLOR format) {
@@ -154,7 +154,7 @@ GLenum GLASS_tex_wrapType(GPU_TEXCOLOR format) {
             return 0;
     }
 
-    UNREACHABLE("Invalid GPU texture format!");
+    UNREACHABLE("Invalid parameter!");
 }
 
 bool GLASS_tex_isFormatValid(GLenum format, GLenum type) { return GLASS_unwrapTexFormatImpl(format, type) != (GPU_TEXCOLOR)-1; }
@@ -168,7 +168,7 @@ size_t GLASS_tex_getNumFaces(GLenum target) {
             return 6;
     }
 
-    UNREACHABLE("Invalid texture target!");
+    UNREACHABLE("Invalid parameter!");
 }
 
 size_t GLASS_tex_getOffset(size_t width, size_t height, GLenum format, GLenum type, size_t level) {

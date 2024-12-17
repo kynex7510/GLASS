@@ -25,7 +25,7 @@ void GLASS_gpu_uploadAttributes(const AttributeInfo* attribs);
 
 void GLASS_gpu_setCombiners(const CombinerInfo* combiners);
 
-void GLASS_gpu_setFragOp(GLenum fragMode, bool blendMode);
+void GLASS_gpu_setFragOp(GLenum mode, bool blendMode);
 void GLASS_gpu_setColorDepthMask(bool writeRed, bool writeGreen, bool writeBlue, bool writeAlpha, bool writeDepth, bool depthTest, GLenum depthFunc);
 void GLASS_gpu_setDepthMap(bool enabled, GLclampf nearVal, GLclampf farVal, GLfloat units, GLenum depthFormat);
 void GLASS_gpu_setEarlyDepthTest(bool enabled);

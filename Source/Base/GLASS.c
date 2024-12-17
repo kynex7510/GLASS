@@ -72,7 +72,7 @@ static GLenum GLASS_wrapFBFormat(GSPGPU_FramebufferFormat format) {
             return GL_RGBA4;
     }
 
-    UNREACHABLE("Invalid GSP framebuffer format!");
+    UNREACHABLE("Invalid parameter!");
 }
 
 static void GLASS_swapScreenBuffers(CtxCommon* ctx) {

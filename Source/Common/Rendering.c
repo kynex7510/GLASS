@@ -48,7 +48,7 @@ static u32 GLASS_makeClearColor(GLenum format, u32 color) {
             cvt |= (color >> 8) & 0x1F;
             break;
         default:
-            UNREACHABLE("Invalid color format!");
+            UNREACHABLE("Invalid parameter!");
     }
 
     return cvt;
@@ -69,7 +69,7 @@ static u32 GLASS_makeClearDepth(GLenum format, GLclampf factor, u8 stencil) {
             clearDepth = (((u32)(0xFFFFFF * factor) << 8) | stencil);
             break;
         default:
-            UNREACHABLE("Invalid depth format!");
+            UNREACHABLE("Invalid parameter!");
     }
 
     return clearDepth;

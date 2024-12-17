@@ -229,7 +229,7 @@ static size_t GLASS_sizeForAttribType(GLenum type) {
             return 4;    
     }
 
-    UNREACHABLE("Invalid attribute type!");
+    UNREACHABLE("Invalid parameter!");
 }
 
 static bool GLASS_isAttribPhysAddrAligned(GLenum type, u32 physAddr) {

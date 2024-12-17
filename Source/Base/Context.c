@@ -92,7 +92,7 @@ void GLASS_context_initCommon(CtxCommon* ctx, const glassInitParams* initParams,
 
     // Fragment.
     ctx->fragMode = GL_FRAGOP_MODE_DEFAULT_PICA;
-    ctx->flags |= GLASS_CONTEXT_FLAG_FRAGMENT;
+    ctx->flags |= GLASS_CONTEXT_FLAG_FRAGOP;
 
     // Color, Depth.
     ctx->writeRed = true;
@@ -314,10 +314,10 @@ void GLASS_context_flush(void) {
         g_Context->flags &= ~GLASS_CONTEXT_FLAG_ATTRIBS;
     }
 
-    // Handle fragment.
-    if (g_Context->flags & GLASS_CONTEXT_FLAG_FRAGMENT) {
+    // Handle fragop.
+    if (g_Context->flags & GLASS_CONTEXT_FLAG_FRAGOP) {
         GLASS_gpu_setFragOp(g_Context->fragMode, g_Context->blendMode);
-        g_Context->flags &= ~GLASS_CONTEXT_FLAG_FRAGMENT;
+        g_Context->flags &= ~GLASS_CONTEXT_FLAG_FRAGOP;
     }
 
     // Handle color and depth masks.
@@ -328,15 +328,19 @@ void GLASS_context_flush(void) {
     }
 
     // Handle depth map.
-    /*
-    TODO
     if (g_Context->flags & GLASS_CONTEXT_FLAG_DEPTHMAP) {
-        const FramebufferInfo* fb = (FramebufferInfo*)g_Context->framebuffer;
-        const RenderbufferInfo* db = (RenderbufferInfo*)fb->depthBuffer;
-        GLASS_gpu_setDepthMap(g_Context->polygonOffset, g_Context->depthNear, g_Context->depthFar, g_Context->polygonOffset ? g_Context->polygonUnits : 0.0f, db ? db->format : 0u);
+        GLenum depthFormat = GL_DEPTH_COMPONENT16;
+        if (g_Context->framebuffer != GLASS_INVALID_OBJECT) {
+            const FramebufferInfo* fb = (FramebufferInfo*)g_Context->framebuffer;
+            if (fb->depthBuffer != GLASS_INVALID_OBJECT) {
+                const RenderbufferInfo* db = (RenderbufferInfo*)fb->depthBuffer;
+                depthFormat = db->format;
+            }
+        }
+
+        GLASS_gpu_setDepthMap(g_Context->polygonOffset, g_Context->depthNear, g_Context->depthFar, g_Context->polygonUnits, depthFormat);
         g_Context->flags &= ~GLASS_CONTEXT_FLAG_DEPTHMAP;
     }
-    */
 
     // Handle early depth.
     if (g_Context->flags & GLASS_CONTEXT_FLAG_EARLY_DEPTH) {
@@ -381,13 +385,9 @@ void GLASS_context_flush(void) {
 
     // Handle blend & logic op.
     if (g_Context->flags & GLASS_CONTEXT_FLAG_BLEND) {
-        if (g_Context->blendMode) {
-            GLASS_gpu_setBlendFunc(g_Context->blendEqRGB, g_Context->blendEqAlpha, g_Context->blendSrcRGB, g_Context->blendDstRGB, g_Context->blendSrcAlpha, g_Context->blendDstAlpha);
-            GLASS_gpu_setBlendColor(g_Context->blendColor);
-        } else {
-            GLASS_gpu_setLogicOp(g_Context->logicOp);
-        }
-
+        GLASS_gpu_setBlendFunc(g_Context->blendEqRGB, g_Context->blendEqAlpha, g_Context->blendSrcRGB, g_Context->blendDstRGB, g_Context->blendSrcAlpha, g_Context->blendDstAlpha);
+        GLASS_gpu_setBlendColor(g_Context->blendColor);
+        GLASS_gpu_setLogicOp(g_Context->logicOp);
         g_Context->flags &= ~GLASS_CONTEXT_FLAG_BLEND;
     }
 

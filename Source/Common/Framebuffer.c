@@ -239,7 +239,7 @@ static GLint GLASS_getColorSize(GLenum format, GLenum color) {
             return 4;
     }
 
-    UNREACHABLE("Invalid color format!");
+    UNREACHABLE("Invalid parameter!");
 }
 
 static GLint GLASS_getDepthSize(GLenum format) {
@@ -251,7 +251,7 @@ static GLint GLASS_getDepthSize(GLenum format) {
             return 24;
     }
 
-    UNREACHABLE("Invalid depth format!");
+    UNREACHABLE("Invalid parameter!");
 }
 
 void glGetRenderbufferParameteriv(GLenum target, GLenum pname, GLint* params) {

@@ -90,7 +90,7 @@ static GLenum GLASS_texTargetForSubtarget(GLenum target) {
             return GL_TEXTURE_CUBE_MAP;
     }
 
-    UNREACHABLE("Invalid texture subtarget!");
+    UNREACHABLE("Invalid parameter!");
 }
 
 void glBindTexture(GLenum target, GLuint name) {

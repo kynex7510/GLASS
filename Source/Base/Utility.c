@@ -148,5 +148,5 @@ size_t GLASS_utility_getRenderbufferBpp(GLenum format) {
             return 16;
     }
 
-    UNREACHABLE("Invalid format!");
+    UNREACHABLE("Invalid parameter!");
 }
