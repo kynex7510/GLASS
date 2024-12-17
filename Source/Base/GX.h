@@ -26,7 +26,7 @@ void GLASS_gx_bind(CtxCommon* ctx);
 void GLASS_gx_unbind(CtxCommon* ctx);
 
 void GLASS_gx_clearBuffers(RenderbufferInfo* colorBuffer, u32 clearColor, RenderbufferInfo* depthBuffer, u32 clearDepth);
-void GLASS_gx_transferAndSwap(const RenderbufferInfo* colorBuffer, const RenderbufferInfo* displayBuffer);
+void GLASS_gx_transferAndSwap(const RenderbufferInfo* colorBuffer, const RenderbufferInfo* displayBuffer, void (*callback)(gxCmdQueue_s*));
 void GLASS_gx_copyTexture(const GXTexCopy* params);
 void GLASS_gx_applyTiling(const GXTexTiling* params);
 void GLASS_gx_sendGPUCommands(void);

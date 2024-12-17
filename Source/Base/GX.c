@@ -167,12 +167,6 @@ void GLASS_gx_clearBuffers(RenderbufferInfo* colorBuffer, u32 colorClear, Render
     GLASS_memoryFill(colorBuffer ? &colorFill : NULL, depthBuffer ? &depthFill : NULL);
 }
 
-static void GLASS_displayTransferDone(gxCmdQueue_s* queue) {
-    CtxCommon* ctx = (CtxCommon*)queue->user;
-    gfxScreenSwapBuffers(ctx->settings.targetScreen, ctx->settings.targetScreen == GFX_TOP && ctx->settings.targetSide == GFX_RIGHT);
-    gxCmdQueueSetCallback(queue, NULL, NULL);
-}
-
 static GX_TRANSFER_FORMAT GLASS_unwrapTransferFormat(GLenum format) {
     switch (format) {
         case GL_RGBA8_OES:
@@ -190,7 +184,7 @@ static GX_TRANSFER_FORMAT GLASS_unwrapTransferFormat(GLenum format) {
     UNREACHABLE("Invalid transfer format!");
 }
 
-void GLASS_gx_transferAndSwap(const RenderbufferInfo* colorBuffer, const RenderbufferInfo* displayBuffer) {
+void GLASS_gx_transferAndSwap(const RenderbufferInfo* colorBuffer, const RenderbufferInfo* displayBuffer, void (*callback)(gxCmdQueue_s*)) {
     ASSERT(colorBuffer);
     ASSERT(displayBuffer);
 
@@ -211,9 +205,12 @@ void GLASS_gx_transferAndSwap(const RenderbufferInfo* colorBuffer, const Renderb
     params.makeTiled = false;
     params.scaling = ctx->settings.transferScale;
 
-    gxCmdQueueWait(&ctx->gxQueue, -1);
-    gxCmdQueueClear(&ctx->gxQueue);
-    gxCmdQueueSetCallback(&ctx->gxQueue, GLASS_displayTransferDone, ctx);
+    if (callback) {
+        gxCmdQueueWait(&ctx->gxQueue, -1);
+        gxCmdQueueClear(&ctx->gxQueue);
+        gxCmdQueueSetCallback(&ctx->gxQueue, callback, ctx);
+    }
+    
     GLASS_displayTransfer(&params);
 }
 

@@ -75,6 +75,16 @@ static GLenum GLASS_wrapFBFormat(GSPGPU_FramebufferFormat format) {
     UNREACHABLE("Invalid GSP framebuffer format!");
 }
 
+static void GLASS_swapScreenBuffers(CtxCommon* ctx) {
+    gfxScreenSwapBuffers(ctx->settings.targetScreen, ctx->settings.targetScreen == GFX_TOP && ctx->settings.targetSide == GFX_RIGHT);
+}
+
+static void GLASS_displayTransferDone(gxCmdQueue_s* queue) {
+    CtxCommon* ctx = (CtxCommon*)queue->user;
+    GLASS_swapScreenBuffers(ctx);
+    gxCmdQueueSetCallback(queue, NULL, NULL);
+}
+
 void glassSwapBuffers(void) {
     CtxCommon* ctx = GLASS_context_getCommon();
 
@@ -87,9 +97,16 @@ void glassSwapBuffers(void) {
         return;
 
     // Get color buffer.
-    FramebufferInfo* fb = (FramebufferInfo*)ctx->framebuffer;
-    if (fb->colorBuffer == GLASS_INVALID_OBJECT)
+    if (ctx->framebuffer == GLASS_INVALID_OBJECT) {
+        GLASS_swapScreenBuffers(ctx);
         return;
+    }
+
+    FramebufferInfo* fb = (FramebufferInfo*)ctx->framebuffer;
+    if (fb->colorBuffer == GLASS_INVALID_OBJECT) {
+        GLASS_swapScreenBuffers(ctx);
+        return;
+    }
 
     const RenderbufferInfo* cb = (RenderbufferInfo*)fb->colorBuffer;
 
@@ -101,5 +118,5 @@ void glassSwapBuffers(void) {
     displayBuffer.format = GLASS_wrapFBFormat(gfxGetScreenFormat(ctx->settings.targetScreen));
     displayBuffer.width = width;
     displayBuffer.height = height;
-    GLASS_gx_transferAndSwap(cb, &displayBuffer);
+    GLASS_gx_transferAndSwap(cb, &displayBuffer, GLASS_displayTransferDone);
 }
