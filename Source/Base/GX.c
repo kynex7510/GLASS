@@ -137,7 +137,7 @@ void GLASS_gx_unbind(CtxCommon* ctx) {
     GX_BindQueue(NULL);
 }
 
-static u16 GLASS_getFillWidth(GLenum format) { GLASS_utility_getRenderbufferBpp(format) >> 4; }
+static u16 GLASS_getFillWidth(GLenum format) { return GLASS_utility_getRenderbufferBpp(format) >> 4; }
 
 void GLASS_gx_clearBuffers(RenderbufferInfo* colorBuffer, u32 colorClear, RenderbufferInfo* depthBuffer, u32 depthClear) {
     GXMemoryFillParams colorFill;
