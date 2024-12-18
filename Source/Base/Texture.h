@@ -24,11 +24,6 @@ size_t GLASS_tex_getAllocSize(size_t width, size_t height, GLenum format, GLenum
 void GLASS_tex_set(TextureInfo* tex, size_t width, size_t height, GLenum format, GLenum type, bool vram, u8** faces);
 TexReallocStatus GLASS_tex_realloc(TextureInfo* tex, size_t width, size_t height, GLenum format, GLenum type, bool vram);
 
-void GLASS_tex_flip(const u8* src, u8* dst, size_t width, size_t height, size_t bpp);
-
-void GLASS_tex_makeTiled(const u8* src, u8* dst, size_t width, size_t height, GLenum format, GLenum type);
-void GLASS_tex_makeLinear(const u8* src, u8* dst, size_t width, size_t height, GLenum format, GLenum type);
-
 void GLASS_tex_write(TextureInfo* tex, const u8* data, size_t size, size_t face, size_t level);
 void GLASS_tex_writeRaw(TextureInfo* tex, const u8* data, size_t face, size_t level);
 

@@ -1,4 +1,4 @@
-#include "Texture/Texture.h"
+#include "Base/Pixels.h"
 
 #include <string.h> // memcpy
 
@@ -41,7 +41,7 @@ static SwapBytes_t GLASS_getSwapBytesFn(size_t bpp) {
     return NULL;
 }
 
-void GLASS_tex_flip(const u8* src, u8* dst, size_t width, size_t height, size_t bpp) {
+void GLASS_pixels_flip(const u8* src, u8* dst, size_t width, size_t height, size_t bpp) {
     const SwapBytes_t swapBytesFn = GLASS_getSwapBytesFn(bpp);
     const size_t rowSize = (width * bpp) >> 3;
 

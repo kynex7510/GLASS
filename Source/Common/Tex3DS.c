@@ -1,6 +1,6 @@
 #include "Base/Context.h"
 #include "Base/Utility.h"
-#include "Texture/Texture.h"
+#include "Base/Texture.h"
 
 #include <string.h> // memcpy, memset
 

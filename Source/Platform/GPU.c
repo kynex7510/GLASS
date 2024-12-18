@@ -1,6 +1,6 @@
-#include "Base/GPU.h"
+#include "Platform/GPU.h"
 #include "Base/Utility.h"
-#include "Texture/Texture.h"
+#include "Base/Texture.h"
 
 #include <string.h> // memcpy, memset
 

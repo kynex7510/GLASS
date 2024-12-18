@@ -1,5 +1,5 @@
-#include "Base/GX.h"
-#include "Base/GPU.h"
+#include "Platform/GX.h"
+#include "Platform/GPU.h"
 #include "Base/Utility.h"
 
 #define MAX_ENTRIES 32
@@ -214,53 +214,53 @@ void GLASS_gx_transferAndSwap(const RenderbufferInfo* colorBuffer, const Renderb
     GLASS_displayTransfer(&params);
 }
 
-void GLASS_gx_copyTexture(const GXTexCopy* copy) {
-    ASSERT(copy);
-    ASSERT(copy->size);
-    ASSERT(copy->stride >= copy->size);
+void GLASS_gx_copyTexture(u32 srcAddr, u32 dstAddr, size_t size, size_t stride, size_t count) {
+    ASSERT(size);
+    ASSERT(stride >= size);
 
     CtxCommon* ctx = GLASS_context_getCommon();
 
-    const size_t flushSize = copy->stride * copy->count;
-    ASSERT(R_SUCCEEDED(GSPGPU_FlushDataCache((void*)copy->srcAddr, flushSize)));
+    const size_t flushSize = stride * count;
+    ASSERT(R_SUCCEEDED(GSPGPU_FlushDataCache((void*)srcAddr, flushSize)));
 
     GXTextureCopyParams params;
-    params.srcAddr = copy->srcAddr;
-    params.dstAddr = copy->dstAddr;
-    params.size = (copy->size * copy->count);
-    params.lineSize = copy->size;
-    params.gap = (copy->stride - copy->size);
+    params.srcAddr = srcAddr;
+    params.dstAddr = dstAddr;
+    params.size = (size * count);
+    params.lineSize = size;
+    params.gap = (stride - size);
 
     GX_BindQueue(NULL);
     GLASS_textureCopy(&params);
     gspWaitForPPF();
     GX_BindQueue(&ctx->gxQueue);
 
-    ASSERT(R_SUCCEEDED(GSPGPU_InvalidateDataCache((void*)copy->dstAddr, flushSize)));
+    ASSERT(R_SUCCEEDED(GSPGPU_InvalidateDataCache((void*)dstAddr, flushSize)));
 }
 
-void GLASS_gx_applyTiling(const GXTexTiling* tiling) {
-    ASSERT(tiling);
+void GLASS_gx_tiling(u32 srcAddr, u32 dstAddr, size_t width, size_t height, GLenum format, bool makeTiled) {
+    ASSERT(GLASS_utility_isPowerOf2(width));
+    ASSERT(GLASS_utility_isPowerOf2(height));
 
     CtxCommon* ctx = GLASS_context_getCommon();
 
-    const size_t flushSize = tiling->width * tiling->height * GLASS_utility_getRenderbufferBpp(tiling->format);
-    ASSERT(R_SUCCEEDED(GSPGPU_FlushDataCache((void*)tiling->srcAddr, flushSize)));
+    const size_t flushSize = width * height * GLASS_utility_getRenderbufferBpp(format);
+    ASSERT(R_SUCCEEDED(GSPGPU_FlushDataCache((void*)srcAddr, flushSize)));
 
     GXDisplayTransferParams params;
 
-    params.srcAddr = tiling->srcAddr;
-    params.srcWidth = tiling->width;
-    params.srcHeight = tiling->height;
-    params.srcFormat = GLASS_unwrapTransferFormat(tiling->format);
+    params.srcAddr = srcAddr;
+    params.srcWidth = width;
+    params.srcHeight = height;
+    params.srcFormat = GLASS_unwrapTransferFormat(format);
 
-    params.dstAddr = tiling->dstAddr;
+    params.dstAddr = dstAddr;
     params.dstWidth = params.srcWidth;
     params.dstHeight = params.srcHeight;
     params.dstFormat = params.srcFormat;
 
     params.verticalFlip = false;
-    params.makeTiled = tiling->makeTiled;
+    params.makeTiled = makeTiled;
     params.scaling = GX_TRANSFER_SCALE_NO;
     
     GX_BindQueue(NULL);
@@ -268,7 +268,7 @@ void GLASS_gx_applyTiling(const GXTexTiling* tiling) {
     gspWaitForPPF();
     GX_BindQueue(&ctx->gxQueue);
 
-    ASSERT(R_SUCCEEDED(GSPGPU_InvalidateDataCache((void*)tiling->dstAddr, flushSize)));
+    ASSERT(R_SUCCEEDED(GSPGPU_InvalidateDataCache((void*)dstAddr, flushSize)));
 }
 
 void GLASS_gx_sendGPUCommands(void) {

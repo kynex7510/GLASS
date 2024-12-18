@@ -1,6 +1,10 @@
 #include "Base/Context.h"
 
-#define MAKE_STRING(s) (const GLubyte*)#s
+#define VENDOR "Kynex7510"
+#define RENDERER "GLASS"
+#define VERSION_2_0 "OpenGL ES 2.0"
+#define SHADING_LANGUAGE_VERSION "SHBIN 1.0"
+#define EXTENSIONS_2_0 ""
 
 static void GLASS_setCapability(GLenum cap, bool enabled) {
     CtxCommon* ctx = GLASS_context_getCommon();
@@ -83,22 +87,42 @@ GLenum glGetError(void) {
     return error;
 }
 
+static const GLubyte* GLASS_glVersionString(u8 version) {
+    switch (version) {
+        case GLASS_VERSION_2_0:
+            return (const GLubyte*)VERSION_2_0;
+    }
+
+    UNREACHABLE("Invalid parameter!");
+}
+
+static const GLubyte* GLASS_glExtensionsString(u8 version) {
+    switch (version) {
+        case GLASS_VERSION_2_0:
+            return (const GLubyte*)EXTENSIONS_2_0;
+    }
+
+    UNREACHABLE("Invalid parameter!");
+}
+
 const GLubyte* glGetString(GLenum name) {
+    CtxCommon* ctx = GLASS_context_getCommon();
+
     switch (name) {
         case GL_VENDOR:
-            return MAKE_STRING(Kynex7510);
+            return (const GLubyte*)VENDOR;
         case GL_RENDERER:
 #ifndef NDEBUG
-            return MAKE_STRING(GLASS (Release));
+            return(const GLubyte*)RENDERER;
 #else
-            return MAKE_STRING(GLASS (Debug));
+            return (const GLubyte*)RENDERER " (DEBUG)";
 #endif
         case GL_VERSION:
-            return MAKE_STRING(OpenGL ES 2.0);
+            return GLASS_glVersionString(ctx->initParams.version);
         case GL_SHADING_LANGUAGE_VERSION:
-            return MAKE_STRING(SHBIN 1.0);
+            return (const GLubyte*)SHADING_LANGUAGE_VERSION;
         case GL_EXTENSIONS:
-            return MAKE_STRING();
+            return GLASS_glExtensionsString(ctx->initParams.version);
     }
 
     GLASS_context_setError(GL_INVALID_ENUM);

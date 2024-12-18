@@ -1,6 +1,6 @@
 #include "Base/Context.h"
-#include "Base/GPU.h"
-#include "Base/GX.h"
+#include "Platform/GPU.h"
+#include "Platform/GX.h"
 #include "Base/Utility.h"
 
 #define REMOVE_CLEAR_BITS(mask) \

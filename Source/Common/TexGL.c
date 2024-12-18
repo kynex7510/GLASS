@@ -1,97 +1,7 @@
 #include "Base/Context.h"
-#include "Texture/Texture.h"
+#include "Base/Texture.h"
 
 #include <string.h>
-
-static bool GLASS_isMagFilter(GLenum filter) {
-    switch (filter) {
-        case GL_NEAREST:
-        case GL_LINEAR:
-            return true;
-    }
-
-    return false;
-}
-
-static bool GLASS_isMinFilter(GLenum filter) {
-    if (GLASS_isMagFilter(filter))
-        return true;
-
-    switch (filter) {
-        case GL_NEAREST_MIPMAP_NEAREST:
-        case GL_NEAREST_MIPMAP_LINEAR:
-        case GL_LINEAR_MIPMAP_NEAREST:
-        case GL_LINEAR_MIPMAP_LINEAR:
-            return true;
-    }
-
-    return false;
-}
-
-static bool GLASS_isTexWrap(GLenum wrap) {
-    switch (wrap) {
-        case GL_CLAMP_TO_EDGE:
-        case GL_CLAMP_TO_BORDER:
-        case GL_MIRRORED_REPEAT:
-        case GL_REPEAT:
-            return true;
-    }
-
-    return false;
-}
-
-static bool GLASS_isTexFormat(GLenum format) {
-    switch (format) {
-        case GL_ALPHA:
-        case GL_LUMINANCE:
-        case GL_LUMINANCE_ALPHA:
-        case GL_RGB:
-        case GL_RGBA:
-            return true;
-    }
-
-    return false;
-}
-
-static bool GLASS_isTexType(GLenum type) {
-    switch (type) {
-        case GL_UNSIGNED_BYTE:
-        case GL_UNSIGNED_SHORT_5_6_5:
-        case GL_UNSIGNED_SHORT_4_4_4_4:
-        case GL_UNSIGNED_SHORT_5_5_5_1:
-        case GL_UNSIGNED_NIBBLE_PICA:
-        case GL_UNSIGNED_BYTE_4_4_PICA:
-            return true;
-    }
-
-    return false;
-}
-
-static bool GLASS_isTexCompressedFormat(GLenum format) {
-    switch (format) {
-        case GL_ETC1_RGB8_OES:
-        case GL_ETC1_ALPHA_RGB8_A4_PICA:
-            return true;
-    }
-
-    return false;
-}
-
-static GLenum GLASS_texTargetForSubtarget(GLenum target) {
-    switch (target) {
-        case GL_TEXTURE_2D:
-            return GL_TEXTURE_2D;
-        case GL_TEXTURE_CUBE_MAP_POSITIVE_X:
-        case GL_TEXTURE_CUBE_MAP_NEGATIVE_X:
-        case GL_TEXTURE_CUBE_MAP_POSITIVE_Y:
-        case GL_TEXTURE_CUBE_MAP_NEGATIVE_Y:
-        case GL_TEXTURE_CUBE_MAP_POSITIVE_Z:
-        case GL_TEXTURE_CUBE_MAP_NEGATIVE_Z:
-            return GL_TEXTURE_CUBE_MAP;
-    }
-
-    UNREACHABLE("Invalid parameter!");
-}
 
 void glBindTexture(GLenum target, GLuint name) {
     ASSERT(GLASS_OBJ_IS_TEXTURE(name) || name == GLASS_INVALID_OBJECT);
@@ -251,6 +161,43 @@ static bool GLASS_setTexFloats(TextureInfo* tex, GLenum pname, const GLfloat* pa
     return false;
 }
 
+static bool GLASS_isMagFilter(GLenum filter) {
+    switch (filter) {
+        case GL_NEAREST:
+        case GL_LINEAR:
+            return true;
+    }
+
+    return false;
+}
+
+static bool GLASS_isMinFilter(GLenum filter) {
+    if (GLASS_isMagFilter(filter))
+        return true;
+
+    switch (filter) {
+        case GL_NEAREST_MIPMAP_NEAREST:
+        case GL_NEAREST_MIPMAP_LINEAR:
+        case GL_LINEAR_MIPMAP_NEAREST:
+        case GL_LINEAR_MIPMAP_LINEAR:
+            return true;
+    }
+
+    return false;
+}
+
+static bool GLASS_isTexWrap(GLenum wrap) {
+    switch (wrap) {
+        case GL_CLAMP_TO_EDGE:
+        case GL_CLAMP_TO_BORDER:
+        case GL_MIRRORED_REPEAT:
+        case GL_REPEAT:
+            return true;
+    }
+
+    return false;
+}
+
 static bool GLASS_validateTexParam(GLenum pname, GLenum param) {
     const bool invalidMinFilter = ((pname == GL_TEXTURE_MIN_FILTER) && !GLASS_isMinFilter(param));
     const bool invalidMagFilter = ((pname == GL_TEXTURE_MAG_FILTER) && !GLASS_isMagFilter(param));
@@ -310,9 +257,6 @@ void glTexParameterf(GLenum target, GLenum pname, GLfloat param) { glTexParamete
 void glTexParameteri(GLenum target, GLenum pname, GLint param) { glTexParameteriv(target, pname, &param); }
 
 static bool GLASS_checkTexArgs(GLenum target, GLint level, GLsizei width, GLsizei height, GLint border) {
-    width <<= level;
-    height <<= level;
-    
     if ((level < 0) || (level >= GLASS_NUM_TEX_LEVELS) || (border != 0))
         return false;
 
@@ -325,10 +269,71 @@ static bool GLASS_checkTexArgs(GLenum target, GLint level, GLsizei width, GLsize
     if ((width > GLASS_MAX_TEX_SIZE) || (height > GLASS_MAX_TEX_SIZE))
         return false;
 
+    if (!GLASS_utility_isPowerOf2(width) || !GLASS_utility_isPowerOf2(height))
+        return false;
+
     return true;
 }
 
-static void GLASS_setTex(GLenum target, GLint level, GLsizei width, GLsizei height, GLenum format, GLenum type, const u8* data) {
+static bool GLASS_isTexFormat(GLenum format) {
+    switch (format) {
+        case GL_ALPHA:
+        case GL_LUMINANCE:
+        case GL_LUMINANCE_ALPHA:
+        case GL_RGB:
+        case GL_RGBA:
+            return true;
+    }
+
+    return false;
+}
+
+static bool GLASS_isTexType(GLenum type) {
+    switch (type) {
+        case GL_UNSIGNED_BYTE:
+        case GL_UNSIGNED_SHORT_5_6_5:
+        case GL_UNSIGNED_SHORT_4_4_4_4:
+        case GL_UNSIGNED_SHORT_5_5_5_1:
+        case GL_UNSIGNED_NIBBLE_PICA:
+        case GL_UNSIGNED_BYTE_4_4_PICA:
+            return true;
+    }
+
+    return false;
+}
+
+static GLenum GLASS_texTargetForSubtarget(GLenum target) {
+    switch (target) {
+        case GL_TEXTURE_2D:
+            return GL_TEXTURE_2D;
+        case GL_TEXTURE_CUBE_MAP_POSITIVE_X:
+        case GL_TEXTURE_CUBE_MAP_NEGATIVE_X:
+        case GL_TEXTURE_CUBE_MAP_POSITIVE_Y:
+        case GL_TEXTURE_CUBE_MAP_NEGATIVE_Y:
+        case GL_TEXTURE_CUBE_MAP_POSITIVE_Z:
+        case GL_TEXTURE_CUBE_MAP_NEGATIVE_Z:
+            return GL_TEXTURE_CUBE_MAP;
+    }
+
+    UNREACHABLE("Invalid parameter!");
+}
+
+void glTexImage2D(GLenum target, GLint level, GLint internalformat, GLsizei width, GLsizei height, GLint border, GLenum format, GLenum type, const GLvoid* data) {
+    if (!GLASS_checkTexArgs(target, level, width, height, border)) {
+        GLASS_context_setError(GL_INVALID_VALUE);
+        return;
+    }
+    
+    if (!GLASS_isTexFormat(format) || !GLASS_isTexType(type)) {
+        GLASS_context_setError(GL_INVALID_ENUM);
+        return;
+    }
+    
+    if ((format != internalformat) || !GLASS_tex_isFormatValid(format, type)) {
+        GLASS_context_setError(GL_INVALID_OPERATION);
+        return;
+    }
+
     CtxCommon* ctx = GLASS_context_getCommon();
     TextureInfo* tex = (TextureInfo*)ctx->textureUnits[ctx->activeTextureUnit];
 
@@ -389,40 +394,7 @@ static void GLASS_setTex(GLenum target, GLint level, GLsizei width, GLsizei heig
     }
     
     if (reallocStatus == TexReallocStatus_Updated)
-        ctx->flags |= GLASS_CONTEXT_FLAG_TEXTURE;
-}
-
-void glTexImage2D(GLenum target, GLint level, GLint internalformat, GLsizei width, GLsizei height, GLint border, GLenum format, GLenum type, const GLvoid* data) {
-    if (!GLASS_checkTexArgs(target, level, width, height, border)) {
-        GLASS_context_setError(GL_INVALID_VALUE);
-        return;
-    }
-    
-    if (!GLASS_isTexFormat(format) || !GLASS_isTexType(type)) {
-        GLASS_context_setError(GL_INVALID_ENUM);
-        return;
-    }
-    
-    if ((format != internalformat) || !GLASS_tex_isFormatValid(format, type)) {
-        GLASS_context_setError(GL_INVALID_OPERATION);
-        return;
-    }
-
-    GLASS_setTex(target, level, width, height, format, type, (const u8*)data);    
-}
-
-void glCompressedTexImage2D(GLenum target, GLint level, GLenum internalformat, GLsizei width, GLsizei height, GLint border, GLsizei imageSize, const GLvoid* data) {
-    if (!GLASS_checkTexArgs(target, level, width, height, border)) {
-        GLASS_context_setError(GL_INVALID_VALUE);
-        return;
-    }
-    
-    if (!GLASS_isTexCompressedFormat(internalformat)) {
-        GLASS_context_setError(GL_INVALID_ENUM);
-        return;
-    }
-
-    //GLASS_setTex(target, level, width, height, internalformat, 0, (const u8*)data);
+        ctx->flags |= GLASS_CONTEXT_FLAG_TEXTURE;   
 }
 
 void glTexVRAMPICA(GLboolean enabled) {
@@ -441,8 +413,15 @@ void glTexVRAMPICA(GLboolean enabled) {
     }
 }
 
+void glCompressedTexImage2D(GLenum target, GLint level, GLenum internalformat, GLsizei width, GLsizei height, GLint border, GLsizei imageSize, const GLvoid* data) {
+    GLASS_context_setError(GL_INVALID_ENUM);
+}
+
+void glCompressedTexSubImage2D(GLenum target, GLint level, GLint xoffset, GLint yoffset, GLsizei width, GLsizei height, GLenum format, GLsizei imageSize, const GLvoid* data) {
+    GLASS_context_setError(GL_INVALID_ENUM);    
+}
+
 // TODO
-void glCompressedTexSubImage2D(GLenum target, GLint level, GLint xoffset, GLint yoffset, GLsizei width, GLsizei height, GLenum format, GLsizei imageSize, const GLvoid* data);
 void glCopyTexImage2D(GLenum target, GLint level, GLenum internalformat, GLint x, GLint y, GLsizei width, GLsizei height, GLint border);
 void glCopyTexSubImage2D(GLenum target, GLint level, GLint xoffset, GLint yoffset, GLint x, GLint y, GLsizei width, GLsizei height);
 void glTexSubImage2D(GLenum target, GLint level, GLint xoffset, GLint yoffset, GLsizei width, GLsizei height, GLenum format, GLenum type, const GLvoid* data);

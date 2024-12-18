@@ -1,8 +1,9 @@
-#include "Texture/Texture.h"
+#include "Base/Texture.h"
+#include "Platform/GX.h"
 #include "Base/Utility.h"
-#include "Base/GX.h"
+#include "Base/Pixels.h"
 
-#include <string.h>
+#include <string.h> // memset
 
 size_t GLASS_tex_bpp(GLenum format, GLenum type) {
     switch (GLASS_tex_unwrapFormat(format, type)) {
@@ -191,10 +192,7 @@ size_t GLASS_tex_getSize(size_t width, size_t height, GLenum format, GLenum type
 }
 
 static size_t GLASS_numTexLevels(GLsizei width, GLsizei height) {
-    if (GLASS_utility_isPowerOf2(width) && GLASS_utility_isPowerOf2(height))
-        return 29 - __builtin_clz(MAX(width, height));
-
-    return 1;
+    return 29 - __builtin_clz(MAX(width, height));
 }
 
 size_t GLASS_tex_getAllocSize(size_t width, size_t height, GLenum format, GLenum type, size_t levels) {
@@ -208,6 +206,8 @@ void GLASS_tex_set(TextureInfo* tex, size_t width, size_t height, GLenum format,
     ASSERT(tex);
     ASSERT(faces);
     ASSERT(tex->target != GLASS_TEX_TARGET_UNBOUND);
+    ASSERT(GLASS_utility_isPowerOf2(width));
+    ASSERT(GLASS_utility_isPowerOf2(height));
 
     const size_t numFaces = GLASS_tex_getNumFaces(tex->target);
     for (size_t i = 0; i < numFaces; ++i) {
@@ -224,9 +224,6 @@ void GLASS_tex_set(TextureInfo* tex, size_t width, size_t height, GLenum format,
 }
 
 bool GLASS_reallocTexImpl(TextureInfo* tex, size_t width, size_t height, GLenum format, GLenum type, bool vram) {
-    ASSERT(tex);
-    ASSERT(tex->target != GLASS_TEX_TARGET_UNBOUND);
-
     u8* faces[GLASS_NUM_TEX_FACES];
     memset(faces, 0, GLASS_NUM_TEX_FACES * sizeof(u8*));
 
@@ -256,6 +253,8 @@ bool GLASS_reallocTexImpl(TextureInfo* tex, size_t width, size_t height, GLenum 
 TexReallocStatus GLASS_tex_realloc(TextureInfo* tex, size_t width, size_t height, GLenum format, GLenum type, bool vram) {
     ASSERT(tex);
     ASSERT(tex->target != GLASS_TEX_TARGET_UNBOUND);
+    ASSERT(GLASS_utility_isPowerOf2(width));
+    ASSERT(GLASS_utility_isPowerOf2(height));
 
     if ((tex->width == width) && (tex->height == height) && (tex->format == format) && (tex->type == type) && (tex->vram == vram))
         return TexReallocStatus_Unchanged;
@@ -274,13 +273,7 @@ void GLASS_tex_write(TextureInfo* tex, const u8* data, size_t size, size_t face,
     if (!size)
         size = GLASS_tex_getSize(tex->width, tex->height, tex->format, tex->type, level);
 
-    GXTexCopy params;
-    params.srcAddr = (u32)data;
-    params.dstAddr = (u32)dst;
-    params.stride = size;
-    params.size = params.stride;
-    params.count = 1;
-    GLASS_gx_copyTexture(&params);
+    GLASS_gx_copyTexture((u32)data, (u32)dst, size, size, 1);
 }
 
 void GLASS_tex_writeRaw(TextureInfo* tex, const u8* data, size_t face, size_t level) {
@@ -293,14 +286,13 @@ void GLASS_tex_writeRaw(TextureInfo* tex, const u8* data, size_t face, size_t le
 
     u8* flipped = glassLinearAlloc((width * height * bpp) >> 3);
     ASSERT(flipped);
-    GLASS_tex_flip(data, flipped, width, height, bpp);
+    GLASS_pixels_flip(data, flipped, width, height, bpp);
 
-    // TODO: adjust width & height.
     u8* tiled = glassLinearAlloc((width * height * bpp) >> 3);
     ASSERT(tiled);
-    GLASS_tex_makeTiled(flipped, tiled, width, height, tex->format, tex->type);
+    GLASS_pixels_tiling(flipped, tiled, width, height, tex->format, tex->type, true);
+    glassLinearFree(flipped);
 
     GLASS_tex_write(tex, tiled, 0, face, level);
-    glassLinearFree(flipped);
     glassLinearFree(tiled);
 }
