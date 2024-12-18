@@ -77,8 +77,8 @@ static void GLASS_displayTransfer(const GXDisplayTransferParams* transfer) {
     ASSERT(glassIsLinear((void*)transfer->srcAddr) || glassIsVRAM((void*)transfer->srcAddr));
     ASSERT(glassIsLinear((void*)transfer->dstAddr) || glassIsVRAM((void*)transfer->dstAddr));
 
-    GX_DisplayTransfer((u32*)(transfer->srcAddr), GX_BUFFER_DIM(transfer->srcHeight, transfer->srcWidth),
-        (u32*)(transfer->dstAddr), GX_BUFFER_DIM(transfer->dstHeight, transfer->dstWidth),
+    GX_DisplayTransfer((u32*)(transfer->srcAddr), GX_BUFFER_DIM(transfer->srcWidth, transfer->srcHeight),
+        (u32*)(transfer->dstAddr), GX_BUFFER_DIM(transfer->dstWidth, transfer->dstHeight),
         TRANSFER_FLAGS(transfer->srcFormat, transfer->dstFormat, transfer->verticalFlip, transfer->makeTiled, transfer->scaling));
 }
 
@@ -192,13 +192,13 @@ void GLASS_gx_transferAndSwap(const RenderbufferInfo* colorBuffer, const Renderb
     GXDisplayTransferParams params;
 
     params.srcAddr = (u32)colorBuffer->address;
-    params.srcWidth = colorBuffer->width;
-    params.srcHeight = colorBuffer->height;
+    params.srcWidth = colorBuffer->height;
+    params.srcHeight = colorBuffer->width;
     params.srcFormat = GLASS_unwrapTransferFormat(colorBuffer->format);
 
     params.dstAddr = (u32)displayBuffer->address;
-    params.dstWidth = displayBuffer->width;
-    params.dstHeight = displayBuffer->height;
+    params.dstWidth = displayBuffer->height;
+    params.dstHeight = displayBuffer->width;
     params.dstFormat = GLASS_unwrapTransferFormat(displayBuffer->format);
 
     params.verticalFlip = ctx->settings.verticalFlip;
