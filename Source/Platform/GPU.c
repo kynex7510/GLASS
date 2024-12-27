@@ -1110,7 +1110,6 @@ void GLASS_gpu_setTextureUnits(const GLuint* units) {
         GPUCMD_AddWrite(typeCmds[i], GLASS_tex_unwrapFormat(tex->format, tex->type));
     }
 
-    // TODO: is a double write required?
-    // GPUCMD_AddWrite(GPUREG_TEXUNIT_CONFIG, config);
-    GPUCMD_AddWrite(GPUREG_TEXUNIT_CONFIG, config | (1u << 16)); // Clear cache.
+    GPUCMD_AddWrite(GPUREG_TEXUNIT_CONFIG, config);
+    GPUCMD_AddMaskedWrite(GPUREG_TEXUNIT_CONFIG, 0x4, (1u << 16)); // Clear cache.
 }
