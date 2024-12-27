@@ -233,13 +233,8 @@ void GLASS_context_flush(void) {
         // Flush buffers if required.
         if (g_Context->flags & GLASS_CONTEXT_FLAG_DRAW) {
             GLASS_gpu_flushFramebuffer();
-
-            if (g_Context->earlyDepthTest) {
-                GLASS_gpu_clearEarlyDepthBuffer();
-                g_Context->flags &= ~GLASS_CONTEXT_FLAG_EARLY_DEPTH_CLEAR;
-            }
-
-            g_Context->flags &= ~GLASS_CONTEXT_FLAG_DRAW;
+            GLASS_gpu_clearEarlyDepthBuffer();
+            g_Context->flags &= ~(GLASS_CONTEXT_FLAG_DRAW | GLASS_CONTEXT_FLAG_EARLY_DEPTH_CLEAR);
         }
 
         GLASS_gpu_bindFramebuffer(info, g_Context->block32);
@@ -345,29 +340,21 @@ void GLASS_context_flush(void) {
     // Handle early depth.
     if (g_Context->flags & GLASS_CONTEXT_FLAG_EARLY_DEPTH) {
         GLASS_gpu_setEarlyDepthTest(g_Context->earlyDepthTest);
-        if (g_Context->earlyDepthTest) {
-            GLASS_gpu_setEarlyDepthFunc(g_Context->earlyDepthFunc);
-            GLASS_gpu_setEarlyDepthClear(g_Context->clearEarlyDepth);
-        }
+        GLASS_gpu_setEarlyDepthFunc(g_Context->earlyDepthFunc);
+        GLASS_gpu_setEarlyDepthClear(g_Context->clearEarlyDepth);
         g_Context->flags &= ~GLASS_CONTEXT_FLAG_EARLY_DEPTH;
     }
 
     // Handle early depth clear.
     if (g_Context->flags & GLASS_CONTEXT_FLAG_EARLY_DEPTH_CLEAR) {
-        if (g_Context->earlyDepthTest) {
-            GLASS_gpu_clearEarlyDepthBuffer();
-        }
-
+        GLASS_gpu_clearEarlyDepthBuffer();
         g_Context->flags &= ~GLASS_CONTEXT_FLAG_EARLY_DEPTH_CLEAR;
     }
 
     // Handle stencil.
     if (g_Context->flags & GLASS_CONTEXT_FLAG_STENCIL) {
         GLASS_gpu_setStencilTest(g_Context->stencilTest, g_Context->stencilFunc, g_Context->stencilRef, g_Context->stencilMask, g_Context->stencilWriteMask);
-    
-        if (g_Context->stencilTest)
-            GLASS_gpu_setStencilOp(g_Context->stencilFail, g_Context->stencilDepthFail, g_Context->stencilPass);
-
+        GLASS_gpu_setStencilOp(g_Context->stencilFail, g_Context->stencilDepthFail, g_Context->stencilPass);
         g_Context->flags &= ~GLASS_CONTEXT_FLAG_STENCIL;
     }
 
