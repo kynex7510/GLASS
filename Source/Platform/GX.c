@@ -184,7 +184,7 @@ static GX_TRANSFER_FORMAT GLASS_unwrapTransferFormat(GLenum format) {
     UNREACHABLE("Invalid parameter!");
 }
 
-void GLASS_gx_transferAndSwap(const RenderbufferInfo* colorBuffer, const RenderbufferInfo* displayBuffer, void (*callback)(gxCmdQueue_s*)) {
+void GLASS_gx_displayTransfer(const RenderbufferInfo* colorBuffer, const RenderbufferInfo* displayBuffer, void (*callback)(gxCmdQueue_s*)) {
     ASSERT(colorBuffer);
     ASSERT(displayBuffer);
 

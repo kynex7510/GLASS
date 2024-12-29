@@ -118,5 +118,5 @@ void glassSwapBuffers(void) {
     displayBuffer.format = GLASS_wrapFBFormat(gfxGetScreenFormat(ctx->settings.targetScreen));
     displayBuffer.width = width;
     displayBuffer.height = height;
-    GLASS_gx_transferAndSwap(cb, &displayBuffer, GLASS_displayTransferDone);
+    GLASS_gx_displayTransfer(cb, &displayBuffer, GLASS_displayTransferDone);
 }
