@@ -240,15 +240,23 @@ static void GLASS_setTexParams(GLenum target, GLenum pname, const GLint* intPara
                 floatParams[0] = (GLfloat)intParams[0];
             }
 
-            if (!GLASS_setTexFloats(tex, pname, floatParams))
+            if (!GLASS_setTexFloats(tex, pname, floatParams)) {
                 GLASS_context_setError(GL_INVALID_ENUM);
+                return;
+            }
         }
     } else if (floatParams) {
         if (!GLASS_setTexFloats(tex, pname, floatParams)) {
-            if (!GLASS_validateTexParam(pname, floatParams[0]) || !GLASS_setTexInt(tex, pname, floatParams[0]))
+            if (!GLASS_validateTexParam(pname, floatParams[0]) || !GLASS_setTexInt(tex, pname, floatParams[0])) {
                 GLASS_context_setError(GL_INVALID_ENUM);
+                return;
+            }
         }
+    } else {
+        UNREACHABLE("Params expected!");
     }
+
+    ctx->flags |= GLASS_CONTEXT_FLAG_TEXTURE;
 }
 
 void glTexParameterfv(GLenum target, GLenum pname, const GLfloat* params) { GLASS_setTexParams(target, pname, NULL, params); }
