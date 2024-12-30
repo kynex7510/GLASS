@@ -252,7 +252,7 @@ void glassDestroyTexture(glassTexture* tex) {
 
 const size_t glassGetTextureSize(const glassTexture* tex, size_t level) {
     if (tex && (level < tex->levels))
-        return GLASS_tex_getSize(tex->width, tex->height, tex->format, tex->type, level);
+        return (((tex->width >> level) * (tex->height >> level) * GLASS_tex_bpp(tex->format, tex->type)) >> 3);
 
     return 0;
 }

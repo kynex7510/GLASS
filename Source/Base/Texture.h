@@ -18,7 +18,6 @@ bool GLASS_tex_isCompressed(GLenum format);
 
 size_t GLASS_tex_getNumFaces(GLenum target);
 size_t GLASS_tex_getOffset(size_t width, size_t height, GLenum format, GLenum type, size_t level);
-size_t GLASS_tex_getSize(size_t width, size_t height, GLenum format, GLenum type, size_t level);
 size_t GLASS_tex_getAllocSize(size_t width, size_t height, GLenum format, GLenum type, size_t levels);
 
 void GLASS_tex_set(TextureInfo* tex, size_t width, size_t height, GLenum format, GLenum type, bool vram, u8** faces);

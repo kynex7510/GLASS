@@ -187,10 +187,6 @@ size_t GLASS_tex_getOffset(size_t width, size_t height, GLenum format, GLenum ty
     return 0;
 }
 
-size_t GLASS_tex_getSize(size_t width, size_t height, GLenum format, GLenum type, size_t level) {
-    return (((width >> level) * (height >> level) * GLASS_tex_bpp(format, type)) >> 3);
-}
-
 static size_t GLASS_numTexLevels(GLsizei width, GLsizei height) {
     return 29 - __builtin_clz(MAX(width, height));
 }
@@ -266,13 +262,10 @@ void GLASS_tex_write(TextureInfo* tex, const u8* data, size_t size, size_t face,
     ASSERT(tex);
     ASSERT(tex->target != GLASS_TEX_TARGET_UNBOUND);
     ASSERT(glassIsLinear(data));
+    ASSERT(size);
 
     const size_t mipmapOffset = GLASS_tex_getOffset(tex->width, tex->height, tex->format, tex->type, level);
     u8* dst = tex->faces[face] + mipmapOffset;
-
-    if (!size)
-        size = GLASS_tex_getSize(tex->width, tex->height, tex->format, tex->type, level);
-
     GLASS_gx_copyTexture((u32)data, (u32)dst, size, size, 1);
 }
 
@@ -283,16 +276,17 @@ void GLASS_tex_writeRaw(TextureInfo* tex, const u8* data, size_t face, size_t le
     const size_t width = tex->width >> level;
     const size_t height = tex->height >> level;
     const size_t bpp = GLASS_tex_bpp(tex->format, tex->type);
+    const size_t allocSize = (width * height * bpp) >> 3;
 
-    u8* flipped = glassLinearAlloc((width * height * bpp) >> 3);
+    u8* flipped = glassLinearAlloc(allocSize);
     ASSERT(flipped);
     GLASS_pixels_flip(data, flipped, width, height, bpp);
 
-    u8* tiled = glassLinearAlloc((width * height * bpp) >> 3);
+    u8* tiled = glassLinearAlloc(allocSize);
     ASSERT(tiled);
     GLASS_pixels_tiling(flipped, tiled, width, height, tex->format, tex->type, true);
     glassLinearFree(flipped);
 
-    GLASS_tex_write(tex, tiled, 0, face, level);
+    GLASS_tex_write(tex, tiled, allocSize, face, level);
     glassLinearFree(tiled);
 }
