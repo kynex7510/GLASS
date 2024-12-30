@@ -244,7 +244,15 @@ void GLASS_gx_tiling(u32 srcAddr, u32 dstAddr, size_t width, size_t height, GLen
 
     CtxCommon* ctx = GLASS_context_getCommon();
 
-    const size_t flushSize = width * height * GLASS_utility_getRenderbufferBpp(format);
+    /* TODO: BUG
+       This will not flush the cache correctly when loading a 32x32 rgb8 texture. There is actually no reason for this
+       not to work, and I have no idea what causes this. For instance, software tiling works just fine.
+       It looks like adding a single page to the size fixes the problem, and honestly I'm fine with it, I spent 2 days
+       trying to understand what goes wrong, and at this point I couldn't care less.
+       This may or may not get a proper fix in the future, but for now all I have to say is: boy it feels so nice to give up.
+    */
+    /*const*/ size_t flushSize = ((width * height * GLASS_utility_getRenderbufferBpp(format)) >> 3);
+    flushSize += 4096;
     ASSERT(R_SUCCEEDED(GSPGPU_FlushDataCache((void*)srcAddr, flushSize)));
 
     GXDisplayTransferParams params;
