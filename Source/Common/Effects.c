@@ -121,10 +121,8 @@ void glAlphaFunc(GLenum func, GLclampf ref) {
     }
 
     CtxCommon* ctx = GLASS_context_getCommon();
-    if (ctx->alphaFunc != func) {
-        ctx->alphaFunc = func;
-        ctx->flags |= GLASS_CONTEXT_FLAG_ALPHA;
-    }
+    ctx->alphaFunc = func;
+    ctx->flags |= GLASS_CONTEXT_FLAG_ALPHA;
 }
 
 void glBlendColor(GLclampf red, GLclampf green, GLclampf blue, GLclampf alpha) {
@@ -135,10 +133,8 @@ void glBlendColor(GLclampf red, GLclampf green, GLclampf blue, GLclampf alpha) {
     blendColor |= ((u32)(0xFF * CLAMP(0.0f, 1.0f, blue)) << 8);
     blendColor |= ((u32)(0xFF * CLAMP(0.0f, 1.0f, alpha)));
 
-    if (ctx->blendColor != blendColor) {
-        ctx->blendColor = blendColor;
-        ctx->flags |= GLASS_CONTEXT_FLAG_BLEND;
-    }
+    ctx->blendColor = blendColor;
+    ctx->flags |= GLASS_CONTEXT_FLAG_BLEND;
 }
 
 void glBlendEquationSeparate(GLenum modeRGB, GLenum modeAlpha) {
@@ -148,11 +144,9 @@ void glBlendEquationSeparate(GLenum modeRGB, GLenum modeAlpha) {
   }
 
     CtxCommon* ctx = GLASS_context_getCommon();
-    if ((ctx->blendEqRGB != modeRGB) || (ctx->blendEqAlpha != modeAlpha)) {
-        ctx->blendEqRGB = modeRGB;
-        ctx->blendEqAlpha = modeAlpha;
-        ctx->flags |= GLASS_CONTEXT_FLAG_BLEND;
-    }
+    ctx->blendEqRGB = modeRGB;
+    ctx->blendEqAlpha = modeAlpha;
+    ctx->flags |= GLASS_CONTEXT_FLAG_BLEND;
 }
 
 void glBlendEquation(GLenum mode) { glBlendEquationSeparate(mode, mode); }
@@ -164,26 +158,22 @@ void glBlendFuncSeparate(GLenum srcRGB, GLenum dstRGB, GLenum srcAlpha, GLenum d
     }
 
     CtxCommon* ctx = GLASS_context_getCommon();
-    if ((ctx->blendSrcRGB != srcRGB) || (ctx->blendDstRGB != dstRGB) || (ctx->blendSrcAlpha != srcAlpha) || (ctx->blendDstAlpha != dstAlpha)) {
-        ctx->blendSrcRGB = srcRGB;
-        ctx->blendDstRGB = dstRGB;
-        ctx->blendSrcAlpha = srcAlpha;
-        ctx->blendDstAlpha = dstAlpha;
-        ctx->flags |= GLASS_CONTEXT_FLAG_BLEND;
-    }
+    ctx->blendSrcRGB = srcRGB;
+    ctx->blendDstRGB = dstRGB;
+    ctx->blendSrcAlpha = srcAlpha;
+    ctx->blendDstAlpha = dstAlpha;
+    ctx->flags |= GLASS_CONTEXT_FLAG_BLEND;
 }
 
 void glBlendFunc(GLenum sfactor, GLenum dfactor) { glBlendFuncSeparate(sfactor, dfactor, sfactor, dfactor); }
 
 void glColorMask(GLboolean red, GLboolean green, GLboolean blue, GLboolean alpha) {
     CtxCommon* ctx = GLASS_context_getCommon();
-    if ((ctx->writeRed != (red == GL_TRUE)) || (ctx->writeGreen != (green == GL_TRUE)) || (ctx->writeBlue != (blue == GL_TRUE)) || (ctx->writeAlpha != (alpha == GL_TRUE))) {
-        ctx->writeRed = red == GL_TRUE;
-        ctx->writeGreen = green == GL_TRUE;
-        ctx->writeBlue = blue == GL_TRUE;
-        ctx->writeAlpha = alpha == GL_TRUE;
-        ctx->flags |= GLASS_CONTEXT_FLAG_COLOR_DEPTH;
-    }
+    ctx->writeRed = red == GL_TRUE;
+    ctx->writeGreen = green == GL_TRUE;
+    ctx->writeBlue = blue == GL_TRUE;
+    ctx->writeAlpha = alpha == GL_TRUE;
+    ctx->flags |= GLASS_CONTEXT_FLAG_COLOR_DEPTH;
 }
 
 void glCullFace(GLenum mode) {
@@ -193,10 +183,8 @@ void glCullFace(GLenum mode) {
     }
 
     CtxCommon* ctx = GLASS_context_getCommon();
-    if (ctx->cullFaceMode != mode) {
-        ctx->cullFaceMode = mode;
-        ctx->flags |= GLASS_CONTEXT_FLAG_CULL_FACE;
-    }
+    ctx->cullFaceMode = mode;
+    ctx->flags |= GLASS_CONTEXT_FLAG_CULL_FACE;
 }
 
 void glDepthFunc(GLenum func) {
@@ -206,18 +194,14 @@ void glDepthFunc(GLenum func) {
     }
 
     CtxCommon* ctx = GLASS_context_getCommon();
-    if (ctx->depthFunc != func) {
-        ctx->depthFunc = func;
-        ctx->flags |= GLASS_CONTEXT_FLAG_COLOR_DEPTH;
-    }
+    ctx->depthFunc = func;
+    ctx->flags |= GLASS_CONTEXT_FLAG_COLOR_DEPTH;
 }
 
 void glDepthMask(GLboolean flag) {
     CtxCommon* ctx = GLASS_context_getCommon();
-    if (ctx->writeDepth == (flag == GL_TRUE)) {
-        ctx->writeDepth = flag == GL_TRUE;
-        ctx->flags |= GLASS_CONTEXT_FLAG_COLOR_DEPTH;
-    }
+    ctx->writeDepth = flag == GL_TRUE;
+    ctx->flags |= GLASS_CONTEXT_FLAG_COLOR_DEPTH;
 }
 
 void glDepthRangef(GLclampf nearVal, GLclampf farVal) {
@@ -234,10 +218,8 @@ void glFrontFace(GLenum mode) {
     }
 
     CtxCommon* ctx = GLASS_context_getCommon();
-    if (ctx->frontFaceMode != mode) {
-        ctx->frontFaceMode = mode;
-        ctx->flags |= GLASS_CONTEXT_FLAG_CULL_FACE;
-    }
+    ctx->frontFaceMode = mode;
+    ctx->flags |= GLASS_CONTEXT_FLAG_CULL_FACE;
 }
 
 void glLogicOp(GLenum opcode) {
@@ -247,10 +229,8 @@ void glLogicOp(GLenum opcode) {
     }
 
     CtxCommon* ctx = GLASS_context_getCommon();
-    if (ctx->logicOp != opcode) {
-        ctx->logicOp = opcode;
-        ctx->flags |= GLASS_CONTEXT_FLAG_BLEND;
-    }
+    ctx->logicOp = opcode;
+    ctx->flags |= GLASS_CONTEXT_FLAG_BLEND;
 }
 
 void glPolygonOffset(GLfloat factor, GLfloat units) {
@@ -260,13 +240,6 @@ void glPolygonOffset(GLfloat factor, GLfloat units) {
     ctx->flags |= GLASS_CONTEXT_FLAG_DEPTHMAP;
 }
 
-static GLsizei GLASS_screenWidth(CtxCommon* ctx) {
-    if (ctx->settings.targetScreen == GFX_TOP)
-        return gfxIsWide() ? 800 : 400;
-
-    return 320;
-}
-
 void glScissor(GLint x, GLint y, GLsizei width, GLsizei height) {
     if ((width < 0) || (height < 0)) {
         GLASS_context_setError(GL_INVALID_VALUE);
@@ -274,14 +247,11 @@ void glScissor(GLint x, GLint y, GLsizei width, GLsizei height) {
     }
 
     CtxCommon* ctx = GLASS_context_getCommon();
-    if ((ctx->scissorX != x) || (ctx->scissorY != y) || (ctx->scissorW != width) || (ctx->scissorH != height)) {
-        // Account for rotated screens.
-        ctx->scissorX = (GLASS_screenWidth(ctx) - (x + width));
-        ctx->scissorY = y;
-        ctx->scissorW = width;
-        ctx->scissorH = height;
-        ctx->flags |= GLASS_CONTEXT_FLAG_SCISSOR;
-    }
+    ctx->scissorX = x;
+    ctx->scissorY = y;
+    ctx->scissorW = width;
+    ctx->scissorH = height;
+    ctx->flags |= GLASS_CONTEXT_FLAG_SCISSOR;
 }
 
 void glStencilFunc(GLenum func, GLint ref, GLuint mask) {
@@ -291,22 +261,16 @@ void glStencilFunc(GLenum func, GLint ref, GLuint mask) {
     }
 
     CtxCommon* ctx = GLASS_context_getCommon();
-    if ((ctx->stencilFunc != func) || (ctx->stencilRef != ref) || (ctx->stencilMask != mask)) {
-        ctx->stencilFunc = func;
-        ctx->stencilRef = ref;
-        ctx->stencilMask = mask;
-        if (ctx->stencilTest)
-            ctx->flags |= GLASS_CONTEXT_FLAG_STENCIL;
-    }
+    ctx->stencilFunc = func;
+    ctx->stencilRef = ref;
+    ctx->stencilMask = mask;
+    ctx->flags |= GLASS_CONTEXT_FLAG_STENCIL;
 }
 
 void glStencilMask(GLuint mask) {
     CtxCommon* ctx = GLASS_context_getCommon();
-    if (ctx->stencilWriteMask != mask) {
-        ctx->stencilWriteMask = mask;
-        if (ctx->stencilTest)
-            ctx->flags |= GLASS_CONTEXT_FLAG_STENCIL;
-    }
+    ctx->stencilWriteMask = mask;
+    ctx->flags |= GLASS_CONTEXT_FLAG_STENCIL;
 }
 
 void glStencilOp(GLenum sfail, GLenum dpfail, GLenum dppass) {
@@ -316,13 +280,10 @@ void glStencilOp(GLenum sfail, GLenum dpfail, GLenum dppass) {
     }
 
     CtxCommon* ctx = GLASS_context_getCommon();
-    if ((ctx->stencilFail != sfail) || (ctx->stencilDepthFail != dpfail) || (ctx->stencilPass != dppass)) {
-        ctx->stencilFail = sfail;
-        ctx->stencilDepthFail = dpfail;
-        ctx->stencilPass = dppass;
-        if (ctx->stencilTest)
-            ctx->flags |= GLASS_CONTEXT_FLAG_STENCIL;
-    }
+    ctx->stencilFail = sfail;
+    ctx->stencilDepthFail = dpfail;
+    ctx->stencilPass = dppass;
+    ctx->flags |= GLASS_CONTEXT_FLAG_STENCIL;
 }
 
 void glViewport(GLint x, GLint y, GLsizei width, GLsizei height) {
@@ -332,13 +293,10 @@ void glViewport(GLint x, GLint y, GLsizei width, GLsizei height) {
     }
 
     CtxCommon* ctx = GLASS_context_getCommon();
-    if ((ctx->viewportX != x) || (ctx->viewportY != y) || (ctx->viewportW != width) || (ctx->viewportH != height)) {
-        // Account for rotated screens.
-        ctx->viewportX = (GLASS_screenWidth(ctx) - (x + width));
-        ctx->viewportY = y;
-        ctx->viewportW = width;
-        ctx->viewportH = height;
-        ctx->scissorMode = GPU_SCISSOR_DISABLE;
-        ctx->flags |= (GLASS_CONTEXT_FLAG_VIEWPORT | GLASS_CONTEXT_FLAG_SCISSOR);
-    }
+    ctx->viewportX = x;
+    ctx->viewportY = y;
+    ctx->viewportW = width;
+    ctx->viewportH = height;
+    ctx->scissorMode = GPU_SCISSOR_DISABLE;
+    ctx->flags |= (GLASS_CONTEXT_FLAG_VIEWPORT | GLASS_CONTEXT_FLAG_SCISSOR);
 }

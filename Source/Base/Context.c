@@ -221,6 +221,21 @@ void GLASS_context_bind(CtxCommon* ctx) {
     }
 }
 
+static GLsizei GLASS_renderWidth(CtxCommon* ctx) {
+    ASSERT(ctx);
+
+    if (ctx->framebuffer != GLASS_INVALID_OBJECT) {
+        const FramebufferInfo* fb = (FramebufferInfo*)ctx->framebuffer;
+        const RenderbufferInfo* rb = (RenderbufferInfo*)fb->colorBuffer;
+        if (rb)
+            return rb->width;
+    }
+
+    u16 width;
+    gfxGetFramebuffer(ctx->settings.targetScreen, ctx->settings.targetSide, NULL, &width);
+    return width;
+}
+
 void GLASS_context_flush(void) {
     ASSERT(g_Context);
 
@@ -250,13 +265,17 @@ void GLASS_context_flush(void) {
 
     // Handle viewport.
     if (g_Context->flags & GLASS_CONTEXT_FLAG_VIEWPORT) {
-        GLASS_gpu_setViewport(g_Context->viewportX, g_Context->viewportY, g_Context->viewportW, g_Context->viewportH);
+        // Account for rotated screens.
+        const GLsizei x = (GLASS_renderWidth(g_Context) - (g_Context->viewportX + g_Context->viewportW));
+        GLASS_gpu_setViewport(x, g_Context->viewportY, g_Context->viewportW, g_Context->viewportH);
         g_Context->flags &= ~GLASS_CONTEXT_FLAG_VIEWPORT;
     }
 
     // Handle scissor.
     if (g_Context->flags & GLASS_CONTEXT_FLAG_SCISSOR) {
-        GLASS_gpu_setScissorTest(g_Context->scissorMode, g_Context->scissorX, g_Context->scissorY, g_Context->scissorW, g_Context->scissorH);
+        // Account for rotated screens.
+        const GLsizei x = (GLASS_renderWidth(g_Context) - (g_Context->scissorX + g_Context->scissorW));
+        GLASS_gpu_setScissorTest(g_Context->scissorMode, x, g_Context->scissorY, g_Context->scissorW, g_Context->scissorH);
         g_Context->flags &= ~GLASS_CONTEXT_FLAG_SCISSOR;
     }
 
