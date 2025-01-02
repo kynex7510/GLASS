@@ -1,6 +1,6 @@
 # TODO
 
-## Immediate term
+## WIP
 
 - Finish textures
 - - Load subtextures (tex3ds)
