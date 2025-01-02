@@ -76,10 +76,10 @@ static void GLASS_displayTransfer(const GXDisplayTransferParams* transfer) {
     ASSERT(transfer);
     ASSERT(glassIsLinear((void*)transfer->srcAddr) || glassIsVRAM((void*)transfer->srcAddr));
     ASSERT(glassIsLinear((void*)transfer->dstAddr) || glassIsVRAM((void*)transfer->dstAddr));
-    ASSERT(!(transfer->srcWidth & 8));
-    ASSERT(!(transfer->srcHeight & 8));
-    ASSERT(!(transfer->dstWidth & 8));
-    ASSERT(!(transfer->dstHeight & 8));
+    ASSERT(!(transfer->srcWidth & 7));
+    ASSERT(!(transfer->srcHeight & 7));
+    ASSERT(!(transfer->dstWidth & 7));
+    ASSERT(!(transfer->dstHeight & 7));
 
     GX_DisplayTransfer((u32*)(transfer->srcAddr), GX_BUFFER_DIM(transfer->srcWidth, transfer->srcHeight),
         (u32*)(transfer->dstAddr), GX_BUFFER_DIM(transfer->dstWidth, transfer->dstHeight),
@@ -243,8 +243,8 @@ void GLASS_gx_copyTexture(u32 srcAddr, u32 dstAddr, size_t size, size_t stride, 
 }
 
 void GLASS_gx_tiling(u32 srcAddr, u32 dstAddr, size_t width, size_t height, GLenum format, bool makeTiled) {
-    ASSERT(!(width & 8));
-    ASSERT(!(height & 8));
+    ASSERT(!(width & 7));
+    ASSERT(!(height & 7));
 
     CtxCommon* ctx = GLASS_context_getCommon();
 
