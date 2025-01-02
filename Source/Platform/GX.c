@@ -101,7 +101,7 @@ static void GLASS_textureCopy(const GXTextureCopyParams* copy) {
     }
 
     GX_TextureCopy((u32*)copy->srcAddr, GX_BUFFER_DIM(copy->lineSize >> 1, copy->gap >> 1),
-    (u32*)copy->dstAddr, GX_BUFFER_DIM(copy->lineSize >> 1, copy->gap >> 1), copy->size, 0x8 | flags);
+        (u32*)copy->dstAddr, GX_BUFFER_DIM(copy->lineSize >> 1, copy->gap >> 1), copy->size, 0x8 | flags);
 }
 
 static void GLASS_processCommandList(const GXProcessCommandListParams* cmdList) {
