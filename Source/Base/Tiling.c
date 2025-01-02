@@ -61,8 +61,8 @@ void GLASS_pixels_tiling(const u8* src, u8* dst, size_t width, size_t height, GL
     ASSERT(glassIsLinear(dst));
     ASSERT(width >= 8);
     ASSERT(height >= 8);
-    ASSERT(GLASS_utility_isPowerOf2(width));
-    ASSERT(GLASS_utility_isPowerOf2(height));
+    ASSERT(!(width & 8));
+    ASSERT(!(height & 8));
 
     // Use the hardware if possible.
     const GLenum hwTilingFormat = GLASS_supportHwTiling(width, height, format, type);
