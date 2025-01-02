@@ -353,6 +353,12 @@ void glRenderbufferStorage(GLenum target, GLenum internalformat, GLsizei width, 
         return;
     }
 
+    // Renderbuffer dimensions must be multiple of 8.
+    if ((width & 8) || (height & 8)) {
+        GLASS_context_setError(GL_INVALID_VALUE);
+        return;
+    }
+
     CtxCommon* ctx = GLASS_context_getCommon();
 
     // Get renderbuffer.

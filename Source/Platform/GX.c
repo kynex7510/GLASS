@@ -76,6 +76,10 @@ static void GLASS_displayTransfer(const GXDisplayTransferParams* transfer) {
     ASSERT(transfer);
     ASSERT(glassIsLinear((void*)transfer->srcAddr) || glassIsVRAM((void*)transfer->srcAddr));
     ASSERT(glassIsLinear((void*)transfer->dstAddr) || glassIsVRAM((void*)transfer->dstAddr));
+    ASSERT(!(transfer->srcWidth & 8));
+    ASSERT(!(transfer->srcHeight & 8));
+    ASSERT(!(transfer->dstWidth & 8));
+    ASSERT(!(transfer->dstHeight & 8));
 
     GX_DisplayTransfer((u32*)(transfer->srcAddr), GX_BUFFER_DIM(transfer->srcWidth, transfer->srcHeight),
         (u32*)(transfer->dstAddr), GX_BUFFER_DIM(transfer->dstWidth, transfer->dstHeight),
