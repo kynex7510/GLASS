@@ -38,7 +38,21 @@ void GLASS_utility_abort(void) {
 #endif // NDEBUG
 
 bool GLASS_utility_isPowerOf2(u32 v) { return !(v & (v - 1)); }
-u32 GLASS_utility_nextPowerOf2(u32 v) { return 1 << (32 - __builtin_clz(v)); }
+
+bool GLASS_utility_isAligned(size_t v, size_t alignment) {
+    ASSERT(GLASS_utility_isPowerOf2(alignment));
+    return !(v & (alignment - 1));
+}
+
+size_t GLASS_utility_alignDown(size_t v, size_t alignment) {
+    ASSERT(GLASS_utility_isPowerOf2(alignment));
+    return v & ~(alignment - 1);
+}
+
+size_t GLASS_utility_alignUp(size_t v, size_t alignment) {
+    ASSERT(GLASS_utility_isPowerOf2(alignment));
+    return (v + alignment) & ~(alignment - 1);
+}
 
 void* GLASS_utility_convertPhysToVirt(u32 addr) {
 #define CONVERT_REGION(_name)                                              \

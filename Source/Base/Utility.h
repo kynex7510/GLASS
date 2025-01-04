@@ -44,7 +44,9 @@ void GLASS_utility_logImpl(const char* msg);
 void GLASS_utility_abort(void) NORETURN;
 
 bool GLASS_utility_isPowerOf2(u32 v);
-u32 GLASS_utility_nextPowerOf2(u32 v);
+bool GLASS_utility_isAligned(size_t v, size_t alignment);
+size_t GLASS_utility_alignDown(size_t v, size_t alignment);
+size_t GLASS_utility_alignUp(size_t v, size_t alignment);
 
 void* GLASS_utility_convertPhysToVirt(u32 addr);
 float GLASS_utility_f24tof32(u32 f);

@@ -354,7 +354,7 @@ void glRenderbufferStorage(GLenum target, GLenum internalformat, GLsizei width, 
     }
 
     // Renderbuffer dimensions must be multiple of 8.
-    if ((width & 7) || (height & 7)) {
+    if (!GLASS_utility_isAligned(width, 8) || !GLASS_utility_isAligned(height, 8)) {
         GLASS_context_setError(GL_INVALID_VALUE);
         return;
     }

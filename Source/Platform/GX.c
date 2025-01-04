@@ -243,8 +243,8 @@ void GLASS_gx_copyTexture(u32 srcAddr, u32 dstAddr, size_t size, size_t stride, 
 }
 
 void GLASS_gx_tiling(u32 srcAddr, u32 dstAddr, size_t width, size_t height, GLenum format, bool makeTiled) {
-    ASSERT(!(width & 7));
-    ASSERT(!(height & 7));
+    ASSERT(GLASS_utility_isAligned(width, 8));
+    ASSERT(GLASS_utility_isAligned(height, 8));
 
     CtxCommon* ctx = GLASS_context_getCommon();
 
