@@ -48,6 +48,9 @@ bool GLASS_utility_isAligned(size_t v, size_t alignment);
 size_t GLASS_utility_alignDown(size_t v, size_t alignment);
 size_t GLASS_utility_alignUp(size_t v, size_t alignment);
 
+bool GLASS_utility_flushCache(const void* addr, size_t size);
+bool GLASS_utility_invalidateCache(const void* addr, size_t size);
+
 void* GLASS_utility_convertPhysToVirt(u32 addr);
 float GLASS_utility_f24tof32(u32 f);
 u32 GLASS_utility_f32tofixed13(float f);

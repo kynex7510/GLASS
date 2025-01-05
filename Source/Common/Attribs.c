@@ -281,7 +281,7 @@ void glVertexAttribPointer(GLuint index, GLint size, GLenum type, GLboolean norm
         }
 
         if (!ctx->initParams.flushAllLinearMem) {
-            ASSERT(R_SUCCEEDED(GSPGPU_FlushDataCache(pointer, bufferSize)));
+            ASSERT(GLASS_utility_flushCache(pointer, bufferSize));
         }
     }
 

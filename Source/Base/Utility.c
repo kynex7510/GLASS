@@ -54,6 +54,20 @@ size_t GLASS_utility_alignUp(size_t v, size_t alignment) {
     return (v + alignment) & ~(alignment - 1);
 }
 
+bool GLASS_utility_flushCache(const void* addr, size_t size) {
+    if (glassIsLinear(addr))
+        return R_SUCCEEDED(GSPGPU_FlushDataCache(addr, size));
+
+    return true;
+}
+
+bool GLASS_utility_invalidateCache(const void* addr, size_t size) {
+    if (glassIsLinear(addr) || glassIsVRAM(addr))
+        return R_SUCCEEDED(GSPGPU_InvalidateDataCache(addr, size));
+
+    return true;
+}
+
 void* GLASS_utility_convertPhysToVirt(u32 addr) {
 #define CONVERT_REGION(_name)                                              \
     if (addr >= OS_##_name##_PADDR &&                                      \

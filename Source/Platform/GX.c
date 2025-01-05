@@ -148,7 +148,7 @@ void GLASS_gx_copy(u32 srcAddr, u32 dstAddr, size_t size, size_t stride, size_t 
     CtxCommon* ctx = GLASS_context_getCommon();
 
     const size_t flushSize = stride * count;
-    ASSERT(R_SUCCEEDED(GSPGPU_FlushDataCache((void*)srcAddr, flushSize)));
+    ASSERT(GLASS_utility_flushCache((void*)srcAddr, flushSize));
 
     GXTextureCopyParams params;
     params.srcAddr = srcAddr;
@@ -165,7 +165,7 @@ void GLASS_gx_copy(u32 srcAddr, u32 dstAddr, size_t size, size_t stride, size_t 
     if (sync) {
         gspWaitForPPF();
         GX_BindQueue(&ctx->gxQueue);
-        ASSERT(R_SUCCEEDED(GSPGPU_InvalidateDataCache((void*)dstAddr, flushSize)));
+        ASSERT(GLASS_utility_invalidateCache((void*)dstAddr, flushSize));
     }
 }
 
@@ -199,11 +199,11 @@ void GLASS_gx_set(u32 addr0, size_t size0, u32 value0, size_t width0, u32 addr1,
         GX_BindQueue(&ctx->gxQueue);
 
         if (fill0.addr) {
-            ASSERT(R_SUCCEEDED(GSPGPU_InvalidateDataCache((void*)fill0.addr, fill0.size)));
+            ASSERT(GLASS_utility_invalidateCache((void*)fill0.addr, fill0.size));
         }
 
         if (fill1.addr) {
-            ASSERT(R_SUCCEEDED(GSPGPU_InvalidateDataCache((void*)fill1.addr, fill1.size)));
+            ASSERT(GLASS_utility_invalidateCache((void*)fill1.addr, fill1.size));
         }
     }
 }
@@ -236,7 +236,7 @@ void GLASS_gx_transfer(u32 srcAddr, size_t srcWidth, size_t srcHeight, GX_TRANSF
     CtxCommon* ctx = GLASS_context_getCommon();
 
     const size_t srcFlushSize = ((srcWidth * srcHeight * GLASS_transferFormatBpp(srcFmt)) >> 3);
-    ASSERT(R_SUCCEEDED(GSPGPU_FlushDataCache((void*)srcAddr, srcFlushSize)));
+    ASSERT(GLASS_utility_flushCache((void*)srcAddr, srcFlushSize));
 
     GXDisplayTransferParams params;
 
@@ -269,7 +269,7 @@ void GLASS_gx_transfer(u32 srcAddr, size_t srcWidth, size_t srcHeight, GX_TRANSF
         GX_BindQueue(&ctx->gxQueue);
 
         const size_t dstInvalidateSize = ((dstWidth * dstHeight * GLASS_transferFormatBpp(dstFmt)) >> 3);
-        ASSERT(R_SUCCEEDED(GSPGPU_FlushDataCache((void*)dstAddr, dstInvalidateSize)));
+        ASSERT(GLASS_utility_invalidateCache((void*)dstAddr, dstInvalidateSize));
     }
 }
 
@@ -283,7 +283,7 @@ void GLASS_gx_sendGPUCommands(void) {
     if (ctx->initParams.flushAllLinearMem) {
         extern u32 __ctru_linear_heap;
         extern u32 __ctru_linear_heap_size;
-        ASSERT(R_SUCCEEDED(GSPGPU_FlushDataCache((void*)__ctru_linear_heap, __ctru_linear_heap_size)));
+        ASSERT(GLASS_utility_flushCache((void*)__ctru_linear_heap, __ctru_linear_heap_size));
         params.flush = false;
     } else {
         params.flush = true;

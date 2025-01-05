@@ -81,7 +81,7 @@ void glBufferData(GLenum target, GLsizeiptr size, const void* data, GLenum usage
 
         CtxCommon* ctx = GLASS_context_getCommon();
         if (!ctx->initParams.flushAllLinearMem) {
-            ASSERT(R_SUCCEEDED(GSPGPU_FlushDataCache(info->address, size)));
+            ASSERT(GLASS_utility_flushCache(info->address, size));
         }
     }
 }
@@ -111,7 +111,7 @@ void glBufferSubData(GLenum target, GLintptr offset, GLsizeiptr size, const void
 
     CtxCommon* ctx = GLASS_context_getCommon();
     if (!ctx->initParams.flushAllLinearMem) {
-        ASSERT(R_SUCCEEDED(GSPGPU_FlushDataCache(info->address + offset, size)));
+        ASSERT(GLASS_utility_flushCache(info->address + offset, size));
     }
 }
 
