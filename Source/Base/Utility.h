@@ -58,6 +58,4 @@ void GLASS_utility_unpackIntVector(u32 in, u32* out);
 void GLASS_utility_packFloatVector(const float* in, u32* out);
 void GLASS_utility_unpackFloatVector(const u32* in, float* out);
 
-size_t GLASS_utility_getRenderbufferBpp(GLenum format);
-
 #endif /* _GLASS_BASE_UTILITY_H */

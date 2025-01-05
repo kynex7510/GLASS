@@ -2,6 +2,7 @@
 #include "Platform/GPU.h"
 #include "Platform/GX.h"
 #include "Base/Utility.h"
+#include "Base/Pixels.h"
 
 #define REMOVE_CLEAR_BITS(mask) \
   (((((mask) & ~GL_COLOR_BUFFER_BIT) & ~GL_DEPTH_BUFFER_BIT) & ~GL_STENCIL_BUFFER_BIT) & ~GL_EARLY_DEPTH_BUFFER_BIT_PICA)
@@ -75,6 +76,24 @@ static u32 GLASS_makeClearDepth(GLenum format, GLclampf factor, u8 stencil) {
     return clearDepth;
 }
 
+static size_t GLASS_fillWidth(GLenum format) {
+    switch (format) {
+        case GL_RGBA8_OES:
+        case GL_DEPTH24_STENCIL8_OES:
+            return GLASS_GX_SET_WIDTH_32;
+        case GL_RGB8_OES:
+        case GL_DEPTH_COMPONENT24_OES:
+            return GLASS_GX_SET_WIDTH_24;
+        case GL_RGB565:
+        case GL_RGB5_A1:
+        case GL_RGBA4:
+        case GL_DEPTH_COMPONENT16:
+            return GLASS_GX_SET_WIDTH_16;
+    }
+
+    UNREACHABLE("Invalid parameter!");
+}
+
 void glClear(GLbitfield mask) {
     // Check parameters.
     if (REMOVE_CLEAR_BITS(mask) || (!HAS_DEPTH(mask) && HAS_STENCIL(mask))) {
@@ -94,18 +113,49 @@ void glClear(GLbitfield mask) {
     // Clear framebuffers.
     FramebufferInfo* fb = (FramebufferInfo*)ctx->framebuffer;
 
-    RenderbufferInfo* cb = NULL;
-    if (HAS_COLOR(mask))
-        cb = (RenderbufferInfo*)fb->colorBuffer;
-    
-    RenderbufferInfo* db = NULL;
-    if (HAS_DEPTH(mask))
-        db = (RenderbufferInfo*)fb->depthBuffer;
+    u32 colorAddr = 0;
+    size_t colorSize = 0;
+    u32 clearColor = 0;
+    size_t colorFillWidth = 0;
+    if (HAS_COLOR(mask)) {
+        const RenderbufferInfo* cb = (RenderbufferInfo*)fb->colorBuffer;
+        if (cb) {
+            colorAddr = (u32)cb->address;
 
-    if (cb || db) {
-        const u32 clearColor = cb ? GLASS_makeClearColor(cb->format, ctx->clearColor) : 0;
-        const u32 clearDepth = db ? GLASS_makeClearDepth(db->format, ctx->clearDepth, ctx->clearStencil) : 0;
-        GLASS_gx_clearBuffers(cb, clearColor, db, clearDepth);
+            glassPixelFormat fmt;
+            fmt.format = cb->format;
+            fmt.type = GL_RENDERBUFFER;
+            colorSize = cb->width * cb->height * GLASS_pixels_bpp(&fmt);
+
+            clearColor = GLASS_makeClearColor(cb->format, ctx->clearColor);
+            colorFillWidth = GLASS_fillWidth(cb->format);
+        }
+    }
+    
+    u32 depthAddr = 0;
+    size_t depthSize = 0;
+    u32 clearDepth = 0;
+    size_t depthFillWidth = 0;
+    if (HAS_DEPTH(mask)) {
+        const RenderbufferInfo* db = (RenderbufferInfo*)fb->depthBuffer;
+        if (db) {
+            depthAddr = (u32)db->address;
+
+            glassPixelFormat fmt;
+            fmt.format = db->format;
+            fmt.type = GL_RENDERBUFFER;
+            depthSize = db->width * db->height * GLASS_pixels_bpp(&fmt);
+
+            clearDepth = GLASS_makeClearDepth(db->format, ctx->clearDepth, ctx->clearStencil);
+            depthFillWidth = GLASS_fillWidth(db->format);
+        }
+    }
+
+    if (colorAddr || depthAddr) {
+        // Flush GPU commands to enforce draw order.
+        GLASS_context_flush();
+        GLASS_gx_sendGPUCommands();
+        GLASS_gx_set(colorAddr, colorSize, clearColor, colorFillWidth, depthAddr, depthSize, clearDepth, depthFillWidth, false);
     }
 }
 

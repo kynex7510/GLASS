@@ -1,6 +1,7 @@
 #include "Base/Context.h"
 #include "Base/Utility.h"
 #include "Base/Texture.h"
+#include "Base/Pixels.h"
 
 #include <string.h> // memcpy, memset
 
@@ -34,7 +35,7 @@ static u8* GLASS_getTexDataPtr(const glassTexture* tex, size_t face, size_t leve
 
     u8* p = tex->faces[face];
     if (p) {
-        const size_t offset = GLASS_tex_getOffset(tex->width, tex->height, tex->format, tex->type, level);
+        const size_t offset = GLASS_tex_getOffset(tex->width, tex->height, &tex->pixelFormat, level);
         return p + offset;
     }
 
@@ -43,16 +44,75 @@ static u8* GLASS_getTexDataPtr(const glassTexture* tex, size_t face, size_t leve
 
 static size_t GLASS_getTexDataSize(const glassTexture* tex) {
     ASSERT(tex);
-    return GLASS_tex_getAllocSize(tex->width, tex->height, tex->format, tex->type, tex->levels);
+    return GLASS_tex_getAllocSize(tex->width, tex->height, &tex->pixelFormat, tex->levels);
 }
 
 static size_t GLASS_getTexAllocSize(const glassTexture* tex) {
     ASSERT(tex);
-    return GLASS_tex_getAllocSize(tex->width, tex->height, tex->format, tex->type, -1);
+    return GLASS_tex_getAllocSize(tex->width, tex->height, &tex->pixelFormat, -1);
 }
 
 static size_t GLASS_getNumFaces(bool isCubeMap) {
     return GLASS_tex_getNumFaces(isCubeMap ? GL_TEXTURE_CUBE_MAP : GL_TEXTURE_2D);
+}
+
+static GLenum GLASS_wrapTexFormat(GPU_TEXCOLOR format) {
+    switch (format) {
+        case GPU_A8:
+        case GPU_A4:
+            return GL_ALPHA;
+        case GPU_L8:
+        case GPU_L4:
+            return GL_LUMINANCE;
+        case GPU_LA8:
+        case GPU_LA4:
+            return GL_LUMINANCE_ALPHA;
+        case GPU_RGB8:
+        case GPU_RGB565:
+            return GL_RGB;
+        case GPU_RGBA8:
+        case GPU_RGBA5551:
+        case GPU_RGBA4:
+            return GL_RGBA;
+        case GPU_HILO8:
+            return GL_HILO8_PICA;
+            break;
+        case GPU_ETC1:
+            return GL_ETC1_RGB8_OES;
+        case GPU_ETC1A4:
+            return GL_ETC1_ALPHA_RGB8_A4_PICA;
+    }
+
+    UNREACHABLE("Invalid parameter!");
+}
+
+GLenum GLASS_wrapTexType(GPU_TEXCOLOR format) {
+    switch (format) {
+        case GPU_A8:
+        case GPU_L8:
+        case GPU_LA8:
+        case GPU_RGB8:
+        case GPU_RGBA8:
+        case GPU_HILO8:
+            return GL_UNSIGNED_BYTE;
+        case GPU_RGB565:
+            return GL_UNSIGNED_SHORT_5_6_5;
+        case GPU_RGBA4:
+            return GL_UNSIGNED_SHORT_4_4_4_4;
+        case GPU_RGBA5551:
+            return GL_UNSIGNED_SHORT_5_5_5_1;
+        case GPU_A4:
+        case GPU_L4:
+            return GL_UNSIGNED_NIBBLE_PICA;
+        case GPU_LA4:
+            return GL_UNSIGNED_BYTE_4_4_PICA;
+        // Compressed texture don't have a data type.
+        case GPU_ETC1:
+        case GPU_ETC1A4:
+            return 0;
+    }
+
+    UNREACHABLE("Invalid parameter!");
 }
 
 static void GLASS_loadTextureImpl(TexStream* stream, glassTexture* out) {
@@ -70,8 +130,8 @@ static void GLASS_loadTextureImpl(TexStream* stream, glassTexture* out) {
     ASSERT(out->width >= GLASS_MIN_TEX_SIZE);
     out->height = (1 << (header.heightLog2 + 3));
     ASSERT(out->height >= GLASS_MIN_TEX_SIZE);
-    out->format = GLASS_tex_wrapFormat(header.format);
-    out->type = GLASS_tex_wrapType(header.format);
+    out->pixelFormat.format = GLASS_wrapTexFormat(header.format);
+    out->pixelFormat.type = GLASS_wrapTexType(header.format);
     out->levels = (header.mipmapLevels + 1); // Add one for base level.
 
     if (!out->isCubeMap) {
@@ -218,7 +278,7 @@ void glassMoveTextureData(glassTexture* tex) {
     }
 
     if (dest->vram) {
-        const TexReallocStatus reallocStatus = GLASS_tex_realloc(dest, tex->width, tex->height, tex->format, tex->type, true);
+        const TexReallocStatus reallocStatus = GLASS_tex_realloc(dest, tex->width, tex->height, &tex->pixelFormat, true);
         if (reallocStatus == TexReallocStatus_Failed)
             return;
 
@@ -232,7 +292,7 @@ void glassMoveTextureData(glassTexture* tex) {
         }
     } else {
         // Just move the pointers.
-        GLASS_tex_set(dest, tex->width, tex->height, tex->format, tex->type, false, tex->faces);
+        GLASS_tex_set(dest, tex->width, tex->height, &tex->pixelFormat, false, tex->faces);
     }
 
     memset(tex->faces, 0, GLASS_NUM_TEX_FACES * sizeof(u8*));
@@ -252,7 +312,7 @@ void glassDestroyTexture(glassTexture* tex) {
 
 const size_t glassGetTextureSize(const glassTexture* tex, size_t level) {
     if (tex && (level < tex->levels))
-        return (((tex->width >> level) * (tex->height >> level) * GLASS_tex_bpp(tex->format, tex->type)) >> 3);
+        return (((tex->width >> level) * (tex->height >> level) * GLASS_pixels_bpp(&tex->pixelFormat)) >> 3);
 
     return 0;
 }
@@ -271,9 +331,9 @@ const u8* glassGetSubTextureData(const glassTexture* tex, const glassSubTexture*
     return NULL;
 }
 
-bool glassIsTextureCompressed(const glassTexture* tex) {
-    if (tex)
-        return ((tex->format == GL_ETC1_RGB8_OES) || (tex->format == GL_ETC1_ALPHA_RGB8_A4_PICA));
+bool glassIsCompressed(const glassPixelFormat* pixelFormat) {
+    if (pixelFormat)
+        return ((pixelFormat->format == GL_ETC1_RGB8_OES) || (pixelFormat->format == GL_ETC1_ALPHA_RGB8_A4_PICA));
 
     return false;
 }

@@ -14,14 +14,19 @@ typedef struct {
     GLsizei height;  // Sub-texture height.
 } glassSubTexture;
 
+// Pixel format object.
+typedef struct {
+    GLenum format; // Pixel format.
+    GLenum type;   // Pixel type.
+} glassPixelFormat;
+
 // Texture object.
 typedef struct {
     u8* faces[6];                 // Internal texture data.
     bool isCubeMap;               // Whether this texture is a cube map.
     u16 width;                    // Texture width.
     u16 height;                   // Texture height.
-    GLenum format;                // Texture format.
-    GLenum type;                  // Texture type.
+    glassPixelFormat pixelFormat; // Pixel format.
     size_t levels;                // MipMap levels.
     size_t numOfSubTextures;      // Number of sub-textures.
     glassSubTexture* subTextures; // Sub-texture info.
@@ -37,6 +42,7 @@ void glassDestroyTexture(glassTexture* tex);
 const size_t glassGetTextureSize(const glassTexture* tex, size_t level);
 const u8* glassGetTextureData(const glassTexture* tex, size_t face, size_t level);
 const u8* glassGetSubTextureData(const glassTexture* tex, const glassSubTexture* subTex, size_t level);
-bool glassIsTextureCompressed(const glassTexture* tex);
+
+bool glassIsCompressed(const glassPixelFormat* pixelFormat);
 
 #endif /* _GLASS_TEX3DS_H */

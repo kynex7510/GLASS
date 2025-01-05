@@ -109,14 +109,20 @@ void glassSwapBuffers(void) {
     }
 
     const RenderbufferInfo* cb = (RenderbufferInfo*)fb->colorBuffer;
+    glassPixelFormat colorPixelFormat;
+    colorPixelFormat.format = cb->format;
+    colorPixelFormat.type = GL_RENDERBUFFER;
 
     // Get display buffer.
-    RenderbufferInfo displayBuffer;
-    u16 width = 0, height = 0;
-    displayBuffer.address = gfxGetFramebuffer(ctx->settings.targetScreen, ctx->settings.targetSide, &height, &width);
-    ASSERT(displayBuffer.address);
-    displayBuffer.format = GLASS_wrapFBFormat(gfxGetScreenFormat(ctx->settings.targetScreen));
-    displayBuffer.width = width;
-    displayBuffer.height = height;
-    GLASS_gx_displayTransfer(cb, &displayBuffer, GLASS_displayTransferDone);
+    glassPixelFormat displayPixelFormat;
+    displayPixelFormat.format = GLASS_wrapFBFormat(gfxGetScreenFormat(ctx->settings.targetScreen));
+    displayPixelFormat.type = GL_RENDERBUFFER;
+
+    u16 displayWidth = 0;
+    u16 displayHeight = 0;
+    const u32 displayBuffer = (u32)gfxGetFramebuffer(ctx->settings.targetScreen, ctx->settings.targetSide, &displayWidth, &displayHeight);
+
+    GLASS_gx_transfer((u32)cb->address, cb->height, cb->width, GLASS_pixels_tryUnwrapTransferFormat(&colorPixelFormat),
+        displayBuffer, displayWidth, displayHeight, GLASS_pixels_tryUnwrapTransferFormat(&displayPixelFormat),
+        ctx->settings.verticalFlip, false, ctx->settings.transferScale, false, GLASS_displayTransferDone);
 }

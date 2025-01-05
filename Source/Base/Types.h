@@ -116,8 +116,7 @@ typedef struct {
 typedef struct {
     GLASS_OBJ(GLASS_TEXTURE_TYPE);
     GLenum target;                  // Texture target.
-    GLenum format;                  // Texture format.
-    GLenum type;                    // Texture data type.
+    glassPixelFormat pixelFormat;   // Texture pixel format.
     u16 width;                      // Texture width.
     u16 height;                     // Texture height.
     u8* faces[GLASS_NUM_TEX_FACES]; // Texture data.

@@ -30,33 +30,15 @@ static void GLASS_swTiling(const u8* src, u8* dst, size_t width, size_t height, 
     }
 }
 
-static GLenum GLASS_supportHwTiling(size_t width, size_t height, GLenum format, GLenum type) {
+static GX_TRANSFER_FORMAT GLASS_hwTransferFormat(size_t width, size_t height, const glassPixelFormat* pixelFormat) {
     // Transfer engine doesn't support anything lower than 64.
-    if ((width >= 64) && (height >= 64)) {
-        if (format == GL_RGBA) {
-            if (type == GL_UNSIGNED_BYTE)
-                return GL_RGBA8_OES;
+    if ((width >= 64) && (height >= 64))
+        return GLASS_pixels_tryUnwrapTransferFormat(pixelFormat);
 
-            if (type == GL_UNSIGNED_SHORT_4_4_4_4)
-                return GL_RGBA4;
-        }
-
-        if (format == GL_RGB) {
-            if (type == GL_UNSIGNED_BYTE)
-                return GL_RGB8_OES;
-
-            if (type == GL_UNSIGNED_SHORT_5_6_5)
-                return GL_RGB565;
-
-            if (type == GL_UNSIGNED_SHORT_5_5_5_1)
-                return GL_RGB5_A1;
-        }
-    }
-
-    return 0;
+    return GLASS_INVALID_TRANSFER_FORMAT;
 }
 
-void GLASS_pixels_tiling(const u8* src, u8* dst, size_t width, size_t height, GLenum format, GLenum type, bool makeTiled) {
+void GLASS_pixels_tiling(const u8* src, u8* dst, size_t width, size_t height, const glassPixelFormat* pixelFormat, bool makeTiled) {
     ASSERT(glassIsLinear(src));
     ASSERT(glassIsLinear(dst));
     ASSERT(width >= 8);
@@ -65,10 +47,10 @@ void GLASS_pixels_tiling(const u8* src, u8* dst, size_t width, size_t height, GL
     ASSERT(GLASS_utility_isAligned(height, 8));
 
     // Use the hardware if possible.
-    const GLenum hwTilingFormat = GLASS_supportHwTiling(width, height, format, type);
-    if (hwTilingFormat) {
-        GLASS_gx_tiling((u32)src, (u32)dst, width, height, hwTilingFormat, makeTiled);
+    const GX_TRANSFER_FORMAT transferFormat = GLASS_hwTransferFormat(width, height, pixelFormat);
+    if (transferFormat != GLASS_INVALID_TRANSFER_FORMAT) {
+        GLASS_gx_transfer((u32)src, width, height, transferFormat, (u32)dst, width, height, transferFormat, false, makeTiled, GX_TRANSFER_SCALE_NO, true, NULL);
     } else {
-        GLASS_swTiling(src, dst, width, height, GLASS_tex_bpp(format, type), makeTiled);
+        GLASS_swTiling(src, dst, width, height, GLASS_pixels_bpp(pixelFormat), makeTiled);
     }
 }

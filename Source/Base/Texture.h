@@ -3,25 +3,20 @@
 
 #include "Base/Types.h"
 
+#define GLASS_TEX_INVALID_FORMAT (GPU_TEXCOLOR)(-1)
+
 typedef enum {
     TexReallocStatus_Failed,
     TexReallocStatus_Unchanged,
     TexReallocStatus_Updated,
 } TexReallocStatus;
 
-size_t GLASS_tex_bpp(GLenum format, GLenum type);
-GPU_TEXCOLOR GLASS_tex_unwrapFormat(GLenum format, GLenum type);
-GLenum GLASS_tex_wrapFormat(GPU_TEXCOLOR format);
-GLenum GLASS_tex_wrapType(GPU_TEXCOLOR format);
-bool GLASS_tex_isFormatValid(GLenum format, GLenum type);
-bool GLASS_tex_isCompressed(GLenum format);
-
 size_t GLASS_tex_getNumFaces(GLenum target);
-size_t GLASS_tex_getOffset(size_t width, size_t height, GLenum format, GLenum type, size_t level);
-size_t GLASS_tex_getAllocSize(size_t width, size_t height, GLenum format, GLenum type, size_t levels);
+size_t GLASS_tex_getOffset(size_t width, size_t height, const glassPixelFormat* pixelFormat, size_t level);
+size_t GLASS_tex_getAllocSize(size_t width, size_t height, const glassPixelFormat* pixelFormat, size_t levels);
 
-void GLASS_tex_set(TextureInfo* tex, size_t width, size_t height, GLenum format, GLenum type, bool vram, u8** faces);
-TexReallocStatus GLASS_tex_realloc(TextureInfo* tex, size_t width, size_t height, GLenum format, GLenum type, bool vram);
+void GLASS_tex_set(TextureInfo* tex, size_t width, size_t height, const glassPixelFormat* pixelFormat, bool vram, u8** faces);
+TexReallocStatus GLASS_tex_realloc(TextureInfo* tex, size_t width, size_t height, const glassPixelFormat* pixelFormat, bool vram);
 
 void GLASS_tex_write(TextureInfo* tex, const u8* data, size_t size, size_t face, size_t level);
 void GLASS_tex_writeRaw(TextureInfo* tex, const u8* data, size_t face, size_t level);

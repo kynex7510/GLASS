@@ -1,5 +1,6 @@
 #include "Base/Context.h"
 #include "Base/Utility.h"
+#include "Base/Pixels.h"
 
 void glBindFramebuffer(GLenum target, GLuint framebuffer) {
     ASSERT(GLASS_OBJ_IS_FRAMEBUFFER(framebuffer) || framebuffer == GLASS_INVALID_OBJECT);
@@ -370,7 +371,10 @@ void glRenderbufferStorage(GLenum target, GLenum internalformat, GLsizei width, 
     RenderbufferInfo* info = (RenderbufferInfo* )ctx->renderbuffer;
 
     // Allocate buffer.
-    const size_t bufferSize = (width * height * (GLASS_utility_getRenderbufferBpp(internalformat) >> 3));
+    glassPixelFormat fmt;
+    fmt.format = internalformat;
+    fmt.type = GL_RENDERBUFFER;
+    const size_t bufferSize = (width * height * (GLASS_pixels_bpp(&fmt) >> 3));
 
     if (info->address)
         glassVRAMFree(info->address);

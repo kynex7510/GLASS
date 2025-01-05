@@ -1,6 +1,6 @@
 #include "Platform/GPU.h"
 #include "Base/Utility.h"
-#include "Base/Texture.h"
+#include "Base/Pixels.h"
 
 #include <string.h> // memcpy, memset
 
@@ -1081,7 +1081,7 @@ void GLASS_gpu_setTextureUnits(const GLuint* units) {
 
         params[2] = (GPU_TEXTURE_MIN_FILTER(minFilter) | GPU_TEXTURE_MAG_FILTER(magFilter) | GPU_TEXTURE_MIP_FILTER(mipFilter) | GPU_TEXTURE_WRAP_S(wrapS) | GPU_TEXTURE_WRAP_T(wrapT));
         
-        if (tex->format == GL_ETC1_RGB8_OES)
+        if (tex->pixelFormat.format == GL_ETC1_RGB8_OES)
             params[2] |= GPU_TEXTURE_ETC1_PARAM;
 
         if (i == 0) {
@@ -1107,7 +1107,9 @@ void GLASS_gpu_setTextureUnits(const GLuint* units) {
         }
 
         GPUCMD_AddIncrementalWrites(setupCmds[i], params, hasCubeMap ? 10 : 5);
-        GPUCMD_AddWrite(typeCmds[i], GLASS_tex_unwrapFormat(tex->format, tex->type));
+        const GPU_TEXCOLOR format = GLASS_pixels_tryUnwrapTexFormat(&tex->pixelFormat);
+        ASSERT(format != GLASS_INVALID_TEX_FORMAT);
+        GPUCMD_AddWrite(typeCmds[i], format);
     }
 
     GPUCMD_AddWrite(GPUREG_TEXUNIT_CONFIG, config);

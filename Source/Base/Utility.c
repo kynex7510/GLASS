@@ -146,21 +146,3 @@ void GLASS_utility_unpackFloatVector(const u32* in, float* out) {
     out[2] = GLASS_utility_f24tof32((in[1] >> 16) | ((in[0] & 0xFF) << 16));
     out[3] = GLASS_utility_f24tof32(in[0] >> 8);
 }
-
-size_t GLASS_utility_getRenderbufferBpp(GLenum format) {
-    switch (format) {
-        case GL_RGBA8_OES:
-        case GL_DEPTH24_STENCIL8_OES:
-            return 32;
-        case GL_RGB8_OES:
-        case GL_DEPTH_COMPONENT24_OES:
-            return 24;
-        case GL_RGB5_A1:
-        case GL_RGB565:
-        case GL_RGBA4:
-        case GL_DEPTH_COMPONENT16:
-            return 16;
-    }
-
-    UNREACHABLE("Invalid parameter!");
-}

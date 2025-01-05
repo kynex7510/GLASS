@@ -1,5 +1,6 @@
 #include "Base/Context.h"
 #include "Base/Texture.h"
+#include "Base/Pixels.h"
 
 #include <string.h>
 
@@ -91,8 +92,8 @@ void glGenTextures(GLsizei n, GLuint* textures) {
 
         TextureInfo* tex = (TextureInfo*)name;
         tex->target = GLASS_TEX_TARGET_UNBOUND;
-        tex->format = GL_RGBA;
-        tex->type = GL_UNSIGNED_BYTE;
+        tex->pixelFormat.format = GL_RGBA;
+        tex->pixelFormat.type = GL_UNSIGNED_BYTE;
         tex->minFilter = GL_NEAREST_MIPMAP_LINEAR;
         tex->magFilter = GL_LINEAR;
         tex->wrapS = GL_REPEAT;
@@ -336,8 +337,12 @@ void glTexImage2D(GLenum target, GLint level, GLint internalformat, GLsizei widt
         GLASS_context_setError(GL_INVALID_ENUM);
         return;
     }
-    
-    if ((format != internalformat) || !GLASS_tex_isFormatValid(format, type)) {
+
+    glassPixelFormat pixelFormat;
+    pixelFormat.format = format;
+    pixelFormat.type = type;
+
+    if ((format != internalformat) || (GLASS_pixels_tryUnwrapTexFormat(&pixelFormat) == GLASS_INVALID_TEX_FORMAT)) {
         GLASS_context_setError(GL_INVALID_OPERATION);
         return;
     }
@@ -391,7 +396,7 @@ void glTexImage2D(GLenum target, GLint level, GLint internalformat, GLsizei widt
     }
 
     // Prepare memory.
-    TexReallocStatus reallocStatus = GLASS_tex_realloc(tex, width << level, height << level, format, type, tex->vram);
+    TexReallocStatus reallocStatus = GLASS_tex_realloc(tex, width << level, height << level, &pixelFormat, tex->vram);
     if (reallocStatus == TexReallocStatus_Failed)
         return;
 
@@ -414,7 +419,7 @@ void glTexVRAMPICA(GLboolean enabled) {
         return;
     }
 
-    const TexReallocStatus reallocStatus = GLASS_tex_realloc(tex, tex->width, tex->height, tex->format, tex->type, enabled);
+    const TexReallocStatus reallocStatus = GLASS_tex_realloc(tex, tex->width, tex->height, &tex->pixelFormat, enabled);
     if (reallocStatus == TexReallocStatus_Updated) {
         tex->vram = enabled;
         ctx->flags |= GLASS_CONTEXT_FLAG_TEXTURE;
