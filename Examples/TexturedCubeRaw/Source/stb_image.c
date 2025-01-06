@@ -1,15 +1,15 @@
-#include <3ds.h>
+#include <GLASS.h>
 #include <string.h> // memcpy
 
-#define STBI_MALLOC(sz) linearAlloc(sz)
-#define STBI_FREE(p) linearFree(p)
+#define STBI_MALLOC(sz) glassLinearAlloc(sz)
+#define STBI_FREE(p) glassLinearFree(p)
 #define STBI_REALLOC(p, newsz) stbiLinearRealloc(p, newsz)
 
 static void* stbiLinearRealloc(void* p, size_t newSize) {
-    void* r = linearAlloc(newSize);
+    void* r = glassLinearAlloc(newSize);
     if (r && p) {
-        memcpy(r, p, linearGetSize(p));
-        linearFree(p);
+        memcpy(r, p, glassLinearSize(p));
+        glassLinearFree(p);
     }
     return r;
 }
