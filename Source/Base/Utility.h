@@ -1,7 +1,7 @@
 #ifndef _GLASS_BASE_UTILITY_H
 #define _GLASS_BASE_UTILITY_H
 
-#include "Types.h"
+#include "Base/Types.h"
 
 #define STRINGIFY(x) #x
 #define AS_STRING(x) STRINGIFY(x)
@@ -51,9 +51,14 @@ size_t GLASS_utility_alignUp(size_t v, size_t alignment);
 bool GLASS_utility_flushCache(const void* addr, size_t size);
 bool GLASS_utility_invalidateCache(const void* addr, size_t size);
 
+u32 GLASS_utility_convertVirtToPhys(const void* addr);
 void* GLASS_utility_convertPhysToVirt(u32 addr);
-float GLASS_utility_f24tof32(u32 f);
+
 u32 GLASS_utility_f32tofixed13(float f);
+
+u32 GLASS_utility_f32tof31(float f);
+u32 GLASS_utility_f32tof24(float f);
+float GLASS_utility_f24tof32(u32 f);
 
 void GLASS_utility_packIntVector(const u32* in, u32* out);
 void GLASS_utility_unpackIntVector(u32 in, u32* out);

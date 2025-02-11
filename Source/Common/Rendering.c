@@ -238,9 +238,9 @@ void glDrawElements(GLenum mode, GLsizei count, GLenum type, const GLvoid* indic
     u32 physAddr = 0;
     if (ctx->elementArrayBuffer != GLASS_INVALID_OBJECT) {
         const BufferInfo* binfo = (BufferInfo*)ctx->elementArrayBuffer;
-        physAddr = osConvertVirtToPhys((void*)(binfo->address + (u32)indices));
+        physAddr = GLASS_utility_convertVirtToPhys((void*)(binfo->address + (u32)indices));
     } else {
-        physAddr = osConvertVirtToPhys(indices);
+        physAddr = GLASS_utility_convertVirtToPhys(indices);
     }
 
     ASSERT(physAddr);

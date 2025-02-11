@@ -2,7 +2,7 @@
 
 #include <stdlib.h> // abort
 
-#ifndef NDEBUG
+#ifndef GLASS_BAREMETAL
 
 #include <stdio.h> // file utilities
 #include <string.h> // strlen
@@ -55,20 +55,41 @@ size_t GLASS_utility_alignUp(size_t v, size_t alignment) {
 }
 
 bool GLASS_utility_flushCache(const void* addr, size_t size) {
-    if (glassIsLinear(addr))
+    if (glassIsLinear(addr) || glassIsVRAM(addr)) {
+#if defined(GLASS_BAREMETAL)
+        flushDCacheRange(addr, size);
+#else
         return R_SUCCEEDED(GSPGPU_FlushDataCache(addr, size));
+#endif // GLASS_BAREMETAL
+    }
 
     return true;
 }
 
 bool GLASS_utility_invalidateCache(const void* addr, size_t size) {
-    if (glassIsLinear(addr) || glassIsVRAM(addr))
+    if (glassIsLinear(addr) || glassIsVRAM(addr)) {
+#if defined(GLASS_BAREMETAL)
+        invalidateDCacheRange(addr, size);
+#else
         return R_SUCCEEDED(GSPGPU_InvalidateDataCache(addr, size));
+#endif // GLASS_BAREMETAL
+    }
 
     return true;
 }
 
+u32 GLASS_utility_convertVirtToPhys(const void* addr) {
+#if defined(GLASS_BAREMETAL)
+    return (u32)addr;
+#else
+    return osConvertVirtToPhys(addr);
+#endif // GLASS_BAREMETAL
+}
+
 void* GLASS_utility_convertPhysToVirt(u32 addr) {
+#if defined(GLASS_BAREMETAL)
+    return (void*)addr;
+#else
 #define CONVERT_REGION(_name)                                              \
     if (addr >= OS_##_name##_PADDR &&                                      \
         addr < (OS_##_name##_PADDR + OS_##_name##_SIZE))                   \
@@ -83,27 +104,7 @@ void* GLASS_utility_convertPhysToVirt(u32 addr) {
 
 #undef CONVERT_REGION
     return NULL;
-}
-
-float GLASS_utility_f24tof32(u32 f) {
-    union {
-        float val;
-        u32 bits;
-    } cast;
-
-    const u32 sign = f >> 23;
-
-    if (!(f & 0x7FFFFF)) {
-        cast.bits = (sign << 31);
-    } else if (((f >> 16) & 0xFF) == 0x7F) {
-        cast.bits = (sign << 31) | (0xFF << 23);
-    } else {
-        const u32 mantissa = f & 0xFFFF;
-        const s32 exponent = ((f >> 16) & 0x7F) + 64;
-        cast.bits = (sign << 31) | (exponent << 23) | (mantissa << 7);
-    }
-
-    return cast.val;
+#endif // GLASS_BAREMETAL
 }
 
 u32 GLASS_utility_f32tofixed13(float f) {
@@ -117,6 +118,75 @@ u32 GLASS_utility_f32tofixed13(float f) {
 
     const u32 i = ((u32)(f) & 0xF);
     return (sign | (i << 8) | ((u32)((f - i) * 1000.0f) & 0xFF));
+}
+
+static u32 GLASS_fbits(float f) {
+    union {
+        float val;
+        u32 bits;
+    } cast;
+
+    cast.val = f;
+    return cast.bits;
+}
+
+static float GLASS_makef(u32 bits) {
+    union {
+        float val;
+        u32 bits;
+    } cast;
+
+    cast.bits = bits;
+    return cast.val;
+}
+
+u32 GLASS_utility_f32tof31(float f) {
+    const u32 bits = GLASS_fbits(f);
+	const u32 mantissa = (bits << 9) >> 9;
+	const u32 sign = bits >> 31;
+    const s32 exponent = ((bits << 1) >> 24) - 127 + 63;
+
+	if (exponent < 0) {
+		return sign << 30;
+	}
+	else if (exponent > 0x7F) {
+		return sign << 30 | 0x7F << 23;
+	}
+
+	return sign << 30 | exponent << 23 | mantissa;
+}
+
+u32 GLASS_utility_f32tof24(float f) {
+    const u32 bits = GLASS_fbits(f);
+    const u32 mantissa = ((bits << 9) >> 9) >> 7;
+	const u32 sign = bits >> 31;
+	const s32 exponent = ((bits << 1) >> 24) - 127 + 63;
+
+	if (exponent < 0) {
+		return sign << 23;
+	}
+	else if (exponent > 0x7F) {
+		return sign << 23 | 0x7F << 16;
+	}
+
+	return sign << 23 | exponent << 16 | mantissa;
+}
+
+float GLASS_utility_f24tof32(u32 f) {
+    const u32 sign = f >> 23;
+    u32 bits = 0;
+
+    if (!(f & 0x7FFFFF)) {
+        bits = (sign << 31);
+    } else if (((f >> 16) & 0xFF) == 0x7F) {
+        bits = (sign << 31) | (0xFF << 23);
+    } else {
+        const u32 mantissa = f & 0xFFFF;
+        const s32 exponent = ((f >> 16) & 0x7F) + 64;
+        bits = (sign << 31) | (exponent << 23) | (mantissa << 7);
+    }
+
+    return GLASS_makef(bits);
 }
 
 void GLASS_utility_packIntVector(const u32* in, u32* out) {
@@ -142,10 +212,10 @@ void GLASS_utility_packFloatVector(const float* in, u32* out) {
     ASSERT(in);
     ASSERT(out);
 
-    const u32 cvtX = f32tof24(in[0]);
-    const u32 cvtY = f32tof24(in[1]);
-    const u32 cvtZ = f32tof24(in[2]);
-    const u32 cvtW = f32tof24(in[3]);
+    const u32 cvtX = GLASS_utility_f32tof24(in[0]);
+    const u32 cvtY = GLASS_utility_f32tof24(in[1]);
+    const u32 cvtZ = GLASS_utility_f32tof24(in[2]);
+    const u32 cvtW = GLASS_utility_f32tof24(in[3]);
     out[0] = (cvtW << 8) | (cvtZ >> 16);
     out[1] = (cvtZ << 16) | (cvtY >> 8);
     out[2] = (cvtY << 24) | cvtX;

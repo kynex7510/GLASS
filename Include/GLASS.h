@@ -1,7 +1,7 @@
 #ifndef _GLASS_H
 #define _GLASS_H
 
-#include "GLASS/Tex3DS.h"
+#include <GLASS/Tex3DS.h>
 
 #define GLASS_VERSION_2_0 0x20 // OpenGL ES 2.0
 

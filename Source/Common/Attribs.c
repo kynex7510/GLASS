@@ -270,11 +270,11 @@ void glVertexAttribPointer(GLuint index, GLint size, GLenum type, GLboolean norm
     size_t bufferOffset = 0;
     if (ctx->arrayBuffer != GLASS_INVALID_OBJECT) {
         const BufferInfo* binfo = (BufferInfo*)ctx->arrayBuffer;
-        physAddr = osConvertVirtToPhys((void*)binfo->address);
+        physAddr = GLASS_utility_convertVirtToPhys((void*)binfo->address);
         ASSERT(physAddr);
         bufferOffset = (size_t)pointer;
     } else {
-        physAddr = osConvertVirtToPhys(pointer);
+        physAddr = GLASS_utility_convertVirtToPhys(pointer);
         if (!physAddr) {
             GLASS_context_setError(GL_INVALID_OPERATION);
             return;

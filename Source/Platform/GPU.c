@@ -153,8 +153,8 @@ void GLASS_gpu_bindFramebuffer(const FramebufferInfo* info, bool block32) {
     GLASS_gpu_invalidateFramebuffer();
 
     // Set depth buffer, color buffer and dimensions.
-    params[0] = osConvertVirtToPhys(depthBuffer) >> 3;
-    params[1] = osConvertVirtToPhys(colorBuffer) >> 3;
+    params[0] = GLASS_utility_convertVirtToPhys(depthBuffer) >> 3;
+    params[1] = GLASS_utility_convertVirtToPhys(colorBuffer) >> 3;
     params[2] = 0x01000000 | (((width - 1) & 0xFFF) << 12) | (height & 0xFFF);
     GPUCMD_AddIncrementalWrites(GPUREG_DEPTHBUFFER_LOC, params, 3);
     GPUCMD_AddWrite(GPUREG_RENDERBUF_DIM, params[2]);
@@ -184,10 +184,10 @@ void GLASS_gpu_invalidateFramebuffer(void) { GPUCMD_AddWrite(GPUREG_FRAMEBUFFER_
 void GLASS_gpu_setViewport(GLint x, GLint y, GLsizei width, GLsizei height) {
     u32 data[4];
 
-    data[0] = f32tof24(height / 2.0f);
-    data[1] = (f32tof31(2.0f / height) << 1);
-    data[2] = f32tof24(width / 2.0f);
-    data[3] = (f32tof31(2.0f / width) << 1);
+    data[0] = GLASS_utility_f32tof24(height / 2.0f);
+    data[1] = (GLASS_utility_f32tof31(2.0f / height) << 1);
+    data[2] = GLASS_utility_f32tof24(width / 2.0f);
+    data[3] = (GLASS_utility_f32tof31(2.0f / width) << 1);
 
     GPUCMD_AddIncrementalWrites(GPUREG_VIEWPORT_WIDTH, data, 4);
     GPUCMD_AddWrite(GPUREG_VIEWPORT_XY, (x << 16) | (y & 0xFFFF));
@@ -759,8 +759,8 @@ void GLASS_gpu_setDepthMap(bool enabled, GLclampf nearVal, GLclampf farVal, GLfl
     const float offset = GLASS_getDepthMapOffset(format, units);
     
     GPUCMD_AddMaskedWrite(GPUREG_DEPTHMAP_ENABLE, 0x01, enabled ? 1 : 0);
-    GPUCMD_AddWrite(GPUREG_DEPTHMAP_SCALE, f32tof24(nearVal - farVal));
-    GPUCMD_AddWrite(GPUREG_DEPTHMAP_OFFSET, f32tof24(nearVal + offset));
+    GPUCMD_AddWrite(GPUREG_DEPTHMAP_SCALE, GLASS_utility_f32tof24(nearVal - farVal));
+    GPUCMD_AddWrite(GPUREG_DEPTHMAP_OFFSET, GLASS_utility_f32tof24(nearVal + offset));
 }
 
 void GLASS_gpu_setEarlyDepthTest(bool enabled) {
@@ -1091,7 +1091,7 @@ void GLASS_gpu_setTextureUnits(const GLuint* units) {
 
         params[3] = GLASS_utility_f32tofixed13(tex->lodBias) | (((u32)tex->maxLod & 0x0F) << 16) | (((u32)tex->minLod & 0x0F) << 24);
 
-        const u32 mainTexAddr = osConvertVirtToPhys(tex->faces[0]);
+        const u32 mainTexAddr = GLASS_utility_convertVirtToPhys(tex->faces[0]);
         ASSERT(mainTexAddr);
         params[4] = mainTexAddr >> 3;
 
@@ -1099,7 +1099,7 @@ void GLASS_gpu_setTextureUnits(const GLuint* units) {
             const u32 mask = (mainTexAddr >> 3) & ~(0x3FFFFFu);
 
             for (size_t j = 1; j < GLASS_NUM_TEX_FACES; ++j) {
-                const u32 dataAddr = osConvertVirtToPhys(tex->faces[j]);
+                const u32 dataAddr = GLASS_utility_convertVirtToPhys(tex->faces[j]);
                 ASSERT(dataAddr);
                 ASSERT(((dataAddr >> 3) & ~(0x3FFFFFu)) == mask);
                 params[4 + j] = (dataAddr >> 3) & 0x3FFFFFu;

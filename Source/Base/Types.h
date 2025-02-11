@@ -1,7 +1,8 @@
 #ifndef _GLASS_BASE_TYPES_H
 #define _GLASS_BASE_TYPES_H
 
-#include "GLES/gl2.h"
+#include <GLES/gl2.h>
+
 #include "Base/Constants.h"
 
 #include <stddef.h>
@@ -12,7 +13,6 @@
 
 #define GLASS_OBJ_IS_PROGRAM(x) GLASS_checkObjectType((x), GLASS_PROGRAM_TYPE)
 #define GLASS_OBJ_IS_SHADER(x) GLASS_checkObjectType((x), GLASS_SHADER_TYPE)
-
 
 #define GLASS_OBJ_IS_TEXTURE(x) GLASS_checkObjectType((x), GLASS_TEXTURE_TYPE)
 
