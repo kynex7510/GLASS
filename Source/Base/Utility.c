@@ -107,28 +107,10 @@ void* GLASS_utility_convertPhysToVirt(u32 addr) {
 #endif // GLASS_BAREMETAL
 }
 
-u32 GLASS_utility_f32tofixed13(float f) {
-    f = CLAMP(-15.255, 15.255, f);
-    u32 sign = 0;
+// Adapted from libctru, for baremetal support.
+// https://github.com/devkitPro/libctru/blob/master/libctru/source/gpu/gpu.c
 
-    if (f < 0.0f) {
-        f = -f;
-        sign |= (1u << 12);
-    }
-
-    const u32 i = ((u32)(f) & 0xF);
-    return (sign | (i << 8) | ((u32)((f - i) * 1000.0f) & 0xFF));
-}
-
-static u32 GLASS_fbits(float f) {
-    union {
-        float val;
-        u32 bits;
-    } cast;
-
-    cast.val = f;
-    return cast.bits;
-}
+// BEGIN CTRU CODE
 
 static float GLASS_makef(u32 bits) {
     union {
@@ -170,6 +152,31 @@ u32 GLASS_utility_f32tof24(float f) {
 	}
 
 	return sign << 23 | exponent << 16 | mantissa;
+}
+
+// END CTRU CODE
+
+static u32 GLASS_fbits(float f) {
+    union {
+        float val;
+        u32 bits;
+    } cast;
+
+    cast.val = f;
+    return cast.bits;
+}
+
+u32 GLASS_utility_f32tofixed13(float f) {
+    f = CLAMP(-15.255, 15.255, f);
+    u32 sign = 0;
+
+    if (f < 0.0f) {
+        f = -f;
+        sign |= (1u << 12);
+    }
+
+    const u32 i = ((u32)(f) & 0xF);
+    return (sign | (i << 8) | ((u32)((f - i) * 1000.0f) & 0xFF));
 }
 
 float GLASS_utility_f24tof32(u32 f) {
