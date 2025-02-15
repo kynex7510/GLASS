@@ -5,6 +5,10 @@
 
 #include "Base/Constants.h"
 
+#if defined(GLASS_BAREMETAL)
+#include "Base/BMCompat.h"
+#endif // GLASS_BAREMETAL
+
 #include <stddef.h>
 
 #define GLASS_OBJ_IS_BUFFER(x) GLASS_checkObjectType((x), GLASS_BUFFER_TYPE)

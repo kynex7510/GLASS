@@ -2,25 +2,29 @@
 #define _GLASS_PLATFORM_GX_H
 
 #include "Base/Context.h"
-#include "Base/Pixels.h"
 
-#define GLASS_GX_SET_WIDTH_16 0
-#define GLASS_GX_SET_WIDTH_24 1
-#define GLASS_GX_SET_WIDTH_32 2
+#define GLASS_GX_SET_WIDTH_16 1
+#define GLASS_GX_SET_WIDTH_24 ((1 << 8) | 1)
+#define GLASS_GX_SET_WIDTH_32 ((2 << 8) | 1)
 
-typedef void (*GXTransferCallback_t)(gxCmdQueue_s*);
+#define GLASS_GX_TRANSFER_FLAG_FMT_RGBA8 0
+#define GLASS_GX_TRANSFER_FLAG_FMT_RGB8 1
+#define GLASS_GX_TRANSFER_FLAG_FMT_RGB565 2
+#define GLASS_GX_TRANSFER_FLAG_FMT_RGB5A1 3
+#define GLASS_GX_TRANSFER_FLAG_FMT_RGBA4 4
 
-void GLASS_gx_init(CtxCommon* ctx);
-void GLASS_gx_cleanup(CtxCommon* ctx);
-void GLASS_gx_bind(CtxCommon* ctx);
-void GLASS_gx_unbind(CtxCommon* ctx);
+#define GLASS_GX_TRANSFER_FLAG_VERTICAL_FLIP 0x1
+#define GLASS_GX_TRANSFER_FLAG_MAKE_TILED 0x2
+#define GLASS_GX_TRANSFER_FLAG_MIPMAP 0x20020
 
-void GLASS_gx_copy(u32 srcAddr, u32 dstAddr, size_t size, size_t stride, size_t count, bool sync);
-void GLASS_gx_set(u32 addr0, size_t size0, u32 value0, size_t width0, u32 addr1, size_t size1, u32 value1, size_t width1, bool sync);
+#define GLASS_GX_TRANSFER_DIMS(a, b) (((a) & 0xFFFF) << 16) | ((b) & 0xFFFF)
+#define GLASS_GX_TRANSFER_SRCFMT(v) (((v) & 0x7) << 8)
+#define GLASS_GX_TRANSFER_DSTFMT(v) (((v) & 0x7) << 12)
 
-void GLASS_gx_transfer(u32 srcAddr, size_t srcWidth, size_t srcHeight, GX_TRANSFER_FORMAT srcFmt,
-    u32 dstAddr, size_t dstWidth, size_t dstHeight, GX_TRANSFER_FORMAT dstFmt,
-    bool verticalFlip, bool makeTiled, GX_TRANSFER_SCALE scaling, bool sync, GXTransferCallback_t callback);
+void GLASS_gx_copy(const void* srcAddr, const void* dstAddr, size_t size, size_t stride, size_t count);
+void GLASS_gx_set(u32 addr0, size_t size0, u32 value0, size_t width0, u32 addr1, size_t size1, u32 value1, size_t width1);
+
+void GLASS_gx_transfer(const void* srcAddr, const void* dstAddr, u32 srcDims, u32 dstDims, u32 flags);
 
 void GLASS_gx_sendGPUCommands(void);
 

@@ -2,20 +2,18 @@
 #include "Platform/GPU.h"
 #include "Base/Utility.h"
 
-#define MAX_ENTRIES 32
+#define GX_CMD_PROCESS_COMMAND_LIST 0x01000101
+#define GX_CMD_MEMORY_FILL 0x01000102
+#define GX_CMD_DISPLAY_TRANSFER 0x01000103
+#define GX_CMD_TEXTURE_COPY 0x01000104
 
-#define FILL_CONTROL(fillWidth) (((fillWidth) << 8) | 1)
 
-#define TRANSFER_FLAGS(srcFormat, dstFormat, verticalFlip, makeTiled, scaling) \
-    (GX_TRANSFER_IN_FORMAT(srcFormat) | GX_TRANSFER_OUT_FORMAT(dstFormat) | GX_TRANSFER_FLIP_VERT(verticalFlip) | GX_TRANSFER_OUT_TILED(makeTiled) | GX_TRANSFER_SCALING(scaling))
 
 typedef struct {
-    u32 srcAddr;
-    u32 dstAddr;
-    size_t size;
-    u16 lineSize;
-    u16 gap;
-} GXTextureCopyParams;
+    u32 addr;
+    size_t sizeInWords;
+    bool flush;
+} GXProcessCommandListParams;
 
 typedef struct {
     u32 addr;
@@ -39,30 +37,26 @@ typedef struct {
 } GXDisplayTransferParams;
 
 typedef struct {
-    u32 addr;
-    size_t sizeInWords;
-    bool flush;
-} GXProcessCommandListParams;
+    u32 srcAddr;
+    u32 dstAddr;
+    size_t size;
+    u16 lineSize;
+    u16 gap;
+} GXTextureCopyParams;
 
-static void GLASS_textureCopy(const GXTextureCopyParams* copy) {
-    ASSERT(copy);
-    ASSERT(glassIsLinear((void*)copy->srcAddr) || glassIsVRAM((void*)copy->srcAddr));
-    ASSERT(glassIsLinear((void*)copy->dstAddr) || glassIsVRAM((void*)copy->dstAddr));
+static void GLASS_makeProcessCommandList(const GXProcessCommandListParams* cmdList, u32* out) {
+    ASSERT(cmdList);
+    ASSERT(glassIsLinear((void*)cmdList->addr));
 
-    u32 flags = 0;
-    if (copy->gap) {
-        ASSERT(copy->size >= 192);
-        ASSERT(copy->lineSize);
-        flags |= 0x4;
-    } else {
-        ASSERT(copy->size >= 16);
-    }
-
-    GX_TextureCopy((u32*)copy->srcAddr, GX_BUFFER_DIM(copy->lineSize >> 1, copy->gap >> 1),
-        (u32*)copy->dstAddr, GX_BUFFER_DIM(copy->lineSize >> 1, copy->gap >> 1), copy->size, 0x8 | flags);
+    out[0] = GX_CMD_PROCESS_COMMAND_LIST;
+    out[1] = cmdList->addr;
+    out[2] = cmdList->sizeInWords * sizeof(u32);
+    out[3] = 0; // TODO: bit0 = gas related.
+    out[4] = out[5] = out[6] = 0;
+    out[7] = cmdList->flush ? 0x1 : 0;
 }
 
-void GLASS_memoryFill(const GXMemoryFillParams* fill0, const GXMemoryFillParams* fill1) {
+void GLASS_makeMemoryFill(const GXMemoryFillParams* fill0, const GXMemoryFillParams* fill1, u32* out) {
     ASSERT(fill0 || fill1);
 
     if (fill0) {
@@ -73,24 +67,36 @@ void GLASS_memoryFill(const GXMemoryFillParams* fill0, const GXMemoryFillParams*
         ASSERT(glassIsLinear((void*)fill1->addr) || glassIsVRAM((void*)fill1->addr));
     }
 
-    if (fill0 && fill1) {
+    out[0] = GX_CMD_MEMORY_FILL;
+
+    u32 fill1ctl = 0;
+    if (fill0 && fill1)  {
         if (fill1->addr < fill0->addr) {
             const GXMemoryFillParams* tmp = fill0;
             fill0 = fill1;
             fill1 = tmp;
         }
 
-        GX_MemoryFill((u32*)fill0->addr, fill0->value, (u32*)(fill0->addr + fill0->size), FILL_CONTROL(fill0->width),
-            (u32*)fill1->addr, fill1->value, (u32*)(fill1->addr + fill1->size), FILL_CONTROL(fill1->width));
-    } else {
-        if (!fill0)
-            fill0 = fill1;
+        fill1ctl = FILL_CONTROL(fill1->width);
 
-        GX_MemoryFill((u32*)fill0->addr, fill0->value, (u32*)(fill0->addr + fill0->size), FILL_CONTROL(fill0->width), NULL, 0, NULL, 0);
+        out[4] = fill1->addr;
+        out[5] = fill1->value;
+        out[6] = fill1->addr + fill1->size;
+    } else {
+        out[4] = out[5] = out[6] = 0;
     }
+
+    if (!fill0)
+        fill0 = fill1;
+
+    out[1] = fill0->addr;
+    out[2] = fill0->value;
+    out[3] = fill0->addr + fill0->size;
+    
+    out[7] = (fill1ctl << 16) | FILL_CONTROL(fill0->width);
 }
 
-static void GLASS_displayTransfer(const GXDisplayTransferParams* transfer) {
+static void GLASS_displayTransfer(const GXDisplayTransferParams* transfer, u32* out) {
     ASSERT(transfer);
     ASSERT(glassIsLinear((void*)transfer->srcAddr) || glassIsVRAM((void*)transfer->srcAddr));
     ASSERT(glassIsLinear((void*)transfer->dstAddr) || glassIsVRAM((void*)transfer->dstAddr));
@@ -99,15 +105,59 @@ static void GLASS_displayTransfer(const GXDisplayTransferParams* transfer) {
     ASSERT(GLASS_utility_isAligned(transfer->dstWidth, 8));
     ASSERT(GLASS_utility_isAligned(transfer->dstHeight, 8));
 
-    GX_DisplayTransfer((u32*)(transfer->srcAddr), GX_BUFFER_DIM(transfer->srcWidth, transfer->srcHeight),
-        (u32*)(transfer->dstAddr), GX_BUFFER_DIM(transfer->dstWidth, transfer->dstHeight),
-        TRANSFER_FLAGS(transfer->srcFormat, transfer->dstFormat, transfer->verticalFlip, transfer->makeTiled, transfer->scaling));
+    u32 flags = TRANSFER_FLAG_SRCFMT(transfer->srcFormat);
+    flags |= TRANSFER_FLAG_DSTFMT(transfer->dstFormat);
+    flags |= TRANSFER_FLAG_VFLIP(transfer->verticalFlip);
+    flags |= TRANSFER_FLAG_MAKE_TILED(transfer->makeTiled);
+    flags |= TRANSFER_FLAG_SCALING(transfer->scaling);
+
+    out[0] = GX_CMD_DISPLAY_TRANSFER;
+    out[1] = transfer->srcAddr;
+    out[2] = transfer->dstAddr;
+    out[3] = TRANSFER_DIMS(transfer->srcWidth, transfer->srcHeight);
+    out[4] = TRANSFER_DIMS(transfer->dstWidth, transfer->dstHeight);
+    out[5] = flags;
+    out[6] = out[7] = 0;
 }
 
-static void GLASS_processCommandList(const GXProcessCommandListParams* cmdList) {
-    ASSERT(cmdList);
-    ASSERT(glassIsLinear((void*)cmdList->addr));
-    GX_ProcessCommandList((u32*)cmdList->addr, cmdList->sizeInWords * sizeof(u32), cmdList->flush ? GX_CMDLIST_FLUSH : 0);
+static void GLASS_makeTextureCopy(const GXTextureCopyParams* copy, u32* out) {
+    ASSERT(copy);
+    ASSERT(glassIsLinear((void*)copy->srcAddr) || glassIsVRAM((void*)copy->srcAddr));
+    ASSERT(glassIsLinear((void*)copy->dstAddr) || glassIsVRAM((void*)copy->dstAddr));
+
+    u32 flags = 0;
+    if (copy->gap) {
+        ASSERT(copy->size >= 192);
+        ASSERT(copy->lineSize);
+        flags = 0x4;
+    } else {
+        ASSERT(copy->size >= 16);
+    }
+
+    const u32 transferParams = TRANSFER_DIMS(copy->lineSize >> 1, copy->gap >> 1);
+
+    out[0] = GX_CMD_TEXTURE_COPY;
+    out[1] = copy->srcAddr;
+    out[2] = copy->dstAddr;
+    out[3] = copy->size;
+    out[4] = transferParams;
+    out[5] = transferParams;
+    out[6] = 0x8 | flags;
+    out[7] = 0;
+}
+
+static void GLASS_submitGXCommandSync(const u32* cmdData) {
+    if (R_SUCCEEDED(gspSubmitGxCommand(cmdData))) {
+        switch (cmdData[])
+    }
+}
+
+void gxCmdQueueInterrupt(GSPGPU_Event irq) {
+    // Ignore vblank.
+    if (irq == GSPGPU_EVENT_VBlank0 || irq == GSPGPU_EVENT_VBlank1)
+        return;
+
+    
 }
 
 void GLASS_gx_init(CtxCommon* ctx) {
@@ -141,7 +191,7 @@ void GLASS_gx_unbind(CtxCommon* ctx) {
     GX_BindQueue(NULL);
 }
 
-void GLASS_gx_copy(u32 srcAddr, u32 dstAddr, size_t size, size_t stride, size_t count, bool sync) {
+void GLASS_gx_copy(u32 srcAddr, u32 dstAddr, size_t size, size_t stride, size_t count) {
     ASSERT(size);
     ASSERT(stride >= size);
 
@@ -157,16 +207,14 @@ void GLASS_gx_copy(u32 srcAddr, u32 dstAddr, size_t size, size_t stride, size_t 
     params.lineSize = size;
     params.gap = (stride - size);
 
-    if (sync)
-        GX_BindQueue(NULL);
+    u8 cmdData[8];
+    GLASS_makeTextureCopy(&params, cmdData);
+
+    GLASS_submitGXCommand();
 
     GLASS_textureCopy(&params);
-
-    if (sync) {
-        gspWaitForPPF();
-        GX_BindQueue(&ctx->gxQueue);
-        ASSERT(GLASS_utility_invalidateCache((void*)dstAddr, flushSize));
-    }
+    gspWaitForPPF();
+    ASSERT(GLASS_utility_invalidateCache((void*)dstAddr, flushSize));
 }
 
 void GLASS_gx_set(u32 addr0, size_t size0, u32 value0, size_t width0, u32 addr1, size_t size1, u32 value1, size_t width1, bool sync) {

@@ -196,20 +196,21 @@ static ssize_t GLASS_texStreamReadMem(void* userdata, void* out, size_t size) {
     return actualSize;
 }
 
-static ssize_t GLASS_texStreamReadFile(void* userdata, void* out, size_t size) {
-    TexStream* stream = (TexStream*)userdata;
-    ASSERT(stream);
-    const size_t actualSize = fread(out, 1, size, (FILE*)stream->handle);
-    stream->offset += actualSize;
-    return actualSize;
-}
-
 static void GLASS_getMemTexStream(TexStream* stream, const u8* data, size_t size) {
     ASSERT(stream);
     stream->handle = (void*)data;
     stream->offset = 0;
     stream->size = size;
     stream->read = GLASS_texStreamReadMem;
+}
+
+#ifndef GLASS_BAREMETAL
+static ssize_t GLASS_texStreamReadFile(void* userdata, void* out, size_t size) {
+    TexStream* stream = (TexStream*)userdata;
+    ASSERT(stream);
+    const size_t actualSize = fread(out, 1, size, (FILE*)stream->handle);
+    stream->offset += actualSize;
+    return actualSize;
 }
 
 static void GLASS_getFileTexStream(TexStream* stream, FILE* f) {
@@ -221,6 +222,7 @@ static void GLASS_getFileTexStream(TexStream* stream, FILE* f) {
     stream->read = GLASS_texStreamReadFile;
     ASSERT(fseek(f, 0, SEEK_SET) == 0);
 }
+#endif // !GLASS_BAREMETAL
 
 void glassLoadTexture(const u8* data, size_t size, glassTexture* out) {
     if (!data || !out) {
@@ -233,6 +235,7 @@ void glassLoadTexture(const u8* data, size_t size, glassTexture* out) {
     GLASS_loadTextureImpl(&stream, out);
 }
 
+#ifndef GLASS_BAREMETAL
 void glassLoadTextureFromFile(FILE* f, glassTexture* out) {
     if ((f == NULL) || !out) {
         GLASS_context_setError(GL_INVALID_VALUE);
@@ -258,6 +261,7 @@ void glassLoadTextureFromPath(const char* path, glassTexture* out) {
 
     glassLoadTextureFromFile(f, out);
 }
+#endif // !GLASS_BAREMETAL
 
 void glassMoveTextureData(glassTexture* tex) {
     if (!tex)

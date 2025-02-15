@@ -8,22 +8,49 @@
 typedef struct glassCtxImpl* glassCtx;
 typedef u32 glassVersion;
 
+// Target screen.
+typedef enum {
+#if defined(GLASS_BAREMETAL)
+    GLASS_SCREEN_TOP = GFX_LCD_TOP,
+    GLASS_SCREEN_BOTTOM = GFX_LCD_BOT,
+#else
+    GLASS_SCREEN_TOP = GFX_TOP,
+    GLASS_SCREEN_BOTTOM = GFX_BOTTOM,
+#endif // GLASS_BAREMETAL
+} glassScreen;
+
+// Target screen side.
+typedef enum {
+#if defined(GLASS_BAREMETAL)
+    GLASS_SIDE_LEFT = GFX_SIDE_LEFT,
+    GLASS_SIDE_RIGHT = GFX_SIDE_RIGHT,
+#else
+    GLASS_SIDE_LEFT = GFX_LEFT,
+    GLASS_SIDE_RIGHT = GFX_RIGHT,
+#endif // GLASS_BAREMETAL
+} glassSide;
+
 // Context initialization parameters.
 typedef struct {
     u8 version;             // Context version.
     bool flushAllLinearMem; // Whether to flush all linear memory (default: true).
 } glassInitParams;
 
+// GPU command list.
+typedef struct {
+    void* mainBuffer;    // Main command buffer.
+    void* secondBuffer;  // Second command buffer.
+    size_t capacity;     // Max size of each buffer, in bytes.
+    size_t offset;       // Offset of the current GPU command location.
+} glassGpuCommandList;
+
 // Context settings.
 typedef struct {
-    gfxScreen_t targetScreen;        // Draw target screen (default: GFX_TOP).
-    gfx3dSide_t targetSide;          // Draw target side (default: GFX_LEFT).
-    u32 gpuMainCmdBuffer;            // Main GPU command buffer (default: 0).
-    u32 gpuSecondCmdBuffer;          // Second GPU command buffer (default: 0).
-    size_t gpuCmdBufferCapacity;     // Max size of GPU command buffer, in words (default: 0).
-    size_t gpuCmdBufferOffset;       // Offset of the current GPU command location (default: 0).
-    GX_TRANSFER_SCALE transferScale; // Anti-aliasing (default: GX_TRANSFER_SCALE_NO).
+    glassScreen targetScreen;        // Draw target screen (default: GLASS_SCREEN_TOP).
+    glassSide targetSide;            // Draw target side (default: GLASS_SCREEN_LEFT).
+    bool vsync;                      // Vsync (default: true).
     bool verticalFlip;               // Flip display buffer vertically (default: false).
+    glassGpuCommandList gpuCmdList;  // GPU command list (default: all 0).
 } glassSettings;
 
 #if defined(__cplusplus)
@@ -39,6 +66,7 @@ void glassReadSettings(glassCtx ctx, glassSettings* settings);
 void glassWriteSettings(glassCtx ctx, const glassSettings* settings);
 
 void glassSwapBuffers(void);
+void glassSwapContextBuffers(glassCtx top, glassCtx bottom);
 
 void* glassVirtualAlloc(size_t size);
 void glassVirtualFree(void* p);

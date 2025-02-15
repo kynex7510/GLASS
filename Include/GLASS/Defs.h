@@ -1,12 +1,18 @@
 #ifndef _GLASS_DEFS_H
 #define _GLASS_DEFS_H
 
+#if defined(GLASS_BAREMETAL)
+#include <GLASS/BM.h>
+#else
+#include <3ds.h>
+#endif // GLASS_BAREMETAL
+
 typedef void GLvoid;
-typedef unsigned int GLboolean;
+typedef u32 GLboolean;
 typedef char GLchar;
-typedef unsigned char GLubyte;
-typedef int GLint;
-typedef unsigned int GLuint;
+typedef u8 GLubyte;
+typedef s32 GLint;
+typedef u32 GLuint;
 typedef float GLfloat;
 
 typedef GLuint GLboolean;

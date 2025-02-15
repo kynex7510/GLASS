@@ -1,10 +1,12 @@
 #ifndef _GLASS_TEX3DS_H
 #define _GLASS_TEX3DS_H
 
-#include <3ds.h>
-#include <stdio.h>
+#include <GLASS/Defs.h>
 
-#include "GLASS/Defs.h"
+// TODO: files?
+#ifndef GLASS_BAREMETAL
+#include <stdio.h>
+#endif // !GLASS_BAREMETAL
 
 // Sub-texture object.
 typedef struct {
@@ -32,9 +34,16 @@ typedef struct {
     glassSubTexture* subTextures; // Sub-texture info.
 } glassTexture;
 
+#if defined(__cplusplus)
+extern "C" {
+#endif // __cplusplus
+
 void glassLoadTexture(const u8* data, size_t size, glassTexture* out);
+
+#ifndef GLASS_BAREMETAL
 void glassLoadTextureFromFile(FILE* f, glassTexture* out);
 void glassLoadTextureFromPath(const char* path, glassTexture* out);
+#endif // !GLASS_BAREMETAL
 
 void glassMoveTextureData(glassTexture* tex);
 void glassDestroyTexture(glassTexture* tex);
@@ -44,5 +53,9 @@ const u8* glassGetTextureData(const glassTexture* tex, size_t face, size_t level
 const u8* glassGetSubTextureData(const glassTexture* tex, const glassSubTexture* subTex, size_t level);
 
 bool glassIsCompressed(const glassPixelFormat* pixelFormat);
+
+#if defined(__cplusplus)
+}
+#endif // __cplusplus
 
 #endif /* _GLASS_TEX3DS_H */
