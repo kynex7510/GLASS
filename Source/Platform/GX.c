@@ -277,8 +277,12 @@ void GLASS_gx_sendGPUCommands(void) {
     CtxCommon* ctx = GLASS_context_getCommon();
 
     GXProcessCommandListParams params;
-    if (!GLASS_gpu_swapCommandBuffers(&params.addr, &params.sizeInWords))
+    void* addrTmp;
+    if (!GLASS_gpu_swapCommandBuffers(&ctx->settings.gpuCmdList, &addrTmp, &params.sizeInWords))
         return;
+
+    params.addr = (u32)addrTmp;
+    params.sizeInWords >>= 2;
 
     if (ctx->initParams.flushAllLinearMem) {
         extern u32 __ctru_linear_heap;

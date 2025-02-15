@@ -1,7 +1,7 @@
 #ifndef _GLASS_H
 #define _GLASS_H
 
-#include "GLASS/Tex3DS.h"
+#include <GLASS/Tex3DS.h>
 
 #define GLASS_VERSION_2_0 0x20 // OpenGL ES 2.0
 
@@ -14,16 +14,20 @@ typedef struct {
     bool flushAllLinearMem; // Whether to flush all linear memory (default: true).
 } glassInitParams;
 
+// GPU command list.
+typedef struct {
+    void* mainBuffer;    // Main command buffer.
+    void* secondBuffer;  // Second command buffer.
+    size_t capacity;     // Max size of each buffer, in bytes.
+    size_t offset;       // Offset of the current GPU command location.
+} glassGpuCommandList;
+
 // Context settings.
 typedef struct {
     gfxScreen_t targetScreen;        // Draw target screen (default: GFX_TOP).
     gfx3dSide_t targetSide;          // Draw target side (default: GFX_LEFT).
-    u32 gpuMainCmdBuffer;            // Main GPU command buffer (default: 0).
-    u32 gpuSecondCmdBuffer;          // Second GPU command buffer (default: 0).
-    size_t gpuCmdBufferCapacity;     // Max size of GPU command buffer, in words (default: 0).
-    size_t gpuCmdBufferOffset;       // Offset of the current GPU command location (default: 0).
-    GX_TRANSFER_SCALE transferScale; // Anti-aliasing (default: GX_TRANSFER_SCALE_NO).
     bool verticalFlip;               // Flip display buffer vertically (default: false).
+    glassGpuCommandList gpuCmdList;  // GPU command list (default: all 0).
 } glassSettings;
 
 #if defined(__cplusplus)
@@ -39,6 +43,7 @@ void glassReadSettings(glassCtx ctx, glassSettings* settings);
 void glassWriteSettings(glassCtx ctx, const glassSettings* settings);
 
 void glassSwapBuffers(void);
+void glassSwapContextBuffers(glassCtx top, glassCtx bottom);
 
 void* glassVirtualAlloc(size_t size);
 void glassVirtualFree(void* p);
