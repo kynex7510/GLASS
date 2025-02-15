@@ -43,10 +43,22 @@ void GLASS_utility_logImpl(const char* msg);
 
 void GLASS_utility_abort(void) NORETURN;
 
-bool GLASS_utility_isPowerOf2(u32 v);
-bool GLASS_utility_isAligned(size_t v, size_t alignment);
-size_t GLASS_utility_alignDown(size_t v, size_t alignment);
-size_t GLASS_utility_alignUp(size_t v, size_t alignment);
+inline bool GLASS_utility_isPowerOf2(u32 v) { return !(v & (v - 1)); }
+
+inline bool GLASS_utility_isAligned(size_t v, size_t alignment) {
+    ASSERT(GLASS_utility_isPowerOf2(alignment));
+    return !(v & (alignment - 1));
+}
+
+inline size_t GLASS_utility_alignDown(size_t v, size_t alignment) {
+    ASSERT(GLASS_utility_isPowerOf2(alignment));
+    return v & ~(alignment - 1);
+}
+
+inline size_t GLASS_utility_alignUp(size_t v, size_t alignment) {
+    ASSERT(GLASS_utility_isPowerOf2(alignment));
+    return (v + alignment) & ~(alignment - 1);
+}
 
 bool GLASS_utility_flushCache(const void* addr, size_t size);
 bool GLASS_utility_invalidateCache(const void* addr, size_t size);
