@@ -7,7 +7,7 @@
 #define GLASS_INVALID_TRANSFER_FORMAT ((GX_TRANSFER_FORMAT)-1)
 
 GPU_TEXCOLOR GLASS_pixels_tryUnwrapTexFormat(const glassPixelFormat* pixelFormat);
-GX_TRANSFER_FORMAT GLASS_pixels_tryUnwrapTransferFormat(const glassPixelFormat* pixelFormat);
+u32 GLASS_pixels_tryUnwrapTransferFormat(const glassPixelFormat* pixelFormat);
 size_t GLASS_pixels_bpp(const glassPixelFormat* pixelFormat);
 
 void GLASS_pixels_flip(const u8* src, u8* dst, size_t width, size_t height, const glassPixelFormat* pixelFormat);

@@ -38,12 +38,6 @@ typedef struct {
     GX_TRANSFER_SCALE scaling;
 } GXDisplayTransferParams;
 
-typedef struct {
-    u32 addr;
-    size_t sizeInWords;
-    bool flush;
-} GXProcessCommandListParams;
-
 static void GLASS_textureCopy(const GXTextureCopyParams* copy) {
     ASSERT(copy);
     ASSERT(glassIsLinear((void*)copy->srcAddr) || glassIsVRAM((void*)copy->srcAddr));
@@ -109,6 +103,37 @@ static void GLASS_processCommandList(const GXProcessCommandListParams* cmdList) 
     ASSERT(glassIsLinear((void*)cmdList->addr));
     GX_ProcessCommandList((u32*)cmdList->addr, cmdList->sizeInWords * sizeof(u32), cmdList->flush ? GX_CMDLIST_FLUSH : 0);
 }
+
+typedef struct {
+    u32 cmdData[8];
+    void* callback;
+    void* param;
+} CmdQueueEntry;
+
+#define CMD_QUEUE_MAX_COUNT 32
+
+typedef struct {
+    CmdQueueEntry entries[CMD_QUEUE_MAX_COUNT];
+    size_t count;
+    size_t index;
+} CmdQueue;
+
+
+
+
+
+void gxCmdQueueInterrupt(GSPGPU_Event irq) {
+    // Ignore vblank.
+    if (irq == GSPGPU_EVENT_VBlank0 || irq == GSPGPU_EVENT_VBlank1)
+        return;
+
+    LightLock_Lock(&g_QueueMtx);
+    const CmdQueueEntry*
+}
+
+
+
+// OLD
 
 void GLASS_gx_init(CtxCommon* ctx) {
     ASSERT(ctx);

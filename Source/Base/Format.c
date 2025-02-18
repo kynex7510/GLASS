@@ -1,5 +1,6 @@
 #include "Base/Pixels.h"
 #include "Base/Utility.h"
+#include "Platform/GX.h"
 
 GPU_TEXCOLOR GLASS_pixels_tryUnwrapTexFormat(const glassPixelFormat* pixelFormat) {
     ASSERT(pixelFormat);
@@ -78,20 +79,20 @@ GPU_TEXCOLOR GLASS_pixels_tryUnwrapTexFormat(const glassPixelFormat* pixelFormat
     return GLASS_INVALID_TEX_FORMAT;
 }
 
-GX_TRANSFER_FORMAT GLASS_pixels_tryUnwrapTransferFormat(const glassPixelFormat* pixelFormat) {
+u32 GLASS_pixels_tryUnwrapTransferFormat(const glassPixelFormat* pixelFormat) {
     ASSERT(pixelFormat);
 
     switch (GLASS_pixels_tryUnwrapTexFormat(pixelFormat)) {
         case GPU_RGBA8:
-            return GX_TRANSFER_FMT_RGBA8;
+            return GLASS_GX_TRANSFER_FLAG_FMT_RGBA8;
         case GPU_RGB8:
-            return GX_TRANSFER_FMT_RGB8;
+            return GLASS_GX_TRANSFER_FLAG_FMT_RGB8;
         case GPU_RGB565:
-            return GX_TRANSFER_FMT_RGB565;
+            return GLASS_GX_TRANSFER_FLAG_FMT_RGB565;
         case GPU_RGBA5551:
-            return GX_TRANSFER_FMT_RGB5A1;
+            return GLASS_GX_TRANSFER_FLAG_FMT_RGB5A1;
         case GPU_RGBA4:
-            return GX_TRANSFER_FMT_RGBA4;
+            return GLASS_GX_TRANSFER_FLAG_FMT_RGBA4;
         default:;
     }
 

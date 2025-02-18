@@ -41,6 +41,45 @@ void GLASS_utility_logImpl(const char* msg);
 #define MAX(a, b) ((a) > (b) ? (a) : (b))
 #define CLAMP(min, max, val) (MAX((min), MIN((max), (val))))
 
+typedef s32 Barrier;
+
+inline void GLASS_barrier_init(Barrier* b) {
+    ASSERT(b);
+
+    do {
+        __ldrex(b);
+    } while (__strex(b, 0));
+}
+
+inline void GLASS_barrier_acquire(Barrier* b) {
+    ASSERT(b);
+
+    s32 v;
+    do {
+        v = __ldrex(b);
+    } while (__strex(b, v - 1));
+}
+
+inline void GLASS_barrier_release(Barrier* b) {
+    ASSERT(b);
+
+    s32 v;
+    do {
+        v = __ldrex(b);
+        if (!v) {
+            __clrex();
+            break;
+        }
+    } while (__strex(b, v + 1));
+}
+
+inline void GLASS_barrier_wait(Barrier* b) {
+    ASSERT(b);
+
+    while (*b)
+        syncArbitrateAddress(b, ARBITRATION_WAIT_IF_LESS_THAN, 0);
+}
+
 void GLASS_utility_abort(void) NORETURN;
 
 bool GLASS_utility_isPowerOf2(u32 v);

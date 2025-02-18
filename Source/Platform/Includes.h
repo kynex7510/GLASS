@@ -1,0 +1,4 @@
+#ifndef _GLASS_PLATFORM_INCLUDES_H
+#define _GLASS_PLATFORM_INCLUDES_H
+
+#endif

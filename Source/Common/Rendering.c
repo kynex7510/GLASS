@@ -80,15 +80,15 @@ static size_t GLASS_fillWidth(GLenum format) {
     switch (format) {
         case GL_RGBA8_OES:
         case GL_DEPTH24_STENCIL8_OES:
-            return GLASS_GX_SET_WIDTH_32;
+            return GLASS_GX_FILL_WIDTH_32;
         case GL_RGB8_OES:
         case GL_DEPTH_COMPONENT24_OES:
-            return GLASS_GX_SET_WIDTH_24;
+            return GLASS_GX_FILL_WIDTH_24;
         case GL_RGB565:
         case GL_RGB5_A1:
         case GL_RGBA4:
         case GL_DEPTH_COMPONENT16:
-            return GLASS_GX_SET_WIDTH_16;
+            return GLASS_GX_FILL_WIDTH_16;
     }
 
     UNREACHABLE("Invalid parameter!");

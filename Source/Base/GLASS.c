@@ -2,6 +2,7 @@
 #include "Base/Context.h"
 #include "Platform/GPU.h"
 #include "Platform/GX.h"
+#include "Base/Pixels.h"
 
 #include <string.h> // memcpy
 
@@ -79,10 +80,9 @@ static void GLASS_swapScreenBuffers(CtxCommon* ctx) {
     gfxScreenSwapBuffers(ctx->settings.targetScreen, ctx->settings.targetScreen == GFX_TOP && ctx->settings.targetSide == GFX_RIGHT);
 }
 
-static void GLASS_displayTransferDone(gxCmdQueue_s* queue) {
-    CtxCommon* ctx = (CtxCommon*)queue->user;
+static void GLASS_displayTransferDone(void* param) {
+    CtxCommon* ctx = (CtxCommon*)param;
     GLASS_swapScreenBuffers(ctx);
-    gxCmdQueueSetCallback(queue, NULL, NULL);
 }
 
 void glassSwapBuffers(void) {
@@ -120,9 +120,16 @@ void glassSwapBuffers(void) {
 
     u16 displayWidth = 0;
     u16 displayHeight = 0;
-    const u32 displayBuffer = (u32)gfxGetFramebuffer(ctx->settings.targetScreen, ctx->settings.targetSide, &displayWidth, &displayHeight);
+    const u8* displayBuffer = gfxGetFramebuffer(ctx->settings.targetScreen, ctx->settings.targetSide, &displayWidth, &displayHeight);
 
-    GLASS_gx_transfer((u32)cb->address, cb->height, cb->width, GLASS_pixels_tryUnwrapTransferFormat(&colorPixelFormat),
-        displayBuffer, displayWidth, displayHeight, GLASS_pixels_tryUnwrapTransferFormat(&displayPixelFormat),
-        ctx->settings.verticalFlip, false, ctx->settings.transferScale, false, GLASS_displayTransferDone);
+    // Transfer buffers.
+    GXCmd transferCmd;
+    u32 transferFlags = GLASS_GX_TRANSFER_SRCFMT(GLASS_pixels_tryUnwrapTransferFormat(&colorPixelFormat));
+    transferFlags |= GLASS_GX_TRANSFER_DSTFMT(GLASS_pixels_tryUnwrapTransferFormat(&displayPixelFormat));
+
+    if (ctx->settings.verticalFlip)
+        transferFlags |= GLASS_GX_TRANSFER_FLAG_VERTICAL_FLIP;
+
+    GLASS_gx_makeDisplayTransfer(&transferCmd, cb->address, cb->height, cb->width, displayBuffer, displayWidth, displayHeight, transferFlags);
+    GLASS_gx_runAsync(&transferCmd, GLASS_displayTransferDone, ctx, NULL);
 }
