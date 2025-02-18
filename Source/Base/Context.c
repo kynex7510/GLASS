@@ -186,7 +186,7 @@ void GLASS_context_cleanupCommon(CtxCommon* ctx) {
         GLASS_context_bind(NULL);
 
     GLASS_gx_cleanup(ctx);
-    GLASS_gpu_freeList(ctx);
+    GLASS_gpu_freeList(&ctx->settings.gpuCmdList);
 }
 
 CtxCommon* GLASS_context_getCommon(void) {
@@ -231,8 +231,6 @@ static GLsizei GLASS_renderWidth(CtxCommon* ctx) {
 
 void GLASS_context_flush(void) {
     ASSERT(g_Context);
-
-    GLASS_gpu_enableCommands();
 
     // Handle framebuffer.
     if (g_Context->flags & GLASS_CONTEXT_FLAG_FRAMEBUFFER) {
@@ -401,8 +399,6 @@ void GLASS_context_flush(void) {
         GLASS_gpu_setCombiners(&g_Context->settings.gpuCmdList, g_Context->combiners);
         g_Context->flags &= ~GLASS_CONTEXT_FLAG_COMBINERS;
     }
-
-    GLASS_gpu_disableCommands();
 }
 
 #ifndef GLASS_NO_MERCY

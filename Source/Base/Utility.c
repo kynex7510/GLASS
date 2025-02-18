@@ -37,23 +37,6 @@ void GLASS_utility_abort(void) {
 
 #endif // NDEBUG
 
-bool GLASS_utility_isPowerOf2(u32 v) { return !(v & (v - 1)); }
-
-bool GLASS_utility_isAligned(size_t v, size_t alignment) {
-    ASSERT(GLASS_utility_isPowerOf2(alignment));
-    return !(v & (alignment - 1));
-}
-
-size_t GLASS_utility_alignDown(size_t v, size_t alignment) {
-    ASSERT(GLASS_utility_isPowerOf2(alignment));
-    return v & ~(alignment - 1);
-}
-
-size_t GLASS_utility_alignUp(size_t v, size_t alignment) {
-    ASSERT(GLASS_utility_isPowerOf2(alignment));
-    return (v + alignment) & ~(alignment - 1);
-}
-
 bool GLASS_utility_flushCache(const void* addr, size_t size) {
     if (glassIsLinear(addr) || glassIsVRAM(addr)) {
 #if defined(GLASS_BAREMETAL)

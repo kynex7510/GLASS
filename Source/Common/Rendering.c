@@ -208,9 +208,7 @@ void glDrawArrays(GLenum mode, GLint first, GLsizei count) {
 
     // Add draw command.
     CtxCommon* ctx = GLASS_context_getCommon();
-    GLASS_gpu_enableCommands();
-    GLASS_gpu_drawArrays(mode, first, count);
-    GLASS_gpu_disableCommands();
+    GLASS_gpu_drawArrays(&ctx->settings.gpuCmdList, mode, first, count);
     ctx->flags |= GLASS_CONTEXT_FLAG_DRAW;
 }
 
@@ -249,9 +247,7 @@ void glDrawElements(GLenum mode, GLsizei count, GLenum type, const GLvoid* indic
     GLASS_context_flush();
 
     // Add draw command.
-    GLASS_gpu_enableCommands();
-    GLASS_gpu_drawElements(mode, count, type, physAddr);
-    GLASS_gpu_disableCommands();
+    GLASS_gpu_drawElements(&ctx->settings.gpuCmdList, mode, count, type, physAddr);
     ctx->flags |= GLASS_CONTEXT_FLAG_DRAW;
 }
 

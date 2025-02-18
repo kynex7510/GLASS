@@ -5,12 +5,15 @@
 #include <string.h> // memcpy, memset
 
 #define PHYSICAL_LINEAR_BASE 0x18000000
-#define DEFAULT_CMDBUF_CAPACITY 0x1000
+#define DEFAULT_CMDBUF_CAPACITY 0x4000
 
 #define PAD_4 12
 #define PAD_8 13
 #define PAD_12 14
 #define PAD_16 15
+
+#define GPU_CMD_HEADER(id, mask, numParams, consecutive) \
+    ((id) & 0xFFFF) | (((mask) & 0xF) << 16) | ((((numParams) - 1) & 0xFF) << 20) | ((consecutive) ? (1 << 31) : 0)
 
 static size_t GLASS_addCmdImplStep(u32* cmdBuffer, u32 header, const u32* params, size_t numParams) {
     ASSERT(cmdBuffer);
@@ -26,7 +29,7 @@ static size_t GLASS_addCmdImplStep(u32* cmdBuffer, u32 header, const u32* params
     memcpy(&cmdBuffer[2], &params[1], (numParams - 1) * sizeof(u32));
 
     // Make sure commands are kept aligned.
-    if (numParams & 1) {
+    if ((numParams + 1) & 1) {
         ++numParams;
         cmdBuffer[numParams] = 0;
     }
@@ -34,18 +37,18 @@ static size_t GLASS_addCmdImplStep(u32* cmdBuffer, u32 header, const u32* params
     return (numParams + 1) * sizeof(u32);
 }
 
-static void GLASS_addCmdImpl(glassGpuCommandList* list, u32 id, u32 mask, const u32* params, size_t numParams, bool consecutive) {
+static void GLASS_addMultiParamCmd(glassGpuCommandList* list, u32 id, u32 mask, const u32* params, size_t numParams, bool consecutive) {
     ASSERT(list);
     ASSERT(params);
     ASSERT(numParams > 0);
     ASSERT(list->offset + (numParams * sizeof(u32)) < list->capacity);
 
     for (size_t i = 0; i < numParams; i += 256) {
-        u32* cmdBuffer = (u8*)(list->mainBuffer) + list->offset;
+        u32* cmdBuffer = (u32*)((u8*)(list->mainBuffer) + list->offset);
 
         // Calculate current number of parameters and header.
         const size_t curNumParams = MIN(numParams, 255);
-        const u32 header = (id & 0xFFFF) | ((mask & 0xF) << 16) | ((curNumParams & 0xFF) << 20) | (consecutive ? (1 << 31) : 0);
+        const u32 header = GPU_CMD_HEADER(id, mask, curNumParams, consecutive);
 
         // Write params data.
         list->offset += GLASS_addCmdImplStep(cmdBuffer, header, &params[i], curNumParams);
@@ -57,20 +60,29 @@ static void GLASS_addCmdImpl(glassGpuCommandList* list, u32 id, u32 mask, const 
 }
 
 static void GLASS_addMaskedWrites(glassGpuCommandList* list, u32 id, u32 mask, const u32* params, size_t numParams) {
-    GLASS_addCmdImpl(list, id, mask, params, numParams, false);
+    GLASS_addMultiParamCmd(list, id, mask, params, numParams, false);
+}
+
+static void GLASS_addMaskedIncrementalWrites(glassGpuCommandList* list, u32 id, u32 mask, const u32* params, size_t numParams) {
+    GLASS_addMultiParamCmd(list, id, mask, params, numParams, true);
 }
 
 static void GLASS_addWrites(glassGpuCommandList* list, u32 id, const u32* params, size_t numParams) { GLASS_addMaskedWrites(list, id, 0xF, params, numParams); };
-static void GLASS_addMaskedWrite(glassGpuCommandList* list, u32 id, u32 mask, u32 v) { GLASS_addMaskedWrites(list, id, mask, &v, 1); }
-static void GLASS_addWrite(glassGpuCommandList* list, u32 id, u32 v) { GLASS_addMaskedWrite(list, id, 0xF, v); }
-
-static void GLASS_addMaskedIncrementalWrites(glassGpuCommandList* list, u32 id, u32 mask, const u32* params, size_t numParams) {
-    GLASS_addCmdImpl(list, id, mask, params, numParams, true);
-}
 
 static void GLASS_addIncrementalWrites(glassGpuCommandList* list, u32 id, const u32* params, size_t numParams) {
     GLASS_addMaskedIncrementalWrites(list, id, 0xF, params, numParams);
 }
+
+static void GLASS_addMaskedWrite(glassGpuCommandList* list, u32 id, u32 mask, u32 v) {
+    ASSERT(list);
+    ASSERT(list->offset + (2 * sizeof(u32)) < list->capacity);
+    u32* cmdBuffer = (u32*)((u8*)(list->mainBuffer) + list->offset);
+    cmdBuffer[0] = v;
+    cmdBuffer[1] = GPU_CMD_HEADER(id, mask, 1, false);
+    list->offset += 2 * sizeof(u32);
+}
+
+static void GLASS_addWrite(glassGpuCommandList* list, u32 id, u32 v) { GLASS_addMaskedWrite(list, id, 0xF, v); }
 
 void GLASS_gpu_allocList(glassGpuCommandList* list) {
     ASSERT(list);

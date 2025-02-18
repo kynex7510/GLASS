@@ -124,5 +124,5 @@ void glassSwapBuffers(void) {
 
     GLASS_gx_transfer((u32)cb->address, cb->height, cb->width, GLASS_pixels_tryUnwrapTransferFormat(&colorPixelFormat),
         displayBuffer, displayWidth, displayHeight, GLASS_pixels_tryUnwrapTransferFormat(&displayPixelFormat),
-        ctx->settings.verticalFlip, false, ctx->settings.transferScale, false, GLASS_displayTransferDone);
+        ctx->settings.verticalFlip, false, GX_TRANSFER_SCALE_NO, false, GLASS_displayTransferDone);
 }
