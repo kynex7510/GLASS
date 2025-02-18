@@ -1,7 +1,6 @@
 #include "Base/Types.h"
-#include "Base/Utility.h"
 
-GLuint GLASS_createObject(u32 type) {
+GLuint GLASS_createObject(uint32_t type) {
     size_t objSize = 0;
 
     switch (type) {
@@ -27,25 +26,11 @@ GLuint GLASS_createObject(u32 type) {
             return GLASS_INVALID_OBJECT;
     }
 
-    u32* obj = (u32*)glassVirtualAlloc(objSize);
+    uint32_t* obj = (uint32_t*)glassVirtualAlloc(objSize);
     if (obj) {
         *obj = type;
         return (GLuint)obj;
     }
 
     return GLASS_INVALID_OBJECT;
-}
-
-bool GLASS_checkObjectType(GLuint obj, u32 type) {
-    if (obj != GLASS_INVALID_OBJECT) {
-#ifndef NDEBUG
-        MemInfo minfo;
-        PageInfo pinfo;
-        svcQueryProcessMemory(&minfo, &pinfo, CUR_PROCESS_HANDLE, obj);
-        ASSERT(minfo.perm & MEMPERM_READ);
-#endif
-        return *(u32*)obj == type;
-    }
-
-    return false;
 }

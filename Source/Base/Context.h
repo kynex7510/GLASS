@@ -1,7 +1,7 @@
 #ifndef _GLASS_BASE_CONTEXT_H
 #define _GLASS_BASE_CONTEXT_H
 
-#include "Base/Utility.h"
+#include "Base/Types.h"
 
 void GLASS_context_initCommon(CtxCommon* ctx, const glassInitParams* initParams, const glassSettings* settings);
 void GLASS_context_cleanupCommon(CtxCommon* ctx);

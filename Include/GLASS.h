@@ -6,42 +6,38 @@
 #define GLASS_VERSION_2_0 0x20 // OpenGL ES 2.0
 
 typedef struct glassCtxImpl* glassCtx;
-typedef u32 glassVersion;
+typedef uint8_t glassVersion;
 
 // Target screen.
 typedef enum {
-#if defined(GLASS_BAREMETAL)
-    GLASS_SCREEN_TOP = GFX_LCD_TOP,
-    GLASS_SCREEN_BOTTOM = GFX_LCD_BOT,
-#else
-    GLASS_SCREEN_TOP = GFX_TOP,
-    GLASS_SCREEN_BOTTOM = GFX_BOTTOM,
-#endif // GLASS_BAREMETAL
+    GLASS_SCREEN_TOP = 0,
+    GLASS_SCREEN_BOTTOM = 1,
 } glassScreen;
 
 // Target screen side.
 typedef enum {
-#if defined(GLASS_BAREMETAL)
-    GLASS_SIDE_LEFT = GFX_SIDE_LEFT,
-    GLASS_SIDE_RIGHT = GFX_SIDE_RIGHT,
-#else
-    GLASS_SIDE_LEFT = GFX_LEFT,
-    GLASS_SIDE_RIGHT = GFX_RIGHT,
-#endif // GLASS_BAREMETAL
+    GLASS_SIDE_LEFT = 0,
+    GLASS_SIDE_RIGHT = 1,
 } glassSide;
+
+// VRAM allocation position.
+typedef enum {
+    GLASS_VRAM_BANK_A = 0,
+    GLASS_VRAM_BANK_B = 1,
+} glassVRAMAllocPos;
 
 // Context initialization parameters.
 typedef struct {
-    u8 version;             // Context version.
+    glassVersion version;   // Context version.
     bool flushAllLinearMem; // Whether to flush all linear memory (default: true).
 } glassInitParams;
 
 // GPU command list.
 typedef struct {
-    void* mainBuffer;    // Main command buffer.
-    void* secondBuffer;  // Second command buffer.
-    size_t capacity;     // Max size of each buffer, in bytes.
-    size_t offset;       // Offset of the current GPU command location.
+    uint8_t* mainBuffer;   // Main command buffer.
+    uint8_t* secondBuffer; // Second command buffer.
+    size_t capacity;       // Max size of each buffer, in bytes.
+    size_t offset;         // Offset of the current GPU command location.
 } glassGpuCommandList;
 
 // Context settings.
@@ -78,7 +74,7 @@ void glassLinearFree(void* p);
 size_t glassLinearSize(const void* p);
 bool glassIsLinear(const void* p);
 
-void* glassVRAMAlloc(size_t size, vramAllocPos pos);
+void* glassVRAMAlloc(size_t size, glassVRAMAllocPos pos);
 void glassVRAMFree(void* p);
 size_t glassVRAMSize(const void* p);
 bool glassIsVRAM(const void* p);

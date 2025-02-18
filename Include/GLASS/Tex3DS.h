@@ -3,7 +3,6 @@
 
 #include <GLASS/Defs.h>
 
-// TODO: files?
 #ifndef GLASS_BAREMETAL
 #include <stdio.h>
 #endif // !GLASS_BAREMETAL
@@ -12,8 +11,8 @@
 typedef struct {
     GLfloat xFactor; // Sub-texture X factor.
     GLfloat yFactor; // Sub-texture Y factor.
-    GLsizei width;   // Sub-texture width.
-    GLsizei height;  // Sub-texture height.
+    uint16_t width;  // Sub-texture width.
+    uint16_t height; // Sub-texture height.
 } glassSubTexture;
 
 // Pixel format object.
@@ -24,10 +23,10 @@ typedef struct {
 
 // Texture object.
 typedef struct {
-    u8* faces[6];                 // Internal texture data.
+    uint8_t* faces[6];            // Internal texture data.
     bool isCubeMap;               // Whether this texture is a cube map.
-    u16 width;                    // Texture width.
-    u16 height;                   // Texture height.
+    uint16_t width;               // Texture width.
+    uint16_t height;              // Texture height.
     glassPixelFormat pixelFormat; // Pixel format.
     size_t levels;                // MipMap levels.
     size_t numOfSubTextures;      // Number of sub-textures.
@@ -38,7 +37,7 @@ typedef struct {
 extern "C" {
 #endif // __cplusplus
 
-void glassLoadTexture(const u8* data, size_t size, glassTexture* out);
+void glassLoadTexture(const uint8_t* data, size_t size, glassTexture* out);
 
 #ifndef GLASS_BAREMETAL
 void glassLoadTextureFromFile(FILE* f, glassTexture* out);
@@ -49,8 +48,8 @@ void glassMoveTextureData(glassTexture* tex);
 void glassDestroyTexture(glassTexture* tex);
 
 const size_t glassGetTextureSize(const glassTexture* tex, size_t level);
-const u8* glassGetTextureData(const glassTexture* tex, size_t face, size_t level);
-const u8* glassGetSubTextureData(const glassTexture* tex, const glassSubTexture* subTex, size_t level);
+const uint8_t* glassGetTextureData(const glassTexture* tex, size_t face, size_t level);
+const uint8_t* glassGetSubTextureData(const glassTexture* tex, const glassSubTexture* subTex, size_t level);
 
 bool glassIsCompressed(const glassPixelFormat* pixelFormat);
 
