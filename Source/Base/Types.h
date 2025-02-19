@@ -154,25 +154,17 @@ typedef struct {
     uint32_t data[3]; // Constant data.
 } ConstFloatInfo;
 
-/*
-typedef enum {
-	GLASS_GSH_POINT = 0,
-	GLASS_GSH_VARIABLE_PRIM = 1,
-	GLASS_GSH_FIXED_PRIM = 2,
-} GeometryShaderMode;
-*/
-
 typedef struct {
     GLASS_OBJ(GLASS_SHADER_TYPE);
     SharedShaderData* sharedData;       // Shared shader data.
     size_t codeEntrypoint;              // Code entrypoint.
-    GeometryShaderMode gsMode;          // Mode for geometry shader.
     uint16_t outMask;                   // Used output registers mask.
     uint16_t outTotal;                  // Total number of output registers.
     uint32_t outSems[7];                // Output register semantics.
     uint32_t outClock;                  // Output register clock.
     char* symbolTable;                  // This shader symbol table.
     size_t sizeOfSymbolTable;           // Size of symbol table.
+    uint8_t gsMode;                     // Mode for geometry shader.
     uint16_t constBoolMask;             // Constant bool uniform mask.
     uint32_t constIntData[4];           // Constant int uniform data.
     uint16_t constIntMask;              // Constant int uniform mask.
@@ -231,14 +223,6 @@ typedef struct {
     GLfloat alphaScale; // Alpha scale.
     uint32_t color;     // Constant color.
 } CombinerInfo;
-
-/*
-typedef enum {
-	GLASS_SCISSOR_DISABLED = 0,
-	GLASS_SCISSOR_INVERTED = 1,
-	GLASS_SCISSOR_ENABLED = 3,
-} ScissorMode;
-*/
 
 typedef struct {
     glassInitParams initParams; // Context parameters.

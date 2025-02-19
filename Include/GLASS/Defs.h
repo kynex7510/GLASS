@@ -18,7 +18,6 @@ typedef int32_t GLint;
 typedef uint32_t GLuint;
 typedef float GLfloat;
 
-typedef GLuint GLboolean;
 typedef GLint GLintptr;
 typedef GLint GLsizei;
 typedef GLuint GLsizeiptr;
