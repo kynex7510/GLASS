@@ -1,5 +1,5 @@
 #include "Base/Context.h"
-#include "Base/Utility.h"
+#include "Base/Math.h"
 
 static bool GLASS_isTestFunc(GLenum func) {
     switch (func) {
@@ -128,10 +128,10 @@ void glAlphaFunc(GLenum func, GLclampf ref) {
 void glBlendColor(GLclampf red, GLclampf green, GLclampf blue, GLclampf alpha) {
     CtxCommon* ctx = GLASS_context_getCommon();
 
-    u32 blendColor = ((u32)(0xFF * CLAMP(0.0f, 1.0f, red)) << 24);
-    blendColor |= ((u32)(0xFF * CLAMP(0.0f, 1.0f, green)) << 16);
-    blendColor |= ((u32)(0xFF * CLAMP(0.0f, 1.0f, blue)) << 8);
-    blendColor |= ((u32)(0xFF * CLAMP(0.0f, 1.0f, alpha)));
+    uint32_t blendColor = ((uint32_t)(0xFF * GLASS_CLAMP(0.0f, 1.0f, red)) << 24);
+    blendColor |= ((uint32_t)(0xFF * GLASS_CLAMP(0.0f, 1.0f, green)) << 16);
+    blendColor |= ((uint32_t)(0xFF * GLASS_CLAMP(0.0f, 1.0f, blue)) << 8);
+    blendColor |= ((uint32_t)(0xFF * GLASS_CLAMP(0.0f, 1.0f, alpha)));
 
     ctx->blendColor = blendColor;
     ctx->flags |= GLASS_CONTEXT_FLAG_BLEND;
@@ -169,10 +169,10 @@ void glBlendFunc(GLenum sfactor, GLenum dfactor) { glBlendFuncSeparate(sfactor, 
 
 void glColorMask(GLboolean red, GLboolean green, GLboolean blue, GLboolean alpha) {
     CtxCommon* ctx = GLASS_context_getCommon();
-    ctx->writeRed = red == GL_TRUE;
-    ctx->writeGreen = green == GL_TRUE;
-    ctx->writeBlue = blue == GL_TRUE;
-    ctx->writeAlpha = alpha == GL_TRUE;
+    ctx->writeRed = red;
+    ctx->writeGreen = green;
+    ctx->writeBlue = blue;
+    ctx->writeAlpha = alpha;
     ctx->flags |= GLASS_CONTEXT_FLAG_COLOR_DEPTH;
 }
 
@@ -200,14 +200,14 @@ void glDepthFunc(GLenum func) {
 
 void glDepthMask(GLboolean flag) {
     CtxCommon* ctx = GLASS_context_getCommon();
-    ctx->writeDepth = flag == GL_TRUE;
+    ctx->writeDepth = flag;
     ctx->flags |= GLASS_CONTEXT_FLAG_COLOR_DEPTH;
 }
 
 void glDepthRangef(GLclampf nearVal, GLclampf farVal) {
     CtxCommon* ctx = GLASS_context_getCommon();
-    ctx->depthNear = CLAMP(0.0f, 1.0f, nearVal);
-    ctx->depthFar = CLAMP(0.0f, 1.0f, farVal);
+    ctx->depthNear = GLASS_CLAMP(0.0f, 1.0f, nearVal);
+    ctx->depthFar = GLASS_CLAMP(0.0f, 1.0f, farVal);
     ctx->flags |= GLASS_CONTEXT_FLAG_DEPTHMAP;
 }
 
@@ -297,6 +297,6 @@ void glViewport(GLint x, GLint y, GLsizei width, GLsizei height) {
     ctx->viewportY = y;
     ctx->viewportW = width;
     ctx->viewportH = height;
-    ctx->scissorMode = GPU_SCISSOR_DISABLE;
+    ctx->scissorEnabled = false;
     ctx->flags |= (GLASS_CONTEXT_FLAG_VIEWPORT | GLASS_CONTEXT_FLAG_SCISSOR);
 }

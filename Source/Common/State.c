@@ -1,4 +1,5 @@
 #include "Base/Context.h"
+#include "Platform/Utility.h"
 
 #define VENDOR "Kynex7510"
 #define RENDERER "GLASS"
@@ -32,11 +33,13 @@ static void GLASS_setCapability(GLenum cap, bool enabled) {
             ctx->flags |= GLASS_CONTEXT_FLAG_DEPTHMAP;
             break;
         case GL_SCISSOR_TEST:
-            ctx->scissorMode = (enabled ? GPU_SCISSOR_NORMAL : GPU_SCISSOR_DISABLE);
+            ctx->scissorEnabled = enabled;
+            ctx->scissorInverted = false;
             ctx->flags |= GLASS_CONTEXT_FLAG_SCISSOR;
             break;
         case GL_SCISSOR_TEST_INVERTED_PICA:
-            ctx->scissorMode = (enabled ? GPU_SCISSOR_INVERT : GPU_SCISSOR_DISABLE);
+            ctx->scissorEnabled = enabled;
+            ctx->scissorInverted = true;
             ctx->flags |= GLASS_CONTEXT_FLAG_SCISSOR;
             break;
         case GL_STENCIL_TEST:
@@ -57,27 +60,27 @@ GLboolean glIsEnabled(GLenum cap) {
 
     switch (cap) {
         case GL_ALPHA_TEST:
-            return ctx->alphaTest ? GL_TRUE : GL_FALSE;
+            return ctx->alphaTest;
         case GL_BLEND:
-            return ctx->blendMode ? GL_TRUE : GL_FALSE;
+            return ctx->blendMode;
         case GL_COLOR_LOGIC_OP:
-            return !ctx->blendMode ? GL_TRUE : GL_FALSE;
+            return !ctx->blendMode;
         case GL_CULL_FACE:
-            return ctx->cullFace ? GL_TRUE : GL_FALSE;
+            return ctx->cullFace;
         case GL_DEPTH_TEST:
-            return ctx->depthTest ? GL_TRUE : GL_FALSE;
+            return ctx->depthTest;
         case GL_POLYGON_OFFSET_FILL:
-            return ctx->polygonOffset ? GL_TRUE : GL_FALSE;
+            return ctx->polygonOffset;
         case GL_SCISSOR_TEST:
-            return ctx->scissorMode == GPU_SCISSOR_NORMAL ? GL_TRUE : GL_FALSE;
+            return ctx->scissorEnabled && !ctx->scissorInverted;
         case GL_SCISSOR_TEST_INVERTED_PICA:
-            return ctx->scissorMode == GPU_SCISSOR_INVERT ? GL_TRUE : GL_FALSE;
+            return ctx->scissorEnabled && ctx->scissorInverted;
         case GL_STENCIL_TEST:
-            return ctx->stencilTest ? GL_TRUE : GL_FALSE;
+            return ctx->stencilTest;
     }
 
     GLASS_context_setError(GL_INVALID_ENUM);
-    return GL_FALSE;
+    return false;
 }
 
 GLenum glGetError(void) {
@@ -87,7 +90,7 @@ GLenum glGetError(void) {
     return error;
 }
 
-static const GLubyte* GLASS_glVersionString(u8 version) {
+static const GLubyte* GLASS_glVersionString(uint8_t version) {
     switch (version) {
         case GLASS_VERSION_2_0:
             return (const GLubyte*)VERSION_2_0;
@@ -96,7 +99,7 @@ static const GLubyte* GLASS_glVersionString(u8 version) {
     UNREACHABLE("Invalid parameter!");
 }
 
-static const GLubyte* GLASS_glExtensionsString(u8 version) {
+static const GLubyte* GLASS_glExtensionsString(uint8_t version) {
     switch (version) {
         case GLASS_VERSION_2_0:
             return (const GLubyte*)EXTENSIONS_2_0;

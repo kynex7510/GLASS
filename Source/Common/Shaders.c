@@ -858,13 +858,13 @@ void glGetProgramiv(GLuint program, GLenum pname, GLint* params) {
     // Get parameter.
     switch (pname) {
         case GL_DELETE_STATUS:
-            *params = (info->flags & GLASS_PROGRAM_FLAG_DELETE) ? GL_TRUE : GL_FALSE;
+            *params = (info->flags & GLASS_PROGRAM_FLAG_DELETE);
             break;
         case GL_LINK_STATUS:
-            *params = (info->flags & GLASS_PROGRAM_FLAG_LINK_FAILED) ? GL_FALSE : GL_TRUE;
+            *params = (info->flags & GLASS_PROGRAM_FLAG_LINK_FAILED);
             break;
         case GL_VALIDATE_STATUS:
-            *params = GL_TRUE;
+            *params = true;
             break;
         case GL_INFO_LOG_LENGTH:
             *params = 0;
@@ -911,7 +911,7 @@ void glGetShaderiv(GLuint shader, GLenum pname, GLint* params) {
             *params = (info->flags & GLASS_SHADER_FLAG_GEOMETRY) ? GL_GEOMETRY_SHADER_PICA : GL_VERTEX_SHADER;
             break;
         case GL_DELETE_STATUS:
-            *params = (info->flags & GLASS_SHADER_FLAG_DELETE) ? GL_TRUE : GL_FALSE;
+            *params = (info->flags & GLASS_SHADER_FLAG_DELETE);
             break;
         case GL_COMPILE_STATUS:
         case GL_INFO_LOG_LENGTH:
@@ -923,8 +923,8 @@ void glGetShaderiv(GLuint shader, GLenum pname, GLint* params) {
     }
 }
 
-GLboolean glIsProgram(GLuint program) { return GLASS_OBJ_IS_PROGRAM(program) ? GL_TRUE : GL_FALSE; }
-GLboolean glIsShader(GLuint shader) { return GLASS_OBJ_IS_SHADER(shader) ? GL_TRUE : GL_FALSE; }
+GLboolean glIsProgram(GLuint program) { return GLASS_OBJ_IS_PROGRAM(program); }
+GLboolean glIsShader(GLuint shader) { return GLASS_OBJ_IS_SHADER(shader); }
 
 void glLinkProgram(GLuint program) {
     if (!GLASS_OBJ_IS_PROGRAM(program)) {

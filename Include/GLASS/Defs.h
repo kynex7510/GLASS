@@ -32,8 +32,8 @@ typedef GLuint GLbitfield;
 
 #define GL_NO_ERROR 0
 
-#define GL_FALSE 0
-#define GL_TRUE 1
+#define GL_FALSE false
+#define GL_TRUE true
 
 #define GL_ZERO 0
 #define GL_ONE 1

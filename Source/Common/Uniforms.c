@@ -1,5 +1,6 @@
 #include "Base/Context.h"
-#include "Base/Utility.h"
+#include "Base/Math.h"
+#include "Platform/Utility.h"
 
 #include <stdlib.h> // atoi
 #include <string.h> // strstr, strlen, strncpy, memcpy
@@ -85,7 +86,7 @@ void glGetActiveUniform(GLuint program, GLuint index, GLsizei bufSize, GLsizei* 
 
     // Get uniform data.
     const UniformInfo* uni = &shad->activeUniforms[index];
-    const size_t symLen = MIN(bufSize, strlen(uni->symbol));
+    const size_t symLen = GLASS_MIN(bufSize, strlen(uni->symbol));
 
     if (length)
         *length = symLen;
@@ -118,7 +119,7 @@ static bool GLASS_getBoolUniform(const UniformInfo* info, size_t offset) {
     return (info->data.mask >> offset) & 1;
 }
 
-static void GLASS_getIntUniform(const UniformInfo* info, size_t offset, u32* out) {
+static void GLASS_getIntUniform(const UniformInfo* info, size_t offset, uint32_t* out) {
     ASSERT(info);
     ASSERT(out);
     ASSERT(info->type == GLASS_UNI_INT);
@@ -128,13 +129,13 @@ static void GLASS_getIntUniform(const UniformInfo* info, size_t offset, u32* out
     *out = (info->count == 1) ? info->data.value : info->data.values[offset];
 }
 
-static void GLASS_getFloatUniform(const UniformInfo* info, size_t offset, u32* out) {
+static void GLASS_getFloatUniform(const UniformInfo* info, size_t offset, uint32_t* out) {
     ASSERT(info);
     ASSERT(out);
     ASSERT(info->type == GLASS_UNI_FLOAT);
     ASSERT(info->count <= GLASS_NUM_FLOAT_UNIFORMS);
     ASSERT(offset < info->count);
-    memcpy(out, &info->data.values[3 * offset], 3 * sizeof(u32));
+    memcpy(out, &info->data.values[3 * offset], 3 * sizeof(uint32_t));
 }
 
 static void GLASS_getUniformValues(GLuint program, GLint location, GLint* intParams, GLfloat* floatParams) {
@@ -178,8 +179,8 @@ static void GLASS_getUniformValues(GLuint program, GLint location, GLint* intPar
 
     // Handle int.
     if (uni->type == GLASS_UNI_INT) {
-        u32 packed = 0;
-        u32 components[4];
+        uint32_t packed = 0;
+        uint32_t components[4];
         GLASS_getIntUniform(uni, locOffset, &packed);
         GLASS_utility_unpackIntVector(packed, components);
 
@@ -199,7 +200,7 @@ static void GLASS_getUniformValues(GLuint program, GLint location, GLint* intPar
 
     // Handle float.
     if (uni->type == GLASS_UNI_FLOAT) {
-        u32 packed[3];
+        uint32_t packed[3];
         GLASS_getFloatUniform(uni, locOffset, packed);
 
         if (floatParams) {
@@ -241,7 +242,7 @@ static size_t GLASS_extractUniformOffset(const char* name) {
     return atoi(&beg[1]);
 }
 
-static bool GLASS_checkUniformOffset(u8 type, size_t offset) {
+static bool GLASS_checkUniformOffset(uint8_t type, size_t offset) {
     switch (type) {
         case GLASS_UNI_BOOL:
             return offset < GLASS_NUM_BOOL_UNIFORMS;
@@ -320,7 +321,7 @@ static void GLASS_setBoolUniform(UniformInfo* info, size_t offset, bool enabled)
     info->dirty = true;
 }
 
-static void GLASS_setIntUniform(UniformInfo* info, size_t offset, u32 vector) {
+static void GLASS_setIntUniform(UniformInfo* info, size_t offset, uint32_t vector) {
     ASSERT(info);
     ASSERT(info->type == GLASS_UNI_INT);
     ASSERT(info->count <= GLASS_NUM_INT_UNIFORMS);
@@ -335,13 +336,13 @@ static void GLASS_setIntUniform(UniformInfo* info, size_t offset, u32 vector) {
     info->dirty = true;
 }
 
-static void GLASS_setFloatUniform(UniformInfo* info, size_t offset, const u32* vector) {
+static void GLASS_setFloatUniform(UniformInfo* info, size_t offset, const uint32_t* vector) {
     ASSERT(info);
     ASSERT(info->type == GLASS_UNI_FLOAT);
     ASSERT(info->count <= GLASS_NUM_FLOAT_UNIFORMS);
     ASSERT(offset < info->count);
 
-    memcpy(&info->data.values[3 * offset], vector, 3 * sizeof(u32));
+    memcpy(&info->data.values[3 * offset], vector, 3 * sizeof(uint32_t));
     info->dirty = true;
 }
 
@@ -383,7 +384,7 @@ static void GLASS_setUniformValues(GLint location, const GLint* intValues, const
             return;
         }
 
-        for (size_t i = locOffset; i < MIN(uni->count, locOffset + numOfElements); ++i) {
+        for (size_t i = locOffset; i < GLASS_MIN(uni->count, locOffset + numOfElements); ++i) {
             if (intValues) {
                 ASSERT(!floatValues);
                 GLASS_setBoolUniform(uni, i, intValues[i] != 0);
@@ -404,9 +405,9 @@ static void GLASS_setUniformValues(GLint location, const GLint* intValues, const
             return;
         }
 
-        for (size_t i = locOffset; i < MIN(uni->count, locOffset + numOfElements); ++i) {
-            u32 components[4];
-            u32 packed = 0;
+        for (size_t i = locOffset; i < GLASS_MIN(uni->count, locOffset + numOfElements); ++i) {
+            uint32_t components[4];
+            uint32_t packed = 0;
 
             GLASS_getIntUniform(uni, i, &packed);
             GLASS_utility_unpackIntVector(packed, components);
@@ -428,9 +429,9 @@ static void GLASS_setUniformValues(GLint location, const GLint* intValues, const
             return;
         }
 
-        for (size_t i = locOffset; i < MIN(uni->count, locOffset + numOfElements); ++i) {
+        for (size_t i = locOffset; i < GLASS_MIN(uni->count, locOffset + numOfElements); ++i) {
             float components[4];
-            u32 packed[3];
+            uint32_t packed[3];
 
             GLASS_getFloatUniform(uni, i, packed);
             GLASS_utility_unpackFloatVector(packed, components);
@@ -498,7 +499,7 @@ void glUniform4i(GLint location, GLint v0, GLint v1, GLint v2, GLint v3) {
 }
 
 void glUniformMatrix2fv(GLint location, GLsizei count, GLboolean transpose, const GLfloat* value) {
-    if (transpose != GL_FALSE) {
+    if (transpose) {
         GLASS_context_setError(GL_INVALID_VALUE);
         return;
     }
@@ -507,7 +508,7 @@ void glUniformMatrix2fv(GLint location, GLsizei count, GLboolean transpose, cons
 }
 
 void glUniformMatrix3fv(GLint location, GLsizei count, GLboolean transpose, const GLfloat* value) {
-    if (transpose != GL_FALSE) {
+    if (transpose) {
         GLASS_context_setError(GL_INVALID_VALUE);
         return;
     }
@@ -516,7 +517,7 @@ void glUniformMatrix3fv(GLint location, GLsizei count, GLboolean transpose, cons
 }
 
 void glUniformMatrix4fv(GLint location, GLsizei count, GLboolean transpose, const GLfloat* value) {
-    if (transpose != GL_FALSE) {
+    if (transpose) {
         GLASS_context_setError(GL_INVALID_VALUE);
         return;
     }

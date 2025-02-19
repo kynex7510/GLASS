@@ -1,4 +1,5 @@
 #include "Base/Context.h"
+#include "Platform/Utility.h"
 
 #include <string.h> // memcpy
 
@@ -193,8 +194,8 @@ GLboolean glIsBuffer(GLuint buffer) {
     if (GLASS_OBJ_IS_BUFFER(buffer)) {
         const BufferInfo* info = (BufferInfo*)buffer;
         if (info->bound)
-            return GL_TRUE;
+            return true;
     }
 
-    return GL_FALSE;
+    return false;
 }

@@ -1,4 +1,5 @@
 #include "Base/Context.h"
+#include "Base/Math.h"
 
 // TODO: GL_TEXTURE3 is a valid source, but that's for proctex, not a "real" texture.
 static bool GLASS_isCombinerSrc(GLenum src) {
@@ -122,10 +123,10 @@ void glCombinerColorPICA(GLclampf red, GLclampf green, GLclampf blue, GLclampf a
     CtxCommon* ctx = GLASS_context_getCommon();
     CombinerInfo* combiner = &ctx->combiners[ctx->combinerStage];
 
-    u32 color = (u32)(0xFF * CLAMP(0.0f, 1.0f, red));
-    color |= (u32)(0xFF * CLAMP(0.0f, 1.0f, green)) << 8;
-    color |= (u32)(0xFF * CLAMP(0.0f, 1.0f, blue)) << 16;
-    color |= (u32)(0xFF * CLAMP(0.0f, 1.0f, alpha)) << 24;
+    uint32_t color = (uint32_t)(0xFF * GLASS_CLAMP(0.0f, 1.0f, red));
+    color |= (uint32_t)(0xFF * GLASS_CLAMP(0.0f, 1.0f, green)) << 8;
+    color |= (uint32_t)(0xFF * GLASS_CLAMP(0.0f, 1.0f, blue)) << 16;
+    color |= (uint32_t)(0xFF * GLASS_CLAMP(0.0f, 1.0f, alpha)) << 24;
 
     if (combiner->color != color) {
         combiner->color = color;

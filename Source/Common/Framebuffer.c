@@ -304,20 +304,20 @@ GLboolean glIsFramebuffer(GLuint framebuffer) {
     if (GLASS_OBJ_IS_FRAMEBUFFER(framebuffer)) {
         FramebufferInfo* info = (FramebufferInfo*)framebuffer;
         if (info->bound)
-            return GL_TRUE;
+            return true;
     }
 
-    return GL_FALSE;
+    return false;
 }
 
 GLboolean glIsRenderbuffer(GLuint renderbuffer) {
     if (GLASS_OBJ_IS_RENDERBUFFER(renderbuffer)) {
         RenderbufferInfo* info = (RenderbufferInfo*)renderbuffer;
         if (info->bound)
-            return GL_TRUE;
+            return true;
     }
 
-    return GL_FALSE;
+    return false;
 }
 
 static bool GLASS_isColorFormat(GLenum format) {

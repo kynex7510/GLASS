@@ -26,7 +26,6 @@ inline size_t GLASS_math_alignUp(size_t v, size_t alignment) {
 }
 
 uint32_t GLASS_math_f32tofixed13(float f);
-
 uint32_t GLASS_math_f32tof31(float f);
 uint32_t GLASS_math_f32tof24(float f);
 float GLASS_math_f24tof32(uint32_t f);

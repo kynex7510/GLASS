@@ -1,4 +1,5 @@
 #include "Base/Context.h"
+#include "Platform/Utility.h"
 
 #include <string.h> // strncpy
 
@@ -75,10 +76,10 @@ static bool GLASS_readInt(size_t index, GLenum pname, GLint* param) {
             *param = attrib->type;
             return true;
         case GL_VERTEX_ATTRIB_ARRAY_NORMALIZED:
-            *param = GL_FALSE;
+            *param = false;
             return true;
         case GL_VERTEX_ATTRIB_ARRAY_ENABLED:
-            *param = ((attrib->flags & GLASS_ATTRIB_FLAG_ENABLED) ? GL_TRUE : GL_FALSE);
+            *param = (attrib->flags & GLASS_ATTRIB_FLAG_ENABLED);
             return true;
     }
 
@@ -232,7 +233,7 @@ static size_t GLASS_sizeForAttribType(GLenum type) {
     UNREACHABLE("Invalid parameter!");
 }
 
-static bool GLASS_isAttribPhysAddrAligned(GLenum type, u32 physAddr) {
+static bool GLASS_isAttribPhysAddrAligned(GLenum type, uint32_t physAddr) {
     if (type == GL_SHORT)
         return (physAddr & 0x01) == 0;
 
@@ -253,7 +254,7 @@ void glVertexAttribPointer(GLuint index, GLint size, GLenum type, GLboolean norm
         return;
     }
 
-    if (normalized != GL_FALSE) {
+    if (normalized) {
         GLASS_context_setError(GL_INVALID_OPERATION);
         return;
     }
@@ -266,7 +267,7 @@ void glVertexAttribPointer(GLuint index, GLint size, GLenum type, GLboolean norm
     const size_t bufferSize = (stride ? stride : componentDataSize);
 
     // Get vertex buffer physical address.
-    u32 physAddr = 0;
+    uint32_t physAddr = 0;
     size_t bufferOffset = 0;
     if (ctx->arrayBuffer != GLASS_INVALID_OBJECT) {
         const BufferInfo* binfo = (BufferInfo*)ctx->arrayBuffer;
