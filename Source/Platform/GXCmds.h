@@ -1,6 +1,0 @@
-#ifndef _GLASS_PLATFORM_GXCMDS_H
-#define _GLASS_PLATFORM_GXCMDS_H
-
-
-
-#endif /* _GLASS_PLATFORM_GXCMDS_H */

@@ -2,6 +2,7 @@
 #define _GLASS_PLATFORM_GX_H
 
 #include "Base/Context.h"
+#include "Platform/Sync.h"
 
 #define GLASS_GX_CMD_PROCESS_COMMAND_LIST 0x01000101
 #define GLASS_GX_CMD_MEMORY_FILL 0x01000102
@@ -27,7 +28,7 @@
 #define GLASS_GX_TRANSFER_DSTFMT(v) (((v) & 0x7) << 12)
 
 typedef struct {
-    u32 data[8];
+    uint32_t data[8];
 } GXCmd;
 
 typedef void(*GXCallback_t)(void* param);
@@ -40,7 +41,7 @@ inline void GLASS_gx_makeProcessCommandList(GXCmd* cmd, const void* addr, size_t
     ASSERT(glassIsLinear(addr));
 
     cmd->data[0] = GLASS_GX_CMD_PROCESS_COMMAND_LIST;
-    cmd->data[1] = (u32)addr;
+    cmd->data[1] = (uint32_t)addr;
     cmd->data[2] = size;
     cmd->data[3] = 0; // TODO: bit0 = gas related.
     cmd->data[4] = cmd->data[5] = cmd->data[6] = 0;

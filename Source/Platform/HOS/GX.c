@@ -1,4 +1,7 @@
+#define GLASS_PLATFORM_CODE
+#include "Platform/Includes.h"
 #include "Platform/GX.h"
+#include "Platform/Utility.h"
 
 #include <string.h> // memcpy, memset
 
@@ -27,16 +30,17 @@ static __attribute((constructor)) void GLASS_initGXQueue(void) {
     g_Queue.index = 0;
 }
 
-static void GLASS_submitNextCommand(void) { gspSubmitGxCommand(g_Queue.commands[g_Queue.index].cmd.data); }
-
-static void GLASS_onGXCommandCompleted(void) {
-    CmdEntry last;
+void gxCmdQueueInterrupt(GSPGPU_Event irq) {
+    // Ignore vblank.
+    if (irq == GSPGPU_EVENT_VBlank0 || irq == GSPGPU_EVENT_VBlank1)
+        return;    
 
     LightLock_Lock(&g_Queue.mtx);
 
     ASSERT(g_Queue.count);
 
-    // Copy current command.
+    // Copy last executed command.
+    CmdEntry last;
     memcpy(&last, &g_Queue.commands[g_Queue.index], sizeof(CmdEntry));
 
     // Pop command from queue.
@@ -45,7 +49,7 @@ static void GLASS_onGXCommandCompleted(void) {
 
     // Process next command.
     if (g_Queue.count)
-        GLASS_submitNextCommand();
+        gspSubmitGxCommand(g_Queue.commands[g_Queue.index].cmd.data);
 
     LightLock_Unlock(&g_Queue.mtx);
 
@@ -56,14 +60,6 @@ static void GLASS_onGXCommandCompleted(void) {
     // Invoke callback.
     if (last.callback)
         last.callback(last.param);
-}
-
-void gxCmdQueueInterrupt(GSPGPU_Event irq) {
-    // Ignore vblank.
-    if (irq == GSPGPU_EVENT_VBlank0 || irq == GSPGPU_EVENT_VBlank1)
-        return;
-
-    GLASS_onGXCommandCompleted();
 }
 
 void GLASS_gx_runSync(GXCmd* cmd) {
@@ -113,7 +109,7 @@ void GLASS_gx_runAsync(GXCmd* cmd, GXCallback_t callback, void* param, Barrier* 
 
     // If this is the first command, kickstart processing.
     if (g_Queue.count == 1)
-        GLASS_submitNextCommand();
+        gspSubmitGxCommand(g_Queue.commands[g_Queue.index].cmd.data);
 
     LightLock_Unlock(&g_Queue.mtx);
 }
