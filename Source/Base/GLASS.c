@@ -2,6 +2,7 @@
 #include "Base/Context.h"
 #include "Platform/GPU.h"
 #include "Platform/GX.h"
+#include "Base/Pixels.h"
 
 #include <string.h> // memcpy
 
@@ -79,10 +80,9 @@ static void GLASS_swapScreenBuffers(CtxCommon* ctx) {
     gfxScreenSwapBuffers(ctx->settings.targetScreen, ctx->settings.targetScreen == GFX_TOP && ctx->settings.targetSide == GFX_RIGHT);
 }
 
-static void GLASS_displayTransferDone(gxCmdQueue_s* queue) {
-    CtxCommon* ctx = (CtxCommon*)queue->user;
+static void GLASS_displayTransferDone(void* param) {
+    CtxCommon* ctx = (CtxCommon*)param;
     GLASS_swapScreenBuffers(ctx);
-    gxCmdQueueSetCallback(queue, NULL, NULL);
 }
 
 void glassSwapBuffers(void) {
