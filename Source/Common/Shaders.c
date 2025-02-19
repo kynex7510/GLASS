@@ -16,6 +16,7 @@
  * This should be evenly distributed.
  */
 #include "Base/Context.h"
+#include "Platform/Utility.h"
 
 #include <string.h> // strlen, memset, memcpy
 
@@ -28,39 +29,66 @@
 #define DVLE_MIN_SIZE 0x40
 #define DVLE_MAGIC "\x44\x56\x4C\x45"
 
+#define GSH_POINT 0
+#define GSH_VARIABLE_PRIM 1
+#define GSH_FIXED_PRIM 2
+
+#define OUTPUT_TYPE_POSITION 0
+#define OUTPUT_TYPE_NORMALQUAT 1
+#define OUTPUT_TYPE_COLOR 2
+#define OUTPUT_TYPE_TEXCOORD0 3
+#define OUTPUT_TYPE_TEXCOORD0W 4
+#define OUTPUT_TYPE_TEXCOORD1 5
+#define OUTPUT_TYPE_TEXCOORD2 6
+#define OUTPUT_TYPE_VIEW 8
+#define OUTPUT_TYPE_PASSTHROUGH 9
+
 typedef struct {
-    u32 numOfDVLEs;  // Number of DVLE entries.
-    u32 DVLETable[]; // DVLE entries.
+    uint32_t numOfDVLEs;  // Number of DVLE entries.
+    uint32_t DVLETable[]; // DVLE entries.
 } DVLB;
 
 typedef struct {
-    u16 type; //  Constant type.
-    u16 ID;   // Constant ID.
+    uint16_t type; //  Constant type.
+    uint16_t ID;   // Constant ID.
     union {
-        u32 boolUniform; // Bool uniform value.
-        u32 intUniform;  // Int uniform value.
+        uint32_t boolUniform; // Bool uniform value.
+        uint32_t intUniform;  // Int uniform value.
         struct {
-            u32 x; // Float24 uniform X component.
-            u32 y; // Float24 uniform Y component.
-            u32 z; // Float24 uniform Z component.
-            u32 w; // Float24 uniform W component.
+            uint32_t x; // Float24 uniform X component.
+            uint32_t y; // Float24 uniform Y component.
+            uint32_t z; // Float24 uniform Z component.
+            uint32_t w; // Float24 uniform W component.
         } floatUniform;
     } data;
 } DVLEConstEntry;
 
 typedef struct {
-    bool isGeometry;                     // This DVLE is for a geometry shader.
-    bool mergeOutmaps;                   // Merge shader outmaps (geometry only).
-    u32 entrypoint;                      // Code entrypoint.
-    DVLE_geoShaderMode gsMode;           // Geometry shader mode.
-    DVLEConstEntry* constUniforms;       // Constant uniform table.
-    u32 numOfConstUniforms;              // Size of constant uniform table.
-    DVLE_outEntry_s* outRegs;            // Output register table.
-    u32 numOfOutRegs;                    // Size of output register table.
-    DVLE_uniformEntry_s* activeUniforms; // Uniform table.
-    u32 numOfActiveUniforms;             // Size of uniform table.
-    char* symbolTable;                   // Symbol table.
-    u32 sizeOfSymbolTable;               // Size of symbol table.
+    uint16_t type; // Output type.
+    uint16_t ID;   // Register ID.
+    uint16_t mask; // Component mask (W-Z-Y-X).
+    uint16_t _unk;
+} DVLEOutputEntry;
+
+typedef struct {
+    uint32_t symOffset; // Offset to symbol, relative to symbol table.
+    uint16_t regIndex;  // Uniform register index.
+    uint16_t regEnd;    // Uniform register end (inclusive).
+} DVLEUniformEntry;
+
+typedef struct {
+    bool isGeometry;                  // This DVLE is for a geometry shader.
+    bool mergeOutmaps;                // Merge shader outmaps (geometry only).
+    uint8_t gsMode;                   // Geometry shader mode.
+    uint32_t entrypoint;              // Code entrypoint.
+    DVLEConstEntry* constUniforms;    // Constant uniform table.
+    uint32_t numOfConstUniforms;      // Size of constant uniform table.
+    DVLEOutputEntry* outRegs;         // Output register table.
+    uint32_t numOfOutRegs;            // Size of output register table.
+    DVLEUniformEntry* activeUniforms; // Uniform table.
+    uint32_t numOfActiveUniforms;     // Size of uniform table.
+    char* symbolTable;                // Symbol table.
+    uint32_t sizeOfSymbolTable;       // Size of symbol table.
 } DVLEInfo;
 
 static void GLASS_freeUniformData(ShaderInfo* shader) {
@@ -243,14 +271,14 @@ static size_t GLASS_lookupShader(const GLuint* shaders, size_t maxShaders, size_
     return index;
 }
 
-static DVLB* GLASS_parseDVLB(const u8* data, size_t size) {
+static DVLB* GLASS_parseDVLB(const uint8_t* data, size_t size) {
     ASSERT(data);
     ASSERT(size > DVLB_MIN_SIZE);
     ASSERT(memcmp(data, DVLB_MAGIC, sizeof(DVLB_MAGIC) - 1) == 0);
 
     // Read number of DVLEs.
-    u32 numOfDVLEs = 0;
-    memcpy(&numOfDVLEs, data + 0x04, sizeof(u32));
+    uint32_t numOfDVLEs = 0;
+    memcpy(&numOfDVLEs, data + 0x04, sizeof(uint32_t));
     ASSERT((DVLB_MIN_SIZE + (numOfDVLEs * 4)) <= size);
 
     // Allocate DVLB.
@@ -261,34 +289,34 @@ static DVLB* GLASS_parseDVLB(const u8* data, size_t size) {
 
         // Fill table with offsets.
         for (size_t i = 0; i < numOfDVLEs; ++i) {
-            dvlb->DVLETable[i] = *(u32*)(data + DVLB_MIN_SIZE + (4 * i));
+            dvlb->DVLETable[i] = *(uint32_t*)(data + DVLB_MIN_SIZE + (4 * i));
             ASSERT(dvlb->DVLETable[i] <= size);
             // Relocation.
-            dvlb->DVLETable[i] += (u32)data;
+            dvlb->DVLETable[i] += (uint32_t)data;
         }
     }
 
     return dvlb;
 }
 
-static SharedShaderData* GLASS_parseDVLP(const u8* data, size_t size) {
+static SharedShaderData* GLASS_parseDVLP(const uint8_t* data, size_t size) {
     ASSERT(data);
     ASSERT(size > DVLP_MIN_SIZE);
     ASSERT(memcmp(data, DVLP_MAGIC, sizeof(DVLP_MAGIC) - 1) == 0);
 
     // Read offsets.
-    u32 offsetToBlob = 0;
-    u32 offsetToOpDescs = 0;
-    memcpy(&offsetToBlob, data + 0x08, sizeof(u32));
-    memcpy(&offsetToOpDescs, data + 0x10, sizeof(u32));
+    uint32_t offsetToBlob = 0;
+    uint32_t offsetToOpDescs = 0;
+    memcpy(&offsetToBlob, data + 0x08, sizeof(uint32_t));
+    memcpy(&offsetToOpDescs, data + 0x10, sizeof(uint32_t));
     ASSERT(offsetToBlob < size);
     ASSERT(offsetToOpDescs < size);
 
     // Read num params.
-    u32 numOfCodeWords = 0;
-    u32 numOfOpDescs = 0;
-    memcpy(&numOfCodeWords, data + 0x0C, sizeof(u32));
-    memcpy(&numOfOpDescs, data + 0x14, sizeof(u32));
+    uint32_t numOfCodeWords = 0;
+    uint32_t numOfOpDescs = 0;
+    memcpy(&numOfCodeWords, data + 0x0C, sizeof(uint32_t));
+    memcpy(&numOfOpDescs, data + 0x14, sizeof(uint32_t));
 
     ASSERT(numOfCodeWords <= 512);
     ASSERT(numOfOpDescs <= 128);
@@ -296,52 +324,52 @@ static SharedShaderData* GLASS_parseDVLP(const u8* data, size_t size) {
     ASSERT((offsetToOpDescs + (numOfOpDescs * 8)) <= size);
 
     // Allocate data.
-    SharedShaderData* sharedData = (SharedShaderData*)glassVirtualAlloc(sizeof(SharedShaderData) + (numOfCodeWords * sizeof(u32)) + (numOfOpDescs * sizeof(u32)));
+    SharedShaderData* sharedData = (SharedShaderData*)glassVirtualAlloc(sizeof(SharedShaderData) + (numOfCodeWords * sizeof(uint32_t)) + (numOfOpDescs * sizeof(uint32_t)));
 
     if (sharedData) {
         sharedData->refc = 0;
-        sharedData->binaryCode = (u32*)((u8*)sharedData + sizeof(SharedShaderData));
+        sharedData->binaryCode = (uint32_t*)((uint8_t*)sharedData + sizeof(SharedShaderData));
         sharedData->numOfCodeWords = numOfCodeWords;
         sharedData->opDescs = sharedData->binaryCode + sharedData->numOfCodeWords;
         sharedData->numOfOpDescs = numOfOpDescs;
 
         // Read binary code.
-        memcpy(sharedData->binaryCode, data + offsetToBlob, sharedData->numOfCodeWords * sizeof(u32));
+        memcpy(sharedData->binaryCode, data + offsetToBlob, sharedData->numOfCodeWords * sizeof(uint32_t));
 
         // Read op descs.
         for (size_t i = 0; i < sharedData->numOfOpDescs; ++i)
-            sharedData->opDescs[i] = ((u32*)(data + offsetToOpDescs))[i * 2];
+            sharedData->opDescs[i] = ((uint32_t*)(data + offsetToOpDescs))[i * 2];
     }
 
     return sharedData;
 }
 
-static void GLASS_getDVLEInfo(const u8* data, size_t size, DVLEInfo* out) {
+static void GLASS_getDVLEInfo(const uint8_t* data, size_t size, DVLEInfo* out) {
     ASSERT(data);
     ASSERT(out);
     ASSERT(size > DVLE_MIN_SIZE);
     ASSERT(memcmp(data, DVLE_MAGIC, sizeof(DVLE_MAGIC) - 1) == 0);
 
     // Get info.
-    u8 flags = 0;
-    u8 mergeOutmaps = 0;
-    u8 gsMode = 0;
-    u32 offsetToConstTable = 0;
-    u32 offsetToOutTable = 0;
-    u32 offsetToUniformTable = 0;
-    u32 offsetToSymbolTable = 0;
-    memcpy(&flags, data + 0x06, sizeof(u8));
-    memcpy(&mergeOutmaps, data + 0x07, sizeof(u8));
-    memcpy(&out->entrypoint, data + 0x08, sizeof(u32));
-    memcpy(&gsMode, data + 0x14, sizeof(u8));
-    memcpy(&offsetToConstTable, data + 0x18, sizeof(u32));
-    memcpy(&out->numOfConstUniforms, data + 0x1C, sizeof(u32));
-    memcpy(&offsetToOutTable, data + 0x28, sizeof(u32));
-    memcpy(&out->numOfOutRegs, data + 0x2C, sizeof(u32));
-    memcpy(&offsetToUniformTable, data + 0x30, sizeof(u32));
-    memcpy(&out->numOfActiveUniforms, data + 0x34, sizeof(u32));
-    memcpy(&offsetToSymbolTable, data + 0x38, sizeof(u32));
-    memcpy(&out->sizeOfSymbolTable, data + 0x3C, sizeof(u32));
+    uint8_t flags = 0;
+    uint8_t mergeOutmaps = 0;
+    uint8_t gsMode = 0;
+    uint32_t offsetToConstTable = 0;
+    uint32_t offsetToOutTable = 0;
+    uint32_t offsetToUniformTable = 0;
+    uint32_t offsetToSymbolTable = 0;
+    memcpy(&flags, data + 0x06, sizeof(uint8_t));
+    memcpy(&mergeOutmaps, data + 0x07, sizeof(uint8_t));
+    memcpy(&out->entrypoint, data + 0x08, sizeof(uint32_t));
+    memcpy(&gsMode, data + 0x14, sizeof(uint8_t));
+    memcpy(&offsetToConstTable, data + 0x18, sizeof(uint32_t));
+    memcpy(&out->numOfConstUniforms, data + 0x1C, sizeof(uint32_t));
+    memcpy(&offsetToOutTable, data + 0x28, sizeof(uint32_t));
+    memcpy(&out->numOfOutRegs, data + 0x2C, sizeof(uint32_t));
+    memcpy(&offsetToUniformTable, data + 0x30, sizeof(uint32_t));
+    memcpy(&out->numOfActiveUniforms, data + 0x34, sizeof(uint32_t));
+    memcpy(&offsetToSymbolTable, data + 0x38, sizeof(uint32_t));
+    memcpy(&out->sizeOfSymbolTable, data + 0x3C, sizeof(uint32_t));
     ASSERT(offsetToConstTable < size);
     ASSERT(offsetToOutTable < size);
     ASSERT(offsetToUniformTable < size);
@@ -390,8 +418,8 @@ static void GLASS_getDVLEInfo(const u8* data, size_t size, DVLEInfo* out) {
 
     // Set table pointers.
     out->constUniforms = (DVLEConstEntry*)(data + offsetToConstTable);
-    out->outRegs = (DVLE_outEntry_s*)(data + offsetToOutTable);
-    out->activeUniforms = (DVLE_uniformEntry_s*)(data + offsetToUniformTable);
+    out->outRegs = (DVLEOutputEntry*)(data + offsetToOutTable);
+    out->activeUniforms = (DVLEUniformEntry*)(data + offsetToUniformTable);
     out->symbolTable = (char*)(data + offsetToSymbolTable);
 }
 
@@ -406,62 +434,62 @@ static void GLASS_generateOutmaps(const DVLEInfo* info, ShaderInfo* out) {
     memset(out->outSems, 0x1F, sizeof(out->outSems));
 
     for (size_t i = 0; i < info->numOfOutRegs; ++i) {
-        const DVLE_outEntry_s* entry = &info->outRegs[i];
-        u8 sem = 0x1F;
+        const DVLEOutputEntry* entry = &info->outRegs[i];
+        uint8_t sem = 0x1F;
         size_t maxSem = 0;
 
         // Set output register.
-        if (!(out->outMask & (1u << entry->regID))) {
-            out->outMask |= (1u << entry->regID);
+        if (!(out->outMask & (1u << entry->ID))) {
+            out->outMask |= (1u << entry->ID);
             ++out->outTotal;
         }
 
         // Get register semantics.
         switch (entry->type) {
-            case RESULT_POSITION:
+            case OUTPUT_TYPE_POSITION:
                 sem = 0x00;
                 maxSem = 4;
                 break;
-            case RESULT_NORMALQUAT:
+            case OUTPUT_TYPE_NORMALQUAT:
                 sem = 0x04;
                 maxSem = 4;
                 out->outClock |= (1u << 24);
                 break;
-            case RESULT_COLOR:
+            case OUTPUT_TYPE_COLOR:
                 sem = 0x08;
                 maxSem = 4;
                 out->outClock |= (1u << 1);
                 break;
-            case RESULT_TEXCOORD0:
+            case OUTPUT_TYPE_TEXCOORD0:
                 sem = 0x0C;
                 maxSem = 2;
                 out->outClock |= (1u << 8);
                 useTexcoords = true;
                 break;
-            case RESULT_TEXCOORD0W:
+            case OUTPUT_TYPE_TEXCOORD0W:
                 sem = 0x10;
                 maxSem = 1;
                 out->outClock |= (1u << 16);
                 useTexcoords = true;
                 break;
-            case RESULT_TEXCOORD1:
+            case OUTPUT_TYPE_TEXCOORD1:
                 sem = 0x0E;
                 maxSem = 2;
                 out->outClock |= (1u << 9);
                 useTexcoords = true;
                 break;
-            case RESULT_TEXCOORD2:
+            case OUTPUT_TYPE_TEXCOORD2:
                 sem = 0x16;
                 maxSem = 2;
                 out->outClock |= (1u << 10);
                 useTexcoords = true;
                 break;
-            case RESULT_VIEW:
+            case OUTPUT_TYPE_VIEW:
                 sem = 0x12;
                 maxSem = 3;
                 out->outClock |= (1u << 24);
                 break;
-            case RESULT_DUMMY:
+            case OUTPUT_TYPE_PASSTHROUGH:
                 continue;
             default:
                 UNREACHABLE("Unknown output register type!");
@@ -470,12 +498,12 @@ static void GLASS_generateOutmaps(const DVLEInfo* info, ShaderInfo* out) {
         // Set register semantics.
         for (size_t i = 0, curSem = 0; i < 4 && curSem < maxSem; ++i) {
             if (entry->mask & (1u << i)) {
-                out->outSems[entry->regID] &= ~(0xFF << (i * 8));
-                out->outSems[entry->regID] |= ((sem++) << (i * 8));
+                out->outSems[entry->ID] &= ~(0xFF << (i * 8));
+                out->outSems[entry->ID] |= ((sem++) << (i * 8));
 
                 // Check for position.z clock.
                 ++curSem;
-                if ((entry->type == RESULT_POSITION) && (curSem == 3))
+                if ((entry->type == OUTPUT_TYPE_POSITION) && (curSem == 3))
                     out->outClock |= (1u << 0);
             }
         }
@@ -545,10 +573,10 @@ static bool GLASS_loadUniforms(const DVLEInfo* info, ShaderInfo* out) {
             continue;
 
         const float components[] = {
-            GLASS_utility_f24tof32(constEntry->data.floatUniform.x),
-            GLASS_utility_f24tof32(constEntry->data.floatUniform.y),
-            GLASS_utility_f24tof32(constEntry->data.floatUniform.z),
-            GLASS_utility_f24tof32(constEntry->data.floatUniform.w)
+            GLASS_math_f24tof32(constEntry->data.floatUniform.x),
+            GLASS_math_f24tof32(constEntry->data.floatUniform.y),
+            GLASS_math_f24tof32(constEntry->data.floatUniform.z),
+            GLASS_math_f24tof32(constEntry->data.floatUniform.w)
         };
 
         ConstFloatInfo* uni = &out->constFloatUniforms[numOfConstFloatUniforms++];
@@ -561,12 +589,12 @@ static bool GLASS_loadUniforms(const DVLEInfo* info, ShaderInfo* out) {
     // Find number of active attributes.
     // Shader binaries do not differentiate between active uniforms and active attributes.
     for (size_t i = 0; i < info->numOfActiveUniforms; ++i) {
-        const DVLE_uniformEntry_s* entry = &info->activeUniforms[i];
-        if ((entry->startReg >= 0x00) && (entry->startReg <= 0x0F)) {
+        const DVLEUniformEntry* entry = &info->activeUniforms[i];
+        if ((entry->regIndex >= 0x00) && (entry->regIndex <= 0x0F)) {
             ++out->numOfActiveAttribs;
 
             // Update max symbol length.
-            const size_t symLen = strlen((char*)(out->symbolTable + entry->symbolOffset)) + 1;
+            const size_t symLen = strlen((char*)(out->symbolTable + entry->symOffset)) + 1;
             if (symLen > out->activeAttribsMaxLen)
                 out->activeAttribsMaxLen = symLen;
         }
@@ -579,14 +607,14 @@ static bool GLASS_loadUniforms(const DVLEInfo* info, ShaderInfo* out) {
 
     size_t index = 0;
     for (size_t i = 0; i < info->numOfActiveUniforms; ++i) {
-        const DVLE_uniformEntry_s* entry = &info->activeUniforms[i];
-        if (entry->startReg >= 0x10)
+        const DVLEUniformEntry* entry = &info->activeUniforms[i];
+        if (entry->regIndex >= 0x10)
             continue;
 
-        ASSERT(entry->startReg == entry->endReg);
+        ASSERT(entry->regIndex == entry->regEnd);
         ActiveAttribInfo* attrib = &out->activeAttribs[index++];
-        attrib->ID = entry->startReg;
-        attrib->symbol = out->symbolTable + entry->symbolOffset;
+        attrib->ID = entry->regIndex;
+        attrib->symbol = out->symbolTable + entry->symOffset;
     }
 
     ASSERT(index == out->numOfActiveAttribs);
@@ -599,16 +627,16 @@ static bool GLASS_loadUniforms(const DVLEInfo* info, ShaderInfo* out) {
 
     index = 0;
     for (size_t i = 0; i < info->numOfActiveUniforms; ++i) {
-        const DVLE_uniformEntry_s* entry = &info->activeUniforms[i];
+        const DVLEUniformEntry* entry = &info->activeUniforms[i];
 
         // Skip attributes.
-        if ((entry->startReg >= 0x00) && (entry->startReg <= 0x0F))
+        if ((entry->regIndex >= 0x00) && (entry->regEnd <= 0x0F))
             continue;
 
         UniformInfo* uni = &out->activeUniforms[index++];
-        uni->ID = entry->startReg;
-        uni->count = (entry->endReg + 1) - entry->startReg;
-        uni->symbol = out->symbolTable + entry->symbolOffset;
+        uni->ID = entry->regIndex;
+        uni->count = (entry->regEnd + 1) - entry->regIndex;
+        uni->symbol = out->symbolTable + entry->symOffset;
 
         // Update max symbol length.
         const size_t symLen = strlen(uni->symbol) + 1;
@@ -616,8 +644,8 @@ static bool GLASS_loadUniforms(const DVLEInfo* info, ShaderInfo* out) {
             out->activeUniformsMaxLen = symLen;
 
         // Handle bool.
-        if ((entry->startReg >= 0x78) && (entry->startReg <= 0x87)) {
-            ASSERT(entry->endReg <= 0x87);
+        if ((entry->regIndex >= 0x78) && (entry->regIndex <= 0x87)) {
+            ASSERT(entry->regEnd <= 0x87);
             uni->ID -= 0x78;
             uni->type = GLASS_UNI_BOOL;
             uni->data.mask = 0;
@@ -625,13 +653,13 @@ static bool GLASS_loadUniforms(const DVLEInfo* info, ShaderInfo* out) {
         }
 
         // Handle int.
-        if ((entry->startReg >= 0x70) && (entry->startReg <= 0x73)) {
-            ASSERT(entry->endReg <= 0x73);
+        if ((entry->regIndex >= 0x70) && (entry->regIndex <= 0x73)) {
+            ASSERT(entry->regEnd <= 0x73);
             uni->ID -= 0x70;
             uni->type = GLASS_UNI_INT;
 
             if (uni->count > 1) {
-                uni->data.values = (u32*)glassVirtualAlloc(sizeof(u32) * uni->count);
+                uni->data.values = (uint32_t*)glassVirtualAlloc(sizeof(uint32_t) * uni->count);
                 if (!uni->data.values)
                     return false;
             } else {
@@ -642,11 +670,11 @@ static bool GLASS_loadUniforms(const DVLEInfo* info, ShaderInfo* out) {
         }
 
         // Handle float.
-        if ((entry->startReg >= 0x10) && (entry->startReg <= 0x6F)) {
-            ASSERT(entry->endReg <= 0x6F);
+        if ((entry->regIndex >= 0x10) && (entry->regIndex <= 0x6F)) {
+            ASSERT(entry->regEnd <= 0x6F);
             uni->ID -= 0x10;
             uni->type = GLASS_UNI_FLOAT;
-            uni->data.values = (u32*)glassVirtualAlloc((sizeof(u32) * 3) * uni->count);
+            uni->data.values = (uint32_t*)glassVirtualAlloc((sizeof(uint32_t) * 3) * uni->count);
             if (!uni->data.values)
                 return false;
 
@@ -707,7 +735,7 @@ GLuint glCreateProgram(void) {
 }
 
 GLuint glCreateShader(GLenum shaderType) {
-    u16 flags = 0;
+    uint16_t flags = 0;
 
     switch (shaderType) {
         case GL_VERTEX_SHADER:
@@ -959,7 +987,7 @@ void glShaderBinary(GLsizei n, const GLuint* shaders, GLenum binaryformat, const
     ASSERT(shaders);
     ASSERT(binary);
 
-    const u8* data = (u8*)binary;
+    const uint8_t* data = (uint8_t*)binary;
     const size_t size = length;
     size_t lastVertexIdx = (size_t)-1;
     size_t lastGeometryIdx = (size_t)-1;
@@ -988,7 +1016,7 @@ void glShaderBinary(GLsizei n, const GLuint* shaders, GLenum binaryformat, const
     }
 
     // Parse DVLP.
-    const size_t dvlbSize = DVLB_MIN_SIZE + (dvlb->numOfDVLEs * sizeof(u32));
+    const size_t dvlbSize = DVLB_MIN_SIZE + (dvlb->numOfDVLEs * sizeof(uint32_t));
     sharedData = GLASS_parseDVLP(data + dvlbSize, size - dvlbSize);
     if (!sharedData) {
         GLASS_context_setError(GL_OUT_OF_MEMORY);
@@ -997,7 +1025,7 @@ void glShaderBinary(GLsizei n, const GLuint* shaders, GLenum binaryformat, const
 
     // Handle DVLEs.
     for (size_t i = 0; i < dvlb->numOfDVLEs; ++i) {
-        const u8* pointerToDVLE = (u8*)dvlb->DVLETable[i];
+        const uint8_t* pointerToDVLE = (uint8_t*)dvlb->DVLETable[i];
         const size_t maxSize = size - (size_t)(pointerToDVLE - data);
 
         // Lookup shader.
