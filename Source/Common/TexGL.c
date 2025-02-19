@@ -67,7 +67,7 @@ void glDeleteTextures(GLsizei n, const GLuint* textures) {
 
         // Delete texture.
         for (size_t j = 0; j < GLASS_NUM_TEX_FACES; ++j) {
-            u8* p = tex->faces[i];
+            uint8_t* p = tex->faces[i];
             tex->vram ? glassVRAMFree(p) : glassLinearFree(p);
         }
 
@@ -106,10 +106,10 @@ GLboolean glIsTexture(GLuint texture) {
     if (GLASS_OBJ_IS_TEXTURE(texture)) {
         const TextureInfo* tex = (TextureInfo*)texture;
         if (tex->target != GLASS_TEX_TARGET_UNBOUND)
-            return GL_TRUE;
+            return true;
     }
 
-    return GL_FALSE;
+    return false;
 }
 
 void glActiveTexture(GLenum texture) {
@@ -152,7 +152,7 @@ static bool GLASS_setTexFloats(TextureInfo* tex, GLenum pname, const GLfloat* pa
 
     switch (pname) {
         case GL_TEXTURE_BORDER_COLOR:
-            tex->borderColor = (((u32)(params[3] * 0xFF) << 24) | ((u32)(params[2] * 0xFF) << 16) | ((u32)(params[1] * 0xFF) << 8) | (u32)(params[0] * 0xFF));
+            tex->borderColor = (((uint32_t)(params[3] * 0xFF) << 24) | ((uint32_t)(params[2] * 0xFF) << 16) | ((uint32_t)(params[1] * 0xFF) << 8) | (uint32_t)(params[0] * 0xFF));
             return true;
         case GL_TEXTURE_LOD_BIAS:
             tex->lodBias = params[0];

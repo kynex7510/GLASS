@@ -29,10 +29,10 @@ void GLASS_context_initCommon(CtxCommon* ctx, const glassInitParams* initParams,
     // Platform.
     ctx->flags = 0;
     ctx->lastError = GL_NO_ERROR;
-    memset(&ctx->gxQueue, 0, sizeof(ctx->gxQueue));
+    //memset(&ctx->gxQueue, 0, sizeof(ctx->gxQueue));
 
     GLASS_gpu_allocList(&ctx->settings.gpuCmdList);
-    GLASS_gx_init(ctx);
+    //GLASS_gx_init(ctx);
 
     // Buffers.
     ctx->arrayBuffer = GLASS_INVALID_OBJECT;
@@ -53,7 +53,8 @@ void GLASS_context_initCommon(CtxCommon* ctx, const glassInitParams* initParams,
     ctx->viewportH = 0;
 
     // Scissor.
-    ctx->scissorMode = GPU_SCISSOR_DISABLE;
+    ctx->scissorEnabled = false;
+    ctx->scissorInverted = false;
     ctx->scissorX = 0;
     ctx->scissorY = 0;
     ctx->scissorW = 0;
@@ -224,7 +225,7 @@ static GLsizei GLASS_renderWidth(CtxCommon* ctx) {
             return rb->width;
     }
 
-    u16 width;
+    uint16_t width;
     gfxGetFramebuffer(ctx->settings.targetScreen, ctx->settings.targetSide, NULL, &width);
     return width;
 }
@@ -266,7 +267,7 @@ void GLASS_context_flush(void) {
     if (g_Context->flags & GLASS_CONTEXT_FLAG_SCISSOR) {
         // Account for rotated screens.
         const GLsizei x = (GLASS_renderWidth(g_Context) - (g_Context->scissorX + g_Context->scissorW));
-        GLASS_gpu_setScissorTest(&g_Context->settings.gpuCmdList, g_Context->scissorMode, x, g_Context->scissorY, g_Context->scissorW, g_Context->scissorH);
+        GLASS_gpu_setScissorTest(&g_Context->settings.gpuCmdList, g_Context->scissorEnabled, g_Context->scissorInverted, x, g_Context->scissorY, g_Context->scissorW, g_Context->scissorH);
         g_Context->flags &= ~GLASS_CONTEXT_FLAG_SCISSOR;
     }
 

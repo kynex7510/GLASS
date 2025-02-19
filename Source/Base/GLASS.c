@@ -118,11 +118,11 @@ void glassSwapBuffers(void) {
     displayPixelFormat.format = GLASS_wrapFBFormat(gfxGetScreenFormat(ctx->settings.targetScreen));
     displayPixelFormat.type = GL_RENDERBUFFER;
 
-    u16 displayWidth = 0;
-    u16 displayHeight = 0;
-    const u32 displayBuffer = (u32)gfxGetFramebuffer(ctx->settings.targetScreen, ctx->settings.targetSide, &displayWidth, &displayHeight);
+    uint16_t displayWidth = 0;
+    uint16_t displayHeight = 0;
+    const uint32_t displayBuffer = (uint32_t)gfxGetFramebuffer(ctx->settings.targetScreen, ctx->settings.targetSide, &displayWidth, &displayHeight);
 
-    GLASS_gx_transfer((u32)cb->address, cb->height, cb->width, GLASS_pixels_tryUnwrapTransferFormat(&colorPixelFormat),
+    GLASS_gx_transfer((uint32_t)cb->address, cb->height, cb->width, GLASS_pixels_tryUnwrapTransferFormat(&colorPixelFormat),
         displayBuffer, displayWidth, displayHeight, GLASS_pixels_tryUnwrapTransferFormat(&displayPixelFormat),
         ctx->settings.verticalFlip, false, GX_TRANSFER_SCALE_NO, false, GLASS_displayTransferDone);
 }

@@ -13,27 +13,27 @@ typedef struct {
 } TexStream;
 
 typedef struct __attribute__((packed)) {
-    u16 numSubTextures;
-    u8 widthLog2 : 3;
-    u8 heightLog2 : 3;
-    u8 type : 1;
-    u8 format;
-    u8 mipmapLevels;
+    uint16_t numSubTextures;
+    uint8_t widthLog2 : 3;
+    uint8_t heightLog2 : 3;
+    uint8_t type : 1;
+    uint8_t format;
+    uint8_t mipmapLevels;
 } RawHeader;
 
 typedef struct {
-    u16 width;
-    u16 height;
-    u16 left;
-    u16 top;
-    u16 right;
-    u16 bottom;
+    uint16_t width;
+    uint16_t height;
+    uint16_t left;
+    uint16_t top;
+    uint16_t right;
+    uint16_t bottom;
 } RawSubTexture;
 
-static u8* GLASS_getTexDataPtr(const glassTexture* tex, size_t face, size_t level) {
+static uint8_t* GLASS_getTexDataPtr(const glassTexture* tex, size_t face, size_t level) {
     ASSERT(tex);
 
-    u8* p = tex->faces[face];
+    uint8_t* p = tex->faces[face];
     if (p) {
         const size_t offset = GLASS_tex_getOffset(tex->width, tex->height, &tex->pixelFormat, level);
         return p + offset;
@@ -124,7 +124,7 @@ static void GLASS_loadTextureImpl(TexStream* stream, glassTexture* out) {
     stream->read(stream, &header, sizeof(RawHeader));
     ASSERT((header.type == GPU_TEX_2D) || (header.type == GPU_TEX_CUBE_MAP));
 
-    memset(out->faces, 0, GLASS_NUM_TEX_FACES * sizeof(u8*));
+    memset(out->faces, 0, GLASS_NUM_TEX_FACES * sizeof(uint8_t*));
     out->isCubeMap = header.type == GPU_TEX_CUBE_MAP;
     out->width = (1 << (header.widthLog2 + 3));
     ASSERT(out->width >= GLASS_MIN_TEX_SIZE);
@@ -178,7 +178,7 @@ static void GLASS_loadTextureImpl(TexStream* stream, glassTexture* out) {
     decompressIOVec iov[GLASS_NUM_TEX_FACES];
 
     for (size_t i = 0; i < numFaces; ++i) {
-        u8* p = GLASS_getTexDataPtr(out, i, 0);
+        uint8_t* p = GLASS_getTexDataPtr(out, i, 0);
         ASSERT(p);
         iov[i].data = p;
         iov[i].size = dataSize;
@@ -191,12 +191,12 @@ static ssize_t GLASS_texStreamReadMem(void* userdata, void* out, size_t size) {
     TexStream* stream = (TexStream*)userdata;
     ASSERT(stream);
     const size_t actualSize = MIN(size, stream->size- stream->offset);
-    memcpy(out, (u8*)(stream->handle) + stream->offset, actualSize);
+    memcpy(out, (uint8_t*)(stream->handle) + stream->offset, actualSize);
     stream->offset += actualSize;
     return actualSize;
 }
 
-static void GLASS_getMemTexStream(TexStream* stream, const u8* data, size_t size) {
+static void GLASS_getMemTexStream(TexStream* stream, const uint8_t* data, size_t size) {
     ASSERT(stream);
     stream->handle = (void*)data;
     stream->offset = 0;
@@ -224,7 +224,7 @@ static void GLASS_getFileTexStream(TexStream* stream, FILE* f) {
 }
 #endif // !GLASS_BAREMETAL
 
-void glassLoadTexture(const u8* data, size_t size, glassTexture* out) {
+void glassLoadTexture(const uint8_t* data, size_t size, glassTexture* out) {
     if (!data || !out) {
         GLASS_context_setError(GL_INVALID_VALUE);
         return;
@@ -299,7 +299,7 @@ void glassMoveTextureData(glassTexture* tex) {
         GLASS_tex_set(dest, tex->width, tex->height, &tex->pixelFormat, false, tex->faces);
     }
 
-    memset(tex->faces, 0, GLASS_NUM_TEX_FACES * sizeof(u8*));
+    memset(tex->faces, 0, GLASS_NUM_TEX_FACES * sizeof(uint8_t*));
     ctx->flags |= GLASS_CONTEXT_FLAG_TEXTURE;
 }
 
@@ -321,7 +321,7 @@ const size_t glassGetTextureSize(const glassTexture* tex, size_t level) {
     return 0;
 }
 
-const u8* glassGetTextureData(const glassTexture* tex, size_t face, size_t level) {
+const uint8_t* glassGetTextureData(const glassTexture* tex, size_t face, size_t level) {
     if (tex && (level < tex->levels)) {
         if (face < GLASS_getNumFaces(tex->isCubeMap))
             return GLASS_getTexDataPtr(tex, face, level);
@@ -330,7 +330,7 @@ const u8* glassGetTextureData(const glassTexture* tex, size_t face, size_t level
     return NULL;
 }
 
-const u8* glassGetSubTextureData(const glassTexture* tex, const glassSubTexture* subTex, size_t level) {
+const uint8_t* glassGetSubTextureData(const glassTexture* tex, const glassSubTexture* subTex, size_t level) {
     // TODO
     return NULL;
 }
