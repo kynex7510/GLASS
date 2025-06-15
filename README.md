@@ -2,6 +2,22 @@
 
 (WIP) OpenGL ES implementation for the 3DS.
 
+## Setup
+
+Download a prebuilt version, use as a CMake dependency, or build manually.
+
+### HOS build
+
+```
+cmake -B BuildHOS -G "Unix Makefiles" -DCMAKE_TOOLCHAIN_FILE="$DEVKITPRO/cmake/3DS.cmake" -DCMAKE_BUILD_TYPE=Release -DGLASS_COMPILE_EXAMPLES=ON
+cmake --build BuildHOS --config Release
+cmake --install BuildHOS --prefix BuildHOS/Release
+```
+
+## Usage
+
+Read the [docs](DOCS.md). Additionally, the [examples](Examples) folder includes some examples.
+
 ## Credits
 
 The following projects were used for reference:
