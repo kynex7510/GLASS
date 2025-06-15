@@ -37,11 +37,14 @@ static size_t GLASS_addCmdImplStep(u32* cmdBuffer, u32 header, const u32* params
     return (numParams + 1) * sizeof(u32);
 }
 
-static void GLASS_addMultiParamCmd(glassGpuCommandList* list, u32 id, u32 mask, const u32* params, size_t numParams, bool consecutive) {
+static void GLASS_addMultiParamCmd(glassGPUCommandList* list, u32 id, u32 mask, const u32* params, size_t numParams, bool consecutive) {
     ASSERT(list);
     ASSERT(params);
     ASSERT(numParams > 0);
-    ASSERT(list->offset + (numParams * sizeof(u32)) < list->capacity);
+    
+    if (list->offset + (numParams * sizeof(u32)) < list->capacity) {
+        UNREACHABLE("GPU command list OOB!");
+    }
 
     for (size_t i = 0; i < numParams; i += 256) {
         u32* cmdBuffer = (u32*)((u8*)(list->mainBuffer) + list->offset);
@@ -59,21 +62,21 @@ static void GLASS_addMultiParamCmd(glassGpuCommandList* list, u32 id, u32 mask, 
     }
 }
 
-static void GLASS_addMaskedWrites(glassGpuCommandList* list, u32 id, u32 mask, const u32* params, size_t numParams) {
+static void GLASS_addMaskedWrites(glassGPUCommandList* list, u32 id, u32 mask, const u32* params, size_t numParams) {
     GLASS_addMultiParamCmd(list, id, mask, params, numParams, false);
 }
 
-static void GLASS_addMaskedIncrementalWrites(glassGpuCommandList* list, u32 id, u32 mask, const u32* params, size_t numParams) {
+static void GLASS_addMaskedIncrementalWrites(glassGPUCommandList* list, u32 id, u32 mask, const u32* params, size_t numParams) {
     GLASS_addMultiParamCmd(list, id, mask, params, numParams, true);
 }
 
-static void GLASS_addWrites(glassGpuCommandList* list, u32 id, const u32* params, size_t numParams) { GLASS_addMaskedWrites(list, id, 0xF, params, numParams); };
+static void GLASS_addWrites(glassGPUCommandList* list, u32 id, const u32* params, size_t numParams) { GLASS_addMaskedWrites(list, id, 0xF, params, numParams); };
 
-static void GLASS_addIncrementalWrites(glassGpuCommandList* list, u32 id, const u32* params, size_t numParams) {
+static void GLASS_addIncrementalWrites(glassGPUCommandList* list, u32 id, const u32* params, size_t numParams) {
     GLASS_addMaskedIncrementalWrites(list, id, 0xF, params, numParams);
 }
 
-static void GLASS_addMaskedWrite(glassGpuCommandList* list, u32 id, u32 mask, u32 v) {
+static void GLASS_addMaskedWrite(glassGPUCommandList* list, u32 id, u32 mask, u32 v) {
     ASSERT(list);
     ASSERT(list->offset + (2 * sizeof(u32)) < list->capacity);
     u32* cmdBuffer = (u32*)((u8*)(list->mainBuffer) + list->offset);
@@ -82,9 +85,9 @@ static void GLASS_addMaskedWrite(glassGpuCommandList* list, u32 id, u32 mask, u3
     list->offset += 2 * sizeof(u32);
 }
 
-static void GLASS_addWrite(glassGpuCommandList* list, u32 id, u32 v) { GLASS_addMaskedWrite(list, id, 0xF, v); }
+static void GLASS_addWrite(glassGPUCommandList* list, u32 id, u32 v) { GLASS_addMaskedWrite(list, id, 0xF, v); }
 
-void GLASS_gpu_allocList(glassGpuCommandList* list) {
+void GLASS_gpu_allocList(glassGPUCommandList* list) {
     ASSERT(list);
 
     if (!list->capacity) {
@@ -110,7 +113,7 @@ void GLASS_gpu_allocList(glassGpuCommandList* list) {
     }
 }
 
-void GLASS_gpu_freeList(glassGpuCommandList* list) {
+void GLASS_gpu_freeList(glassGPUCommandList* list) {
     ASSERT(list);
 
     glassLinearFree(list->secondBuffer);
@@ -121,7 +124,7 @@ void GLASS_gpu_freeList(glassGpuCommandList* list) {
     list->offset = 0;
 }
 
-bool GLASS_gpu_swapCommandBuffers(glassGpuCommandList* list, void** outBuffer, size_t* outSize) {
+bool GLASS_gpu_swapListBuffers(glassGPUCommandList* list, void** outBuffer, size_t* outSize) {
     ASSERT(list);
     ASSERT(outBuffer);
     ASSERT(outSize);
@@ -186,7 +189,7 @@ static GPU_COLORBUF GLASS_unwrapRBFormat(GLenum format) {
     UNREACHABLE("Invalid parameter!");
 }
 
-void GLASS_gpu_bindFramebuffer(glassGpuCommandList* list, const FramebufferInfo* info, bool block32) {
+void GLASS_gpu_bindFramebuffer(glassGPUCommandList* list, const FramebufferInfo* info, bool block32) {
     u8* colorBuffer = NULL;
     u8* depthBuffer = NULL;
     u32 width = 0;
@@ -242,10 +245,10 @@ void GLASS_gpu_bindFramebuffer(glassGpuCommandList* list, const FramebufferInfo*
     GLASS_addIncrementalWrites(list, GPUREG_COLORBUFFER_READ, params, 4);
 }
 
-void GLASS_gpu_flushFramebuffer(glassGpuCommandList* list) { GLASS_addWrite(list, GPUREG_FRAMEBUFFER_FLUSH, 1); }
-void GLASS_gpu_invalidateFramebuffer(glassGpuCommandList* list) { GLASS_addWrite(list, GPUREG_FRAMEBUFFER_INVALIDATE, 1); }
+void GLASS_gpu_flushFramebuffer(glassGPUCommandList* list) { GLASS_addWrite(list, GPUREG_FRAMEBUFFER_FLUSH, 1); }
+void GLASS_gpu_invalidateFramebuffer(glassGPUCommandList* list) { GLASS_addWrite(list, GPUREG_FRAMEBUFFER_INVALIDATE, 1); }
 
-void GLASS_gpu_setViewport(glassGpuCommandList* list, GLint x, GLint y, GLsizei width, GLsizei height) {
+void GLASS_gpu_setViewport(glassGPUCommandList* list, GLint x, GLint y, GLsizei width, GLsizei height) {
     u32 data[4];
 
     data[0] = f32tof24(height / 2.0f);
@@ -257,13 +260,13 @@ void GLASS_gpu_setViewport(glassGpuCommandList* list, GLint x, GLint y, GLsizei 
     GLASS_addWrite(list, GPUREG_VIEWPORT_XY, (x << 16) | (y & 0xFFFF));
 }
 
-void GLASS_gpu_setScissorTest(glassGpuCommandList* list, GPU_SCISSORMODE mode, GLint x, GLint y, GLsizei width, GLsizei height) {
+void GLASS_gpu_setScissorTest(glassGPUCommandList* list, GPU_SCISSORMODE mode, GLint x, GLint y, GLsizei width, GLsizei height) {
     GLASS_addMaskedWrite(list, GPUREG_SCISSORTEST_MODE, 0x01, mode);
     GLASS_addWrite(list, GPUREG_SCISSORTEST_POS, (y << 16) | (x & 0xFFFF));
     GLASS_addWrite(list, GPUREG_SCISSORTEST_DIM, ((width - x - 1) << 16) | ((height - y - 1) & 0xFFFF));
 }
 
-static void GLASS_uploadShaderBinary(glassGpuCommandList* list, const ShaderInfo* shader) {
+static void GLASS_uploadShaderBinary(glassGPUCommandList* list, const ShaderInfo* shader) {
     if (shader->sharedData) {
         // Set write offset for code upload.
         GLASS_addWrite(list, (shader->flags & GLASS_SHADER_FLAG_GEOMETRY) ? GPUREG_GSH_CODETRANSFER_CONFIG : GPUREG_VSH_CODETRANSFER_CONFIG, 0);
@@ -286,7 +289,7 @@ static void GLASS_uploadShaderBinary(glassGpuCommandList* list, const ShaderInfo
     }
 }
 
-void GLASS_gpu_bindShaders(glassGpuCommandList* list, const ShaderInfo* vertexShader, const ShaderInfo* geometryShader) {
+void GLASS_gpu_bindShaders(glassGPUCommandList* list, const ShaderInfo* vertexShader, const ShaderInfo* geometryShader) {
     // Initialize geometry engine.
     GLASS_addMaskedWrite(list, GPUREG_GEOSTAGE_CONFIG, 0x03, geometryShader ? 2 : 0);
     GLASS_addMaskedWrite(list, GPUREG_GEOSTAGE_CONFIG2, 0x03, 0);
@@ -357,12 +360,12 @@ void GLASS_gpu_bindShaders(glassGpuCommandList* list, const ShaderInfo* vertexSh
     GLASS_addWrite(list, GPUREG_GSH_INPUTBUFFER_CONFIG, 0xA0000000);
 }
 
-static void GLASS_uploadBoolUniformMask(glassGpuCommandList* list, const ShaderInfo* shader, u16 mask) {
+static void GLASS_uploadBoolUniformMask(glassGPUCommandList* list, const ShaderInfo* shader, u16 mask) {
     const u32 reg = (shader->flags & GLASS_SHADER_FLAG_GEOMETRY) ? GPUREG_GSH_BOOLUNIFORM : GPUREG_VSH_BOOLUNIFORM;
     GLASS_addWrite(list, reg, 0x7FFF0000 | mask);
 }
 
-static void GLASS_uploadConstIntUniforms(glassGpuCommandList* list ,const ShaderInfo* shader) {
+static void GLASS_uploadConstIntUniforms(glassGPUCommandList* list ,const ShaderInfo* shader) {
     const u32 reg = (shader->flags & GLASS_SHADER_FLAG_GEOMETRY) ? GPUREG_GSH_INTUNIFORM_I0 : GPUREG_VSH_INTUNIFORM_I0;
 
     for (size_t i = 0; i < 4; ++i) {
@@ -373,7 +376,7 @@ static void GLASS_uploadConstIntUniforms(glassGpuCommandList* list ,const Shader
     }
 }
 
-static void GLASS_uploadConstFloatUniforms(glassGpuCommandList* list, const ShaderInfo* shader) {
+static void GLASS_uploadConstFloatUniforms(glassGPUCommandList* list, const ShaderInfo* shader) {
     const u32 idReg = (shader->flags & GLASS_SHADER_FLAG_GEOMETRY) ? GPUREG_GSH_FLOATUNIFORM_CONFIG : GPUREG_VSH_FLOATUNIFORM_CONFIG;
     const u32 dataReg = (shader->flags & GLASS_SHADER_FLAG_GEOMETRY) ? GPUREG_GSH_FLOATUNIFORM_DATA : GPUREG_VSH_FLOATUNIFORM_DATA;
 
@@ -384,14 +387,14 @@ static void GLASS_uploadConstFloatUniforms(glassGpuCommandList* list, const Shad
     }
 }
 
-void GLASS_gpu_uploadConstUniforms(glassGpuCommandList* list, const ShaderInfo* shader) {
+void GLASS_gpu_uploadConstUniforms(glassGPUCommandList* list, const ShaderInfo* shader) {
     ASSERT(shader);
     GLASS_uploadBoolUniformMask(list, shader, shader->constBoolMask);
     GLASS_uploadConstIntUniforms(list, shader);
     GLASS_uploadConstFloatUniforms(list, shader);
 }
 
-static void GLASS_uploadIntUniform(glassGpuCommandList* list, const ShaderInfo* shader, UniformInfo* info) {
+static void GLASS_uploadIntUniform(glassGPUCommandList* list, const ShaderInfo* shader, UniformInfo* info) {
     const u32 reg = (shader->flags & GLASS_SHADER_FLAG_GEOMETRY) ? GPUREG_GSH_INTUNIFORM_I0 : GPUREG_VSH_INTUNIFORM_I0;
 
     if (info->count == 1) {
@@ -401,7 +404,7 @@ static void GLASS_uploadIntUniform(glassGpuCommandList* list, const ShaderInfo* 
     }
 }
 
-static void GLASS_uploadFloatUniform(glassGpuCommandList* list, const ShaderInfo* shader, UniformInfo* info) {
+static void GLASS_uploadFloatUniform(glassGPUCommandList* list, const ShaderInfo* shader, UniformInfo* info) {
     const u32 idReg = (shader->flags & GLASS_SHADER_FLAG_GEOMETRY) ? GPUREG_GSH_FLOATUNIFORM_CONFIG : GPUREG_VSH_FLOATUNIFORM_CONFIG;
     const u32 dataReg = (shader->flags & GLASS_SHADER_FLAG_GEOMETRY) ? GPUREG_GSH_FLOATUNIFORM_DATA : GPUREG_VSH_FLOATUNIFORM_DATA;
 
@@ -412,7 +415,7 @@ static void GLASS_uploadFloatUniform(glassGpuCommandList* list, const ShaderInfo
         GLASS_addIncrementalWrites(list, dataReg, &info->data.values[i * 3], 3);
 }
 
-void GLASS_gpu_uploadUniforms(glassGpuCommandList* list, ShaderInfo* shader) {
+void GLASS_gpu_uploadUniforms(glassGPUCommandList* list, ShaderInfo* shader) {
     ASSERT(shader);
 
     bool uploadBool = false;
@@ -496,7 +499,7 @@ static size_t GLASS_insertAttribPad(u32* permutation, size_t startIndex, size_t 
     return index;
 }
 
-void GLASS_gpu_uploadAttributes(glassGpuCommandList* list, const AttributeInfo* attribs) {
+void GLASS_gpu_uploadAttributes(glassGPUCommandList* list, const AttributeInfo* attribs) {
     ASSERT(attribs);
 
     u32 format[2];
@@ -723,7 +726,7 @@ static GPU_TEVSCALE GLASS_unwrapCombinerScale(GLfloat scale) {
     UNREACHABLE("Invalid parameter!");
 }
 
-void GLASS_gpu_setCombiners(glassGpuCommandList* list, const CombinerInfo* combiners) {
+void GLASS_gpu_setCombiners(glassGPUCommandList* list, const CombinerInfo* combiners) {
     ASSERT(combiners);
 
     const size_t offsets[GLASS_NUM_COMBINER_STAGES] = {
@@ -771,7 +774,7 @@ static GPU_FRAGOPMODE GLASS_unwrapFragOpMode(GLenum mode) {
     UNREACHABLE("Invalid parameter!");
 }
 
-void GLASS_gpu_setFragOp(glassGpuCommandList* list, GLenum mode, bool blendMode) {
+void GLASS_gpu_setFragOp(glassGPUCommandList* list, GLenum mode, bool blendMode) {
     GLASS_addMaskedWrite(list, GPUREG_COLOR_OPERATION, 0x07, 0xE40000 | (blendMode ? 0x100 : 0x0) | GLASS_unwrapFragOpMode(mode));
 }
 
@@ -798,7 +801,7 @@ static GPU_TESTFUNC GLASS_unwrapTestFunc(GLenum func) {
     UNREACHABLE("Invalid parameter!");
 }
 
-void GLASS_gpu_setColorDepthMask(glassGpuCommandList* list, bool writeRed, bool writeGreen, bool writeBlue, bool writeAlpha, bool writeDepth, bool depthTest, GLenum depthFunc) {
+void GLASS_gpu_setColorDepthMask(glassGPUCommandList* list, bool writeRed, bool writeGreen, bool writeBlue, bool writeAlpha, bool writeDepth, bool depthTest, GLenum depthFunc) {
     u32 value = (writeRed ? 0x0100 : 0x00) | (writeGreen ? 0x0200 : 0x00) | (writeBlue ? 0x0400 : 0x00) | (writeAlpha ? 0x0800 : 0x00);
     value |= (GLASS_unwrapTestFunc(depthFunc) << 4) | (writeDepth ? 0x1000 : 0x00) | (depthTest ? 1 : 0);
     GLASS_addMaskedWrite(list, GPUREG_DEPTH_COLOR_MASK, 0x03, value);
@@ -816,7 +819,7 @@ static float GLASS_getDepthMapOffset(GLenum format, GLfloat units) {
     UNREACHABLE("Invalid parameter!");
 }
 
-void GLASS_gpu_setDepthMap(glassGpuCommandList* list, bool enabled, GLclampf nearVal, GLclampf farVal, GLfloat units, GLenum format) {
+void GLASS_gpu_setDepthMap(glassGPUCommandList* list, bool enabled, GLclampf nearVal, GLclampf farVal, GLfloat units, GLenum format) {
     ASSERT(nearVal >= 0.0f && nearVal <= 1.0f);
     ASSERT(farVal >= 0.0f && farVal <= 1.0f);
 
@@ -827,21 +830,21 @@ void GLASS_gpu_setDepthMap(glassGpuCommandList* list, bool enabled, GLclampf nea
     GLASS_addWrite(list, GPUREG_DEPTHMAP_OFFSET, f32tof24(nearVal + offset));
 }
 
-void GLASS_gpu_setEarlyDepthTest(glassGpuCommandList* list, bool enabled) {
+void GLASS_gpu_setEarlyDepthTest(glassGPUCommandList* list, bool enabled) {
     GLASS_addMaskedWrite(list, GPUREG_EARLYDEPTH_TEST1, 0x01, enabled ? 1 : 0);
     GLASS_addMaskedWrite(list, GPUREG_EARLYDEPTH_TEST2, 0x01, enabled ? 1 : 0);
 }
 
-void GLASS_gpu_setEarlyDepthFunc(glassGpuCommandList* list, GPU_EARLYDEPTHFUNC func) { GLASS_addMaskedWrite(list, GPUREG_EARLYDEPTH_FUNC, 0x01, func); }
+void GLASS_gpu_setEarlyDepthFunc(glassGPUCommandList* list, GPU_EARLYDEPTHFUNC func) { GLASS_addMaskedWrite(list, GPUREG_EARLYDEPTH_FUNC, 0x01, func); }
 
-void GLASS_gpu_setEarlyDepthClear(glassGpuCommandList* list, GLclampf value) {
+void GLASS_gpu_setEarlyDepthClear(glassGPUCommandList* list, GLclampf value) {
     ASSERT(value >= 0.0f && value <= 1.0f);
     GLASS_addMaskedWrite(list, GPUREG_EARLYDEPTH_DATA, 0x07, 0xFFFFFF * value);
 }
 
-void GLASS_gpu_clearEarlyDepthBuffer(glassGpuCommandList* list) { GLASS_addWrite(list, GPUREG_EARLYDEPTH_CLEAR, 1); }
+void GLASS_gpu_clearEarlyDepthBuffer(glassGPUCommandList* list) { GLASS_addWrite(list, GPUREG_EARLYDEPTH_CLEAR, 1); }
 
-void GLASS_gpu_setStencilTest(glassGpuCommandList* list, bool enabled, GLenum func, GLint ref, GLuint mask, GLuint writeMask) {
+void GLASS_gpu_setStencilTest(glassGPUCommandList* list, bool enabled, GLenum func, GLint ref, GLuint mask, GLuint writeMask) {
     GLASS_addWrite(list, GPUREG_STENCIL_TEST, (GLASS_unwrapTestFunc(func) << 4) | ((u8)writeMask << 8) | ((s8)ref << 16) | ((u8)mask << 24) | (enabled ? 1 : 0));
 }
 
@@ -868,9 +871,9 @@ static GPU_STENCILOP GLASS_unwrapStencilOp(GLenum op) {
     UNREACHABLE("Invalid parameter!");
 }
 
-void GLASS_gpu_setStencilOp(glassGpuCommandList* list, GLenum sfail, GLenum dpfail, GLenum dppass) { GLASS_addMaskedWrite(list, GPUREG_STENCIL_OP, 0x03, GLASS_unwrapStencilOp(sfail) | (GLASS_unwrapStencilOp(dpfail) << 4) | (GLASS_unwrapStencilOp(dppass) << 8)); }
+void GLASS_gpu_setStencilOp(glassGPUCommandList* list, GLenum sfail, GLenum dpfail, GLenum dppass) { GLASS_addMaskedWrite(list, GPUREG_STENCIL_OP, 0x03, GLASS_unwrapStencilOp(sfail) | (GLASS_unwrapStencilOp(dpfail) << 4) | (GLASS_unwrapStencilOp(dppass) << 8)); }
 
-void GLASS_gpu_setCullFace(glassGpuCommandList* list, bool enabled, GLenum cullFace, GLenum frontFace) {
+void GLASS_gpu_setCullFace(glassGPUCommandList* list, bool enabled, GLenum cullFace, GLenum frontFace) {
     // Essentially:
     // - set FRONT-CCW for FRONT-CCW/BACK-CW;
     // - set BACK-CCW in all other cases.
@@ -878,7 +881,7 @@ void GLASS_gpu_setCullFace(glassGpuCommandList* list, bool enabled, GLenum cullF
     GLASS_addMaskedWrite(list, GPUREG_FACECULLING_CONFIG, 0x01, enabled ? mode : GPU_CULL_NONE);
 }
 
-void GLASS_gpu_setAlphaTest(glassGpuCommandList* list, bool enabled, GLenum func, GLclampf ref) {
+void GLASS_gpu_setAlphaTest(glassGPUCommandList* list, bool enabled, GLenum func, GLclampf ref) {
     ASSERT(ref >= 0.0f && ref <= 1.0f);
     GLASS_addMaskedWrite(list, GPUREG_FRAGOP_ALPHA_TEST, 0x03, (GLASS_unwrapTestFunc(func) << 4) | ((u32)(ref * 0xFF) << 8) | (enabled ? 1 : 0));
 }
@@ -937,7 +940,7 @@ static GPU_BLENDFACTOR GLASS_unwrapBlendFactor(GLenum func) {
     UNREACHABLE("Invalid parameter!");
 }
 
-void GLASS_gpu_setBlendFunc(glassGpuCommandList* list, GLenum rgbEq, GLenum alphaEq, GLenum srcColor, GLenum dstColor, GLenum srcAlpha, GLenum dstAlpha) {
+void GLASS_gpu_setBlendFunc(glassGPUCommandList* list, GLenum rgbEq, GLenum alphaEq, GLenum srcColor, GLenum dstColor, GLenum srcAlpha, GLenum dstAlpha) {
     const GPU_BLENDEQUATION gpuRGBEq = GLASS_unwrapBlendEq(rgbEq);
     const GPU_BLENDEQUATION gpuAlphaEq = GLASS_unwrapBlendEq(alphaEq);
     const GPU_BLENDFACTOR gpuSrcColor = GLASS_unwrapBlendFactor(srcColor);
@@ -947,7 +950,7 @@ void GLASS_gpu_setBlendFunc(glassGpuCommandList* list, GLenum rgbEq, GLenum alph
     GLASS_addWrite(list, GPUREG_BLEND_FUNC, (gpuDstAlpha << 28) | (gpuSrcAlpha << 24) | (gpuDstColor << 20) | (gpuSrcColor << 16) | (gpuAlphaEq << 8) | gpuRGBEq);
 }
 
-void GLASS_gpu_setBlendColor(glassGpuCommandList* list, u32 color) { GLASS_addWrite(list, GPUREG_BLEND_COLOR, color); }
+void GLASS_gpu_setBlendColor(glassGPUCommandList* list, u32 color) { GLASS_addWrite(list, GPUREG_BLEND_COLOR, color); }
 
 static GPU_LOGICOP GLASS_unwrapLogicOp(GLenum op) {
     switch (op) {
@@ -988,7 +991,7 @@ static GPU_LOGICOP GLASS_unwrapLogicOp(GLenum op) {
     UNREACHABLE("Invalid parameter!");
 }
 
-void GLASS_gpu_setLogicOp(glassGpuCommandList* list, GLenum op) { GLASS_addMaskedWrite(list, GPUREG_LOGIC_OP, 0x01, GLASS_unwrapLogicOp(op)); }
+void GLASS_gpu_setLogicOp(glassGPUCommandList* list, GLenum op) { GLASS_addMaskedWrite(list, GPUREG_LOGIC_OP, 0x01, GLASS_unwrapLogicOp(op)); }
 
 static GPU_Primitive_t GLASS_unwrapDrawPrimitive(GLenum mode) {
     switch (mode) {
@@ -1005,7 +1008,7 @@ static GPU_Primitive_t GLASS_unwrapDrawPrimitive(GLenum mode) {
     UNREACHABLE("Invalid parameter!");
 }
 
-void GLASS_gpu_drawArrays(glassGpuCommandList* list, GLenum mode, GLint first, GLsizei count) {
+void GLASS_gpu_drawArrays(glassGPUCommandList* list, GLenum mode, GLint first, GLsizei count) {
     GLASS_addMaskedWrite(list, GPUREG_PRIMITIVE_CONFIG, 2, GLASS_unwrapDrawPrimitive(mode));
     GLASS_addWrite(list, GPUREG_RESTART_PRIMITIVE, 1);
     GLASS_addWrite(list, GPUREG_INDEXBUFFER_CONFIG, 0x80000000);
@@ -1030,7 +1033,7 @@ static u32 GLASS_unwrapDrawType(GLenum type) {
     UNREACHABLE("Invalid parameter!");
 }
 
-void GLASS_gpu_drawElements(glassGpuCommandList* list, GLenum mode, GLsizei count, GLenum type, u32 physIndices) {
+void GLASS_gpu_drawElements(glassGPUCommandList* list, GLenum mode, GLsizei count, GLenum type, u32 physIndices) {
     const GPU_Primitive_t primitive = GLASS_unwrapDrawPrimitive(mode);
 
     GLASS_addMaskedWrite(list, GPUREG_PRIMITIVE_CONFIG, 2, primitive != GPU_TRIANGLES ? primitive : GPU_GEOMETRY_PRIM);
@@ -1105,7 +1108,7 @@ static GPU_TEXTURE_WRAP_PARAM GLASS_unwrapTexWrap(GLenum wrap) {
     UNREACHABLE("Invalid parameter!");
 }
 
-void GLASS_gpu_setTextureUnits(glassGpuCommandList* list, const GLuint* units) {
+void GLASS_gpu_setTextureUnits(glassGPUCommandList* list, const GLuint* units) {
     ASSERT(units);
 
     const u32 setupCmds[3] = { 

@@ -278,7 +278,7 @@ void GLASS_gx_sendGPUCommands(void) {
 
     GXProcessCommandListParams params;
     void* addrTmp;
-    if (!GLASS_gpu_swapCommandBuffers(&ctx->settings.gpuCmdList, &addrTmp, &params.sizeInWords))
+    if (!GLASS_gpu_swapListBuffers(&ctx->settings.gpuCmdList, &addrTmp, &params.sizeInWords))
         return;
 
     params.addr = (u32)addrTmp;

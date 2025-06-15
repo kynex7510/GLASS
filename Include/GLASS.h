@@ -20,14 +20,14 @@ typedef struct {
     void* secondBuffer;  // Second command buffer.
     size_t capacity;     // Max size of each buffer, in bytes.
     size_t offset;       // Offset of the current GPU command location.
-} glassGpuCommandList;
+} glassGPUCommandList;
 
 // Context settings.
 typedef struct {
     gfxScreen_t targetScreen;        // Draw target screen (default: GFX_TOP).
     gfx3dSide_t targetSide;          // Draw target side (default: GFX_LEFT).
     bool verticalFlip;               // Flip display buffer vertically (default: false).
-    glassGpuCommandList gpuCmdList;  // GPU command list (default: all 0).
+    glassGPUCommandList gpuCmdList;  // GPU command list (default: all 0).
 } glassSettings;
 
 #if defined(__cplusplus)
