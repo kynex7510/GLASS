@@ -16,6 +16,7 @@
  * This should be evenly distributed.
  */
 #include "Base/Context.h"
+#include "Base/Math.h"
 #include "Platform/Utility.h"
 
 #include <string.h> // strlen, memset, memcpy
@@ -581,7 +582,7 @@ static bool GLASS_loadUniforms(const DVLEInfo* info, ShaderInfo* out) {
 
         ConstFloatInfo* uni = &out->constFloatUniforms[numOfConstFloatUniforms++];
         uni->ID = constEntry->ID;
-        GLASS_utility_packFloatVector(components, uni->data);
+        GLASS_math_packFloatVector(components, uni->data);
     }
 
     ASSERT(numOfConstFloatUniforms == out->numOfConstFloatUniforms);

@@ -1,8 +1,8 @@
-#include "Base/Utility.h"
 #include "Base/Context.h"
-#include "Platform/GPU.h"
-#include "Platform/GX.h"
 #include "Base/Pixels.h"
+#include "Platform/GX.h"
+#include "Platform/GFX.h"
+#include "Platform/Utility.h"
 
 #include <string.h> // memcpy
 
@@ -59,42 +59,27 @@ void glassWriteSettings(glassCtx wrapped, const glassSettings* settings) {
     memcpy(&ctx->settings, settings, sizeof(ctx->settings));
 }
 
-static GLenum GLASS_wrapFBFormat(GSPGPU_FramebufferFormat format) {
-    switch (format) {
-        case GSP_RGBA8_OES:
-            return GL_RGBA8_OES;
-        case GSP_BGR8_OES:
-            return GL_RGB8_OES;
-        case GSP_RGB565_OES:
-            return GL_RGB565;
-        case GSP_RGB5_A1_OES:
-            return GL_RGB5_A1;
-        case GSP_RGBA4_OES:
-            return GL_RGBA4;
-    }
-
-    UNREACHABLE("Invalid parameter!");
-}
-
 static void GLASS_swapScreenBuffers(CtxCommon* ctx) {
-    gfxScreenSwapBuffers(ctx->settings.targetScreen, ctx->settings.targetScreen == GFX_TOP && ctx->settings.targetSide == GFX_RIGHT);
+    ASSERT(ctx);
+    const glassScreen screen = ctx->settings.targetScreen;
+    const bool stereo = screen == GLASS_SCREEN_TOP && ctx->settings.targetSide == GLASS_SIDE_RIGHT;
+    GLASS_gfx_swapScreenBuffers(screen, stereo);
 }
 
-static void GLASS_displayTransferDone(void* param) {
+static void GLASS_asyncSwapScreenBuffers(void* param) {
     CtxCommon* ctx = (CtxCommon*)param;
     GLASS_swapScreenBuffers(ctx);
 }
 
-void glassSwapBuffers(void) {
-    CtxCommon* ctx = GLASS_context_getCommon();
-
+static void GLASS_swapBuffers(CtxCommon* ctx, bool vsync) {
     // Flush GPU commands.
-    GLASS_context_flush();
-    GLASS_gx_sendGPUCommands();
+    GLASS_context_flush(ctx, true);
 
     // Framebuffer might not be set.
-    if (!GLASS_OBJ_IS_FRAMEBUFFER(ctx->framebuffer))
+    if (!GLASS_OBJ_IS_FRAMEBUFFER(ctx->framebuffer)) {
+        GLASS_swapScreenBuffers(ctx);
         return;
+    }
 
     // Get color buffer.
     if (ctx->framebuffer == GLASS_INVALID_OBJECT) {
@@ -115,14 +100,45 @@ void glassSwapBuffers(void) {
 
     // Get display buffer.
     glassPixelFormat displayPixelFormat;
-    displayPixelFormat.format = GLASS_wrapFBFormat(gfxGetScreenFormat(ctx->settings.targetScreen));
+    displayPixelFormat.format = GLASS_gfx_getScreenFormat(ctx->settings.targetScreen);
     displayPixelFormat.type = GL_RENDERBUFFER;
 
     uint16_t displayWidth = 0;
     uint16_t displayHeight = 0;
-    const uint32_t displayBuffer = (uint32_t)gfxGetFramebuffer(ctx->settings.targetScreen, ctx->settings.targetSide, &displayWidth, &displayHeight);
+    const void* displayBuffer = GLASS_gfx_getFramebuffer(ctx->settings.targetScreen, ctx->settings.targetSide, &displayWidth, &displayHeight);
 
-    GLASS_gx_transfer((uint32_t)cb->address, cb->height, cb->width, GLASS_pixels_tryUnwrapTransferFormat(&colorPixelFormat),
-        displayBuffer, displayWidth, displayHeight, GLASS_pixels_tryUnwrapTransferFormat(&displayPixelFormat),
-        ctx->settings.verticalFlip, false, GX_TRANSFER_SCALE_NO, false, GLASS_displayTransferDone);
+    // Perform transfer.
+    GXCmd cmd;
+
+    uint32_t transferFlags = GLASS_GX_TRANSFER_SRCFMT(GLASS_pixels_unwrapTransferFormatFlag(&colorPixelFormat));
+    transferFlags |= GLASS_GX_TRANSFER_DSTFMT(GLASS_pixels_unwrapTransferFormatFlag(&displayPixelFormat));
+    
+    if (ctx->settings.verticalFlip)
+        transferFlags |= GLASS_GX_TRANSFER_FLAG_VERTICAL_FLIP;
+
+    GLASS_gx_makeDisplayTransfer(&cmd, cb->address, cb->height, cb->width, displayBuffer, displayWidth, displayHeight, transferFlags);
+    
+    if (vsync) {
+        GLASS_gx_runSync(&cmd);
+    } else {
+        GLASS_gx_runAsync(&cmd, GLASS_asyncSwapScreenBuffers, ctx, NULL);
+    }
 }
+
+void glassSwapContextBuffers(glassCtx top, glassCtx bottom) {
+    CtxCommon* topCtx = (CtxCommon*)top;
+    CtxCommon* bottomCtx = (CtxCommon*)bottom;
+
+    if (!topCtx && !bottomCtx)
+        return;
+
+    const bool vsync = (topCtx && topCtx->settings.vsync) || (bottomCtx && bottomCtx->settings.vsync);
+
+    GLASS_swapBuffers(topCtx, vsync);
+    GLASS_swapBuffers(bottomCtx, vsync);
+
+    if (vsync)
+        GLASS_gfx_waitForVBlank();
+}
+
+void glassSwapBuffers(void) { glassSwapContextBuffers((glassCtx)GLASS_context_getCommon(), NULL); }

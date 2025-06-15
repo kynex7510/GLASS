@@ -182,7 +182,7 @@ static void GLASS_getUniformValues(GLuint program, GLint location, GLint* intPar
         uint32_t packed = 0;
         uint32_t components[4];
         GLASS_getIntUniform(uni, locOffset, &packed);
-        GLASS_utility_unpackIntVector(packed, components);
+        GLASS_math_unpackIntVector(packed, components);
 
         if (intParams) {
             ASSERT(!floatParams);
@@ -205,12 +205,12 @@ static void GLASS_getUniformValues(GLuint program, GLint location, GLint* intPar
 
         if (floatParams) {
             ASSERT(!intParams);
-            GLASS_utility_unpackFloatVector(packed, floatParams);
+            GLASS_math_unpackFloatVector(packed, floatParams);
         }
 
         if (intParams) {
             float components[4];
-            GLASS_utility_unpackFloatVector(packed, components);
+            GLASS_math_unpackFloatVector(packed, components);
 
             for (size_t i = 0; i < 4; ++i)
                 intParams[i] = (GLint)components[i];
@@ -410,12 +410,12 @@ static void GLASS_setUniformValues(GLint location, const GLint* intValues, const
             uint32_t packed = 0;
 
             GLASS_getIntUniform(uni, i, &packed);
-            GLASS_utility_unpackIntVector(packed, components);
+            GLASS_math_unpackIntVector(packed, components);
 
             for (size_t j = 0; j < numOfComponents; ++j)
                 components[j] = intValues[(numOfComponents * (i - locOffset)) + j];
 
-            GLASS_utility_packIntVector(components, &packed);
+            GLASS_math_packIntVector(components, &packed);
             GLASS_setIntUniform(uni, i, packed);
         }
 
@@ -434,12 +434,12 @@ static void GLASS_setUniformValues(GLint location, const GLint* intValues, const
             uint32_t packed[3];
 
             GLASS_getFloatUniform(uni, i, packed);
-            GLASS_utility_unpackFloatVector(packed, components);
+            GLASS_math_unpackFloatVector(packed, components);
 
             for (size_t j = 0; j < numOfComponents; ++j)
                 components[j] = floatValues[(numOfComponents * (i - locOffset)) + j];
 
-            GLASS_utility_packFloatVector(components, packed);
+            GLASS_math_packFloatVector(components, packed);
             GLASS_setFloatUniform(uni, i, packed);
         }
 

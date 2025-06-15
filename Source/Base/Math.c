@@ -1,6 +1,16 @@
 #include "Base/Math.h"
 #include "Platform/Utility.h"
 
+static uint32_t GLASS_fbits(float f) {
+    union {
+        float val;
+        uint32_t bits;
+    } cast;
+
+    cast.val = f;
+    return cast.bits;
+}
+
 // Adapted from libctru.
 // https://github.com/devkitPro/libctru/blob/master/libctru/source/gpu/gpu.c
 
@@ -49,16 +59,6 @@ uint32_t GLASS_math_f32tof24(float f) {
 }
 
 // END CTRU CODE
-
-static uint32_t GLASS_fbits(float f) {
-    union {
-        float val;
-        uint32_t bits;
-    } cast;
-
-    cast.val = f;
-    return cast.bits;
-}
 
 uint32_t GLASS_math_f32tofixed13(float f) {
     f = GLASS_CLAMP(-15.255, 15.255, f);

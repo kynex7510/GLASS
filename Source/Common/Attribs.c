@@ -1,4 +1,5 @@
 #include "Base/Context.h"
+#include "Base/Math.h"
 #include "Platform/Utility.h"
 
 #include <string.h> // strncpy
@@ -364,7 +365,7 @@ void glGetActiveAttrib(GLuint program, GLuint index, GLsizei bufSize, GLsizei* l
 
     // Get attribute data.
     const ActiveAttribInfo* attrib = &shad->activeAttribs[index];
-    const size_t symLen = MIN(bufSize, strlen(attrib->symbol));
+    const size_t symLen = GLASS_MIN(bufSize, strlen(attrib->symbol));
 
     if (length)
         *length = symLen;

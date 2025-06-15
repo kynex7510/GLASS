@@ -5,7 +5,7 @@
 
 void GLASS_gpu_allocList(glassGpuCommandList* list);
 void GLASS_gpu_freeList(glassGpuCommandList* list);
-bool GLASS_gpu_swapCommandBuffers(glassGpuCommandList* list, void** outBuffer, size_t* outSize);
+bool GLASS_gpu_swapListBuffers(glassGpuCommandList* list, void** outBuffer, size_t* outSize);
 
 void GLASS_gpu_bindFramebuffer(glassGpuCommandList* list, const FramebufferInfo* info, bool block32);
 void GLASS_gpu_flushFramebuffer(glassGpuCommandList* list);

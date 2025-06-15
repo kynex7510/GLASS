@@ -4,6 +4,7 @@
 #include "Platform/GPU.h"
 #include "Platform/Utility.h"
 #include "Base/Math.h"
+#include "Base/Pixels.h"
 
 #include <string.h> // memcpy, memset
 
@@ -44,7 +45,10 @@ static void GLASS_addMultiParamCmd(glassGpuCommandList* list, uint32_t id, uint3
     ASSERT(list);
     ASSERT(params);
     ASSERT(numParams > 0);
-    ASSERT(list->offset + (numParams * sizeof(uint32_t)) < list->capacity);
+
+    if (list->offset + (numParams * sizeof(uint32_t)) < list->capacity) {
+        UNREACHABLE("GPU command list OOB!");
+    }
 
     for (size_t i = 0; i < numParams; i += 256) {
         uint32_t* cmdBuffer = (uint32_t*)((uint8_t*)(list->mainBuffer) + list->offset);
@@ -124,7 +128,7 @@ void GLASS_gpu_freeList(glassGpuCommandList* list) {
     list->offset = 0;
 }
 
-bool GLASS_gpu_swapCommandBuffers(glassGpuCommandList* list, void** outBuffer, size_t* outSize) {
+bool GLASS_gpu_swapListBuffers(glassGpuCommandList* list, void** outBuffer, size_t* outSize) {
     ASSERT(list);
     ASSERT(outBuffer);
     ASSERT(outSize);
@@ -1199,9 +1203,7 @@ void GLASS_gpu_setTextureUnits(glassGpuCommandList* list, const GLuint* units) {
         }
 
         GLASS_addIncrementalWrites(list, setupCmds[i], params, hasCubeMap ? 10 : 5);
-        const GPU_TEXCOLOR format = GLASS_pixels_tryUnwrapTexFormat(&tex->pixelFormat);
-        ASSERT(format != GLASS_INVALID_TEX_FORMAT);
-        GLASS_addWrite(list, typeCmds[i], format);
+        GLASS_addWrite(list, typeCmds[i], GLASS_pixels_unwrapTexFormat(&tex->pixelFormat));
     }
 
     GLASS_addWrite(list, GPUREG_TEXUNIT_CONFIG, config);

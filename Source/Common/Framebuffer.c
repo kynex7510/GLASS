@@ -1,6 +1,7 @@
 #include "Base/Context.h"
-#include "Base/Utility.h"
 #include "Base/Pixels.h"
+#include "Base/Math.h"
+#include "Platform/Utility.h"
 
 void glBindFramebuffer(GLenum target, GLuint framebuffer) {
     ASSERT(GLASS_OBJ_IS_FRAMEBUFFER(framebuffer) || framebuffer == GLASS_INVALID_OBJECT);
@@ -93,8 +94,10 @@ void glDeleteFramebuffers(GLsizei n, const GLuint* framebuffers) {
             continue;
 
         // Unbind if bound.
-        if (ctx->framebuffer == name)
+        if (ctx->framebuffer == name) {
             ctx->framebuffer = GLASS_INVALID_OBJECT;
+            GLASS_barrier_wait(&ctx->memoryFillBarrier);
+        }
 
         // Delete framebuffer.
         glassVirtualFree((FramebufferInfo*)name);
@@ -126,13 +129,19 @@ void glDeleteRenderbuffers(GLsizei n, const GLuint* renderbuffers) {
         RenderbufferInfo* info = (RenderbufferInfo*)name;
 
         // Unbind if bound.
+        bool needSync = false;
         if (fbinfo) {
             if (fbinfo->colorBuffer == name) {
                 fbinfo->colorBuffer = GLASS_INVALID_OBJECT;
+                needSync = true;
             } else if (fbinfo->depthBuffer == name) {
                 fbinfo->depthBuffer = GLASS_INVALID_OBJECT;
+                needSync = true;
             }
         }
+
+        if (needSync)
+            GLASS_barrier_wait(&ctx->memoryFillBarrier);
 
         // Delete renderbuffer.
         if (info->address)
@@ -355,7 +364,7 @@ void glRenderbufferStorage(GLenum target, GLenum internalformat, GLsizei width, 
     }
 
     // Renderbuffer dimensions must be multiple of 8.
-    if (!GLASS_utility_isAligned(width, 8) || !GLASS_utility_isAligned(height, 8)) {
+    if (!GLASS_math_isAligned(width, 8) || !GLASS_math_isAligned(height, 8)) {
         GLASS_context_setError(GL_INVALID_VALUE);
         return;
     }
@@ -380,10 +389,10 @@ void glRenderbufferStorage(GLenum target, GLenum internalformat, GLsizei width, 
         glassVRAMFree(info->address);
 
     const bool isDepth = GLASS_isDepthFormat(internalformat);
-    info->address = glassVRAMAlloc(bufferSize, isDepth ? VRAM_ALLOC_B : VRAM_ALLOC_A);
+    info->address = glassVRAMAlloc(bufferSize, isDepth ? GLASS_VRAM_BANK_B : GLASS_VRAM_BANK_A);
 
     if (!info->address)
-        info->address = glassVRAMAlloc(bufferSize, isDepth ? VRAM_ALLOC_A : VRAM_ALLOC_B);
+        info->address = glassVRAMAlloc(bufferSize, isDepth ? GLASS_VRAM_BANK_A : GLASS_VRAM_BANK_B);
 
     if (!info->address) {
         GLASS_context_setError(GL_OUT_OF_MEMORY);

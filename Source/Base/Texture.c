@@ -1,7 +1,9 @@
+#include "Base/Context.h"
 #include "Base/Texture.h"
-#include "Platform/GX.h"
-#include "Base/Utility.h"
 #include "Base/Pixels.h"
+#include "Base/Math.h"
+#include "Platform/GX.h"
+#include "Platform/Utility.h"
 
 #include <string.h> // memset
 
@@ -33,7 +35,7 @@ size_t GLASS_tex_getOffset(size_t width, size_t height, const glassPixelFormat* 
 }
 
 static size_t GLASS_numTexLevels(GLsizei width, GLsizei height) {
-    return 29 - __builtin_clz(MAX(width, height));
+    return 29 - __builtin_clz(GLASS_MAX(width, height));
 }
 
 size_t GLASS_tex_getAllocSize(size_t width, size_t height, const glassPixelFormat* pixelFormat, size_t levels) {
@@ -49,8 +51,8 @@ void GLASS_tex_set(TextureInfo* tex, size_t width, size_t height, const glassPix
     ASSERT(tex);
     ASSERT(faces);
     ASSERT(tex->target != GLASS_TEX_TARGET_UNBOUND);
-    ASSERT(GLASS_utility_isPowerOf2(width));
-    ASSERT(GLASS_utility_isPowerOf2(height));
+    ASSERT(GLASS_math_isPowerOf2(width));
+    ASSERT(GLASS_math_isPowerOf2(height));
     ASSERT(pixelFormat);
 
     const size_t numFaces = GLASS_tex_getNumFaces(tex->target);
@@ -79,7 +81,7 @@ static bool GLASS_reallocTexImpl(TextureInfo* tex, size_t width, size_t height, 
         const size_t allocSize = GLASS_tex_getAllocSize(width, height, pixelFormat, -1);
 
         for (size_t i = 0; i < numFaces; ++i) {
-            faces[i] = vram ? glassVRAMAlloc(allocSize, VRAM_ALLOC_ANY) : glassLinearAlloc(allocSize);
+            faces[i] = vram ? glassVRAMAlloc(allocSize, GLASS_VRAM_BANK_ANY) : glassLinearAlloc(allocSize);
             if (!faces[i]) {
                 // Free allocated buffers.
                 for (size_t j = 0; j < i; ++j) {
@@ -100,8 +102,8 @@ static bool GLASS_reallocTexImpl(TextureInfo* tex, size_t width, size_t height, 
 TexReallocStatus GLASS_tex_realloc(TextureInfo* tex, size_t width, size_t height, const glassPixelFormat* pixelFormat, bool vram) {
     ASSERT(tex);
     ASSERT(tex->target != GLASS_TEX_TARGET_UNBOUND);
-    ASSERT(GLASS_utility_isPowerOf2(width));
-    ASSERT(GLASS_utility_isPowerOf2(height));
+    ASSERT(GLASS_math_isPowerOf2(width));
+    ASSERT(GLASS_math_isPowerOf2(height));
     ASSERT(pixelFormat);
 
     const bool sameFormat = tex->pixelFormat.format == pixelFormat->format && tex->pixelFormat.type == pixelFormat->type;
@@ -119,7 +121,10 @@ void GLASS_tex_write(TextureInfo* tex, const uint8_t* data, size_t size, size_t 
 
     const size_t mipmapOffset = GLASS_tex_getOffset(tex->width, tex->height, &tex->pixelFormat, level);
     uint8_t* dst = tex->faces[face] + mipmapOffset;
-    GLASS_gx_copy((uint32_t)data, (uint32_t)dst, size, size, 1, true);
+
+    GXCmd cmd;
+    GLASS_gx_makeTextureCopy(&cmd, data, dst, size, size, 1);
+    GLASS_gx_runSync(&cmd);
 }
 
 void GLASS_tex_writeRaw(TextureInfo* tex, const uint8_t* data, size_t face, size_t level) {

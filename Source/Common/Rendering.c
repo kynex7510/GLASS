@@ -1,8 +1,8 @@
 #include "Base/Context.h"
 #include "Platform/GPU.h"
 #include "Platform/GX.h"
-#include "Base/Utility.h"
 #include "Base/Pixels.h"
+#include "Base/Math.h"
 
 #define REMOVE_CLEAR_BITS(mask) \
   (((((mask) & ~GL_COLOR_BUFFER_BIT) & ~GL_DEPTH_BUFFER_BIT) & ~GL_STENCIL_BUFFER_BIT) & ~GL_EARLY_DEPTH_BUFFER_BIT_PICA)
@@ -21,8 +21,8 @@ static bool GLASS_checkFB(void) {
     return true;
 }
 
-static u32 GLASS_makeClearColor(GLenum format, u32 color) {
-    u32 cvt = 0;
+static uint32_t GLASS_makeClearColor(GLenum format, uint32_t color) {
+    uint32_t cvt = 0;
 
     switch (format) {
         case GL_RGBA8_OES:
@@ -55,19 +55,19 @@ static u32 GLASS_makeClearColor(GLenum format, u32 color) {
     return cvt;
 }
 
-static u32 GLASS_makeClearDepth(GLenum format, GLclampf factor, u8 stencil) {
+static uint32_t GLASS_makeClearDepth(GLenum format, GLclampf factor, uint8_t stencil) {
     ASSERT(factor >= 0.0 && factor <= 1.0);
 
-    u32 clearDepth = 0;
+    uint32_t clearDepth = 0;
     switch (format) {
         case GL_DEPTH_COMPONENT16:
-            clearDepth = (u32)(0xFFFF * factor);
+            clearDepth = (uint32_t)(0xFFFF * factor);
             break;
         case GL_DEPTH_COMPONENT24_OES:
-            clearDepth = (u32)(0xFFFFFF * factor);
+            clearDepth = (uint32_t)(0xFFFFFF * factor);
             break;
         case GL_DEPTH24_STENCIL8_OES:
-            clearDepth = (((u32)(0xFFFFFF * factor) << 8) | stencil);
+            clearDepth = (((uint32_t)(0xFFFFFF * factor) << 8) | stencil);
             break;
         default:
             UNREACHABLE("Invalid parameter!");
@@ -113,14 +113,14 @@ void glClear(GLbitfield mask) {
     // Clear framebuffers.
     FramebufferInfo* fb = (FramebufferInfo*)ctx->framebuffer;
 
-    u32 colorAddr = 0;
+    void* colorAddr = NULL;
     size_t colorSize = 0;
-    u32 clearColor = 0;
+    uint32_t clearColor = 0;
     size_t colorFillWidth = 0;
     if (HAS_COLOR(mask)) {
         const RenderbufferInfo* cb = (RenderbufferInfo*)fb->colorBuffer;
         if (cb) {
-            colorAddr = (u32)cb->address;
+            colorAddr = cb->address;
 
             glassPixelFormat fmt;
             fmt.format = cb->format;
@@ -132,14 +132,14 @@ void glClear(GLbitfield mask) {
         }
     }
     
-    u32 depthAddr = 0;
+    void* depthAddr = NULL;
     size_t depthSize = 0;
-    u32 clearDepth = 0;
+    uint32_t clearDepth = 0;
     size_t depthFillWidth = 0;
     if (HAS_DEPTH(mask)) {
         const RenderbufferInfo* db = (RenderbufferInfo*)fb->depthBuffer;
         if (db) {
-            depthAddr = (u32)db->address;
+            depthAddr = db->address;
 
             glassPixelFormat fmt;
             fmt.format = db->format;
@@ -153,23 +153,26 @@ void glClear(GLbitfield mask) {
 
     if (colorAddr || depthAddr) {
         // Flush GPU commands to enforce draw order.
-        GLASS_context_flush();
-        GLASS_gx_sendGPUCommands();
-        GLASS_gx_set(colorAddr, colorSize, clearColor, colorFillWidth, depthAddr, depthSize, clearDepth, depthFillWidth, false);
+        GLASS_context_flush(ctx, true);
+
+        // Add command.
+        GXCmd cmd;
+        GLASS_gx_makeMemoryFill(&cmd, colorAddr, colorSize, clearColor, colorFillWidth, depthAddr, depthSize, clearDepth, depthFillWidth);
+        GLASS_gx_runAsync(&cmd, NULL, NULL, &ctx->memoryFillBarrier);
     }
 }
 
 void glClearColor(GLclampf red, GLclampf green, GLclampf blue, GLclampf alpha) {
     CtxCommon* ctx = GLASS_context_getCommon();
-    ctx->clearColor = (u32)(0xFF * CLAMP(0.0f, 1.0f, red)) << 24;
-    ctx->clearColor |= (u32)(0xFF * CLAMP(0.0f, 1.0f, green)) << 16;
-    ctx->clearColor |= (u32)(0xFF * CLAMP(0.0f, 1.0f, blue)) << 8;
-    ctx->clearColor |= (u32)(0xFF * CLAMP(0.0f, 1.0f, alpha));
+    ctx->clearColor = (uint32_t)(0xFF * GLASS_CLAMP(0.0f, 1.0f, red)) << 24;
+    ctx->clearColor |= (uint32_t)(0xFF * GLASS_CLAMP(0.0f, 1.0f, green)) << 16;
+    ctx->clearColor |= (uint32_t)(0xFF * GLASS_CLAMP(0.0f, 1.0f, blue)) << 8;
+    ctx->clearColor |= (uint32_t)(0xFF * GLASS_CLAMP(0.0f, 1.0f, alpha));
 }
 
 void glClearDepthf(GLclampf depth) {
     CtxCommon* ctx = GLASS_context_getCommon();
-    ctx->clearDepth = CLAMP(0.0f, 1.0f, depth);
+    ctx->clearDepth = GLASS_CLAMP(0.0f, 1.0f, depth);
 }
 
 void glClearStencil(GLint s) {
@@ -204,10 +207,11 @@ void glDrawArrays(GLenum mode, GLint first, GLsizei count) {
         return;
 
     // Apply prior commands.
-    GLASS_context_flush();
+    CtxCommon* ctx = GLASS_context_getCommon();
+    GLASS_context_flush(ctx, false);
 
     // Add draw command.
-    CtxCommon* ctx = GLASS_context_getCommon();
+    
     GLASS_gpu_drawArrays(&ctx->settings.gpuCmdList, mode, first, count);
     ctx->flags |= GLASS_CONTEXT_FLAG_DRAW;
 }
@@ -233,10 +237,10 @@ void glDrawElements(GLenum mode, GLsizei count, GLenum type, const GLvoid* indic
 
     // Get physical address.
     CtxCommon* ctx = GLASS_context_getCommon();
-    u32 physAddr = 0;
+    uint32_t physAddr = 0;
     if (ctx->elementArrayBuffer != GLASS_INVALID_OBJECT) {
         const BufferInfo* binfo = (BufferInfo*)ctx->elementArrayBuffer;
-        physAddr = GLASS_utility_convertVirtToPhys((void*)(binfo->address + (u32)indices));
+        physAddr = GLASS_utility_convertVirtToPhys((void*)(binfo->address + (uint32_t)indices));
     } else {
         physAddr = GLASS_utility_convertVirtToPhys(indices);
     }
@@ -244,16 +248,12 @@ void glDrawElements(GLenum mode, GLsizei count, GLenum type, const GLvoid* indic
     ASSERT(physAddr);
 
     // Apply prior commands.
-    GLASS_context_flush();
+    GLASS_context_flush(ctx, false);
 
     // Add draw command.
     GLASS_gpu_drawElements(&ctx->settings.gpuCmdList, mode, count, type, physAddr);
     ctx->flags |= GLASS_CONTEXT_FLAG_DRAW;
 }
 
-void glFlush(void) { GLASS_context_flush(); }
-
-void glFinish(void) {
-    GLASS_context_flush();
-    GLASS_gx_sendGPUCommands();
-}
+void glFlush(void) { GLASS_context_flush(GLASS_context_getCommon(), false); }
+void glFinish(void) { GLASS_context_flush(GLASS_context_getCommon(), true); }
