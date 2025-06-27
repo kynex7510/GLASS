@@ -1,58 +1,57 @@
 #include "Base/Utility.h"
 #include "Base/Context.h"
 #include "Platform/GPU.h"
-#include "Platform/GX.h"
 
 #include <string.h> // memcpy
 
-glassCtx glassCreateContext(glassVersion version) {
-    glassInitParams initParams;
-    initParams.version = version;
-    initParams.flushAllLinearMem = true;
-    return glassCreateContextEx(&initParams, NULL);
-}
-
-glassCtx glassCreateContextEx(const glassInitParams* initParams, const glassSettings* settings) {
+GLASSCtx glassCreateContext(const GLASSInitParams* initParams, const GLASSSettings* settings) {
     if (!initParams)
         return NULL;
 
     if (initParams->version == GLASS_VERSION_2_0) {
-        CtxCommon* ctx = (CtxCommon*)glassVirtualAlloc(sizeof(CtxCommon));
+        CtxCommon* ctx = (CtxCommon*)glassHeapAlloc(sizeof(CtxCommon));
         if (ctx) {
             GLASS_context_initCommon(ctx, initParams, settings);
         }
-        return (glassCtx)ctx;
+        return (GLASSCtx)ctx;
     }
 
     return NULL;
 }
 
-void glassDestroyContext(glassCtx wrapped) {
-    ASSERT(wrapped);
+GLASSCtx glassCreateDefaultContext(GLASSVersion version) {
+    GLASSInitParams initParams;
+    initParams.version = version;
+    initParams.flushAllLinearMem = true;
+    return glassCreateContextEx(&initParams, NULL);
+}
+
+void glassDestroyContext(GLASSCtx wrapped) {
+    KYGX_ASSERT(wrapped);
     CtxCommon* ctx = (CtxCommon*)wrapped;
 
     if (ctx->initParams.version == GLASS_VERSION_2_0) {
         GLASS_context_cleanupCommon((CtxCommon*)ctx);
     } else {
-        UNREACHABLE("Invalid context version!");
+        KYGX_UNREACHABLE("Invalid context version!");
     }
 
     glassVirtualFree(ctx);
 }
 
-void glassBindContext(glassCtx ctx) { GLASS_context_bind((CtxCommon*)ctx); }
+void glassBindContext(GLASSCtx ctx) { GLASS_context_bind((CtxCommon*)ctx); }
 
-void glassReadSettings(glassCtx wrapped, glassSettings* settings) {
-    ASSERT(wrapped);
-    ASSERT(settings);
+void glassReadSettings(GLASSCtx wrapped, GLASSSettings* settings) {
+    KYGX_ASSERT(wrapped);
+    KYGX_ASSERT(settings);
 
     const CtxCommon* ctx = (CtxCommon*)wrapped;
     memcpy(settings, &ctx->settings, sizeof(ctx->settings));
 }
 
-void glassWriteSettings(glassCtx wrapped, const glassSettings* settings) {
-    ASSERT(wrapped);
-    ASSERT(settings);
+void glassWriteSettings(GLASSCtx wrapped, const GLASSSettings* settings) {
+    KYGX_ASSERT(wrapped);
+    KYGX_ASSERT(settings);
 
     CtxCommon* ctx = (CtxCommon*)wrapped;
     memcpy(&ctx->settings, settings, sizeof(ctx->settings));
@@ -72,7 +71,7 @@ static GLenum GLASS_wrapFBFormat(GSPGPU_FramebufferFormat format) {
             return GL_RGBA4;
     }
 
-    UNREACHABLE("Invalid parameter!");
+    KYGX_UNREACHABLE("Invalid parameter!");
 }
 
 static void GLASS_swapScreenBuffers(CtxCommon* ctx) {
@@ -85,16 +84,15 @@ static void GLASS_displayTransferDone(gxCmdQueue_s* queue) {
     gxCmdQueueSetCallback(queue, NULL, NULL);
 }
 
-void glassSwapBuffers(void) {
-    CtxCommon* ctx = GLASS_context_getCommon();
-
+static void GLASS_swapBuffers(CtxCommon* ctx, bool vsync) {
     // Flush GPU commands.
-    GLASS_context_flush();
-    GLASS_gx_sendGPUCommands();
+    GLASS_context_flush(ctx, true);
 
     // Framebuffer might not be set.
-    if (!GLASS_OBJ_IS_FRAMEBUFFER(ctx->framebuffer))
+    if (!GLASS_OBJ_IS_FRAMEBUFFER(ctx->framebuffer)) {
+        GLASS_swapScreenBuffers(ctx);
         return;
+    }
 
     // Get color buffer.
     if (ctx->framebuffer == GLASS_INVALID_OBJECT) {
@@ -115,14 +113,45 @@ void glassSwapBuffers(void) {
 
     // Get display buffer.
     glassPixelFormat displayPixelFormat;
-    displayPixelFormat.format = GLASS_wrapFBFormat(gfxGetScreenFormat(ctx->settings.targetScreen));
+    displayPixelFormat.format = GLASS_gfx_getScreenFormat(ctx->settings.targetScreen);
     displayPixelFormat.type = GL_RENDERBUFFER;
 
-    u16 displayWidth = 0;
-    u16 displayHeight = 0;
-    const u32 displayBuffer = (u32)gfxGetFramebuffer(ctx->settings.targetScreen, ctx->settings.targetSide, &displayWidth, &displayHeight);
+    uint16_t displayWidth = 0;
+    uint16_t displayHeight = 0;
+    const void* displayBuffer = GLASS_gfx_getFramebuffer(ctx->settings.targetScreen, ctx->settings.targetSide, &displayWidth, &displayHeight);
 
-    GLASS_gx_transfer((u32)cb->address, cb->height, cb->width, GLASS_pixels_tryUnwrapTransferFormat(&colorPixelFormat),
-        displayBuffer, displayWidth, displayHeight, GLASS_pixels_tryUnwrapTransferFormat(&displayPixelFormat),
-        ctx->settings.verticalFlip, false, GX_TRANSFER_SCALE_NO, false, GLASS_displayTransferDone);
+    // Perform transfer.
+    GXCmd cmd;
+
+    uint32_t transferFlags = GLASS_GX_TRANSFER_SRCFMT(GLASS_pixels_unwrapTransferFormatFlag(&colorPixelFormat));
+    transferFlags |= GLASS_GX_TRANSFER_DSTFMT(GLASS_pixels_unwrapTransferFormatFlag(&displayPixelFormat));
+    
+    if (ctx->settings.verticalFlip)
+        transferFlags |= GLASS_GX_TRANSFER_FLAG_VERTICAL_FLIP;
+
+    GLASS_gx_makeDisplayTransfer(&cmd, cb->address, cb->height, cb->width, displayBuffer, displayWidth, displayHeight, transferFlags);
+    
+    if (vsync) {
+        GLASS_gx_runSync(&cmd);
+    } else {
+        GLASS_gx_runAsync(&cmd, GLASS_asyncSwapScreenBuffers, ctx, NULL);
+    }
 }
+
+void glassSwapContextBuffers(GLASSCtx top, GLASSCtx bottom) {
+    CtxCommon* topCtx = (CtxCommon*)top;
+    CtxCommon* bottomCtx = (CtxCommon*)bottom;
+
+    if (!topCtx && !bottomCtx)
+        return;
+
+    const bool vsync = (topCtx && topCtx->settings.vsync) || (bottomCtx && bottomCtx->settings.vsync);
+
+    GLASS_swapBuffers(topCtx, vsync);
+    GLASS_swapBuffers(bottomCtx, vsync);
+
+    if (vsync)
+        GLASS_gfx_waitForVBlank();
+}
+
+void glassSwapBuffers(void) { glassSwapContextBuffers((GLASSCtx)GLASS_context_getCommon(), NULL); }

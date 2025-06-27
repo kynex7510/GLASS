@@ -1,10 +1,71 @@
 #ifndef _GLASS_BASE_TYPES_H
 #define _GLASS_BASE_TYPES_H
 
-#include "GLES/gl2.h"
-#include "Base/Constants.h"
+#include <GLASS.h>
 
-#include <stddef.h>
+#include "Platform/GPUDefs.h"
+
+#define DECL_FLAG(id) (u32)(1u << (id))
+
+#define GLASS_INVALID_OBJECT 0
+#define GLASS_TEX_TARGET_UNBOUND 0
+
+#define GLASS_NUM_ATTRIB_REGS 16
+#define GLASS_MAX_ENABLED_ATTRIBS 12
+#define GLASS_NUM_BOOL_UNIFORMS 16
+#define GLASS_NUM_INT_UNIFORMS 4
+#define GLASS_NUM_FLOAT_UNIFORMS 96
+#define GLASS_NUM_COMBINER_STAGES 6
+#define GLASS_NUM_TEX_UNITS 3
+#define GLASS_MAX_FB_WIDTH 1024
+#define GLASS_MAX_FB_HEIGHT 1024
+#define GLASS_MIN_TEX_SIZE 8
+#define GLASS_MAX_TEX_SIZE 1024
+#define GLASS_NUM_TEX_LEVELS 8
+#define GLASS_NUM_TEX_FACES 6
+
+#define GLASS_UNI_BOOL 0x00
+#define GLASS_UNI_INT 0x01
+#define GLASS_UNI_FLOAT 0x02
+
+#define GLASS_BUFFER_TYPE 0x01
+#define GLASS_RENDERBUFFER_TYPE 0x02
+#define GLASS_FRAMEBUFFER_TYPE 0x03
+#define GLASS_PROGRAM_TYPE 0x04
+#define GLASS_SHADER_TYPE 0x05
+#define GLASS_TEXTURE_TYPE 0x06
+
+#define GLASS_SHADER_FLAG_DELETE DECL_FLAG(0)
+#define GLASS_SHADER_FLAG_GEOMETRY DECL_FLAG(1)
+#define GLASS_SHADER_FLAG_MERGE_OUTMAPS DECL_FLAG(2)
+#define GLASS_SHADER_FLAG_USE_TEXCOORDS DECL_FLAG(3)
+
+#define GLASS_PROGRAM_FLAG_DELETE DECL_FLAG(0)
+#define GLASS_PROGRAM_FLAG_LINK_FAILED DECL_FLAG(1)
+#define GLASS_PROGRAM_FLAG_UPDATE_VERTEX DECL_FLAG(2)
+#define GLASS_PROGRAM_FLAG_UPDATE_GEOMETRY DECL_FLAG(3)
+
+#define GLASS_ATTRIB_FLAG_ENABLED DECL_FLAG(0)
+#define GLASS_ATTRIB_FLAG_FIXED DECL_FLAG(1)
+
+#define GLASS_CONTEXT_FLAG_FRAMEBUFFER DECL_FLAG(0)
+#define GLASS_CONTEXT_FLAG_DRAW DECL_FLAG(1)
+#define GLASS_CONTEXT_FLAG_VIEWPORT DECL_FLAG(2)
+#define GLASS_CONTEXT_FLAG_SCISSOR DECL_FLAG(3)
+#define GLASS_CONTEXT_FLAG_ATTRIBS DECL_FLAG(4)
+#define GLASS_CONTEXT_FLAG_PROGRAM DECL_FLAG(5)
+#define GLASS_CONTEXT_FLAG_COMBINERS DECL_FLAG(6)
+#define GLASS_CONTEXT_FLAG_FRAGOP DECL_FLAG(7)
+#define GLASS_CONTEXT_FLAG_DEPTHMAP DECL_FLAG(8)
+#define GLASS_CONTEXT_FLAG_COLOR_DEPTH DECL_FLAG(9)
+#define GLASS_CONTEXT_FLAG_EARLY_DEPTH DECL_FLAG(10)
+#define GLASS_CONTEXT_FLAG_EARLY_DEPTH_CLEAR DECL_FLAG(11)
+#define GLASS_CONTEXT_FLAG_STENCIL DECL_FLAG(12)
+#define GLASS_CONTEXT_FLAG_CULL_FACE DECL_FLAG(13)
+#define GLASS_CONTEXT_FLAG_ALPHA DECL_FLAG(14)
+#define GLASS_CONTEXT_FLAG_BLEND DECL_FLAG(15)
+#define GLASS_CONTEXT_FLAG_TEXTURE DECL_FLAG(16)
+#define GLASS_CONTEXT_FLAG_ALL (~(0u))
 
 #define GLASS_OBJ_IS_BUFFER(x) GLASS_checkObjectType((x), GLASS_BUFFER_TYPE)
 #define GLASS_OBJ_IS_RENDERBUFFER(x) GLASS_checkObjectType((x), GLASS_RENDERBUFFER_TYPE)
@@ -13,10 +74,16 @@
 #define GLASS_OBJ_IS_PROGRAM(x) GLASS_checkObjectType((x), GLASS_PROGRAM_TYPE)
 #define GLASS_OBJ_IS_SHADER(x) GLASS_checkObjectType((x), GLASS_SHADER_TYPE)
 
-
 #define GLASS_OBJ_IS_TEXTURE(x) GLASS_checkObjectType((x), GLASS_TEXTURE_TYPE)
 
 #define GLASS_OBJ(name) u32 _glObjectType
+
+KYGX_INLINE bool GLASS_checkObjectType(GLuint obj, uint32_t type) {
+    if (obj != GLASS_INVALID_OBJECT)
+        return *(uint32_t*)obj == type;
+
+    return false;
+}
 
 typedef struct {
     u32 glObjectType; // GL object type.
@@ -116,7 +183,7 @@ typedef struct {
 typedef struct {
     GLASS_OBJ(GLASS_TEXTURE_TYPE);
     GLenum target;                  // Texture target.
-    glassPixelFormat pixelFormat;   // Texture pixel format.
+    GLenum pixelFormat;             // Texture pixel format.
     u16 width;                      // Texture width.
     u16 height;                     // Texture height.
     u8* faces[GLASS_NUM_TEX_FACES]; // Texture data.
@@ -157,112 +224,6 @@ typedef struct {
     u32 color;          // Constant color.
 } CombinerInfo;
 
-typedef struct {
-    glassInitParams initParams; // Context parameters.
-    glassSettings settings;     // Context settings.
-
-    /* Platform */
-    u32 flags;              // State flags.
-    GLenum lastError;       // Actually first error.
-    gxCmdQueue_s gxQueue;   // Queue for GX commands.
-
-    /* Buffers */
-    GLuint arrayBuffer;        // GL_ARRAY_BUFFER
-    GLuint elementArrayBuffer; // GL_ELEMENT_ARRAY_BUFFER  
-
-    /* Framebuffer */
-    GLuint framebuffer;  // Bound framebuffer object.
-    GLuint renderbuffer; // Bound renderbuffer object.
-    u32 clearColor;      // Color buffer clear value.
-    GLclampf clearDepth; // Depth buffer clear value.
-    u8 clearStencil;     // Stencil buffer clear value.
-    bool block32;        // Block mode 32.
-
-    /* Viewport */
-    GLint viewportX;   // Viewport X.
-    GLint viewportY;   // Viewport Y.
-    GLsizei viewportW; // Viewport width.
-    GLsizei viewportH; // Viewport height.
-
-    /* Scissor */
-    GPU_SCISSORMODE scissorMode; // Scissor test mode.
-    GLint scissorX;              // Scissor box X.
-    GLint scissorY;              // Scissor box Y.
-    GLsizei scissorW;            // Scissor box W.
-    GLsizei scissorH;            // Scissor box H.
-
-    /* Program */
-    GLuint currentProgram; // Shader program in use.
-    
-    /* Attributes */
-    AttributeInfo attribs[GLASS_NUM_ATTRIB_REGS]; // Attributes data.
-    GLsizei numEnabledAttribs;                    // Number of enabled attributes.
-
-    /* Fragment */
-    GLenum fragMode; // Fragment mode.
-
-    /* Color, Depth */
-    bool writeRed;    // Write red.
-    bool writeGreen;  // Write green.
-    bool writeBlue;   // Write blue.
-    bool writeAlpha;  // Write alpha.
-    bool writeDepth;  // Write depth.
-    bool depthTest;   // Depth test enabled.
-    GLenum depthFunc; // Depth test function.
-
-    /* Depth Map */
-    GLclampf depthNear;    // Depth map near val.
-    GLclampf depthFar;     // Depth map far val.
-    bool polygonOffset;    // Depth map offset enabled.
-    GLfloat polygonFactor; // Depth map factor (unused).
-    GLfloat polygonUnits;  // Depth map offset units.
-
-    /* Early Depth */
-    bool earlyDepthTest;      // Early depth test enabled.
-    GLclampf clearEarlyDepth; // Early depth clear value.
-    GLenum earlyDepthFunc;    // Early depth function.
-
-    /* Stencil */
-    bool stencilTest;        // Stencil test enabled.
-    GLenum stencilFunc;      // Stencil function.
-    GLint stencilRef;        // Stencil reference value.
-    GLuint stencilMask;      // Stencil mask.
-    GLuint stencilWriteMask; // Stencil write mask.
-    GLenum stencilFail;      // Stencil fail.
-    GLenum stencilDepthFail; // Stencil pass, depth fail.
-    GLenum stencilPass;      // Stencil pass + depth pass or no depth.
-
-    /* Cull Face */
-    bool cullFace;        // Cull face enabled.
-    GLenum cullFaceMode;  // Cull face mode.
-    GLenum frontFaceMode; // Front face mode.
-
-    /* Alpha */
-    bool alphaTest;    // Alpha test enabled.
-    GLenum alphaFunc;  // Alpha test function.
-    GLclampf alphaRef; // Alpha test reference value.
-
-    /* Blend, Logic Op */
-    bool blendMode;       // Blend mode.
-    u32 blendColor;       // Blend color.
-    GLenum blendEqRGB;    // Blend equation RGB.
-    GLenum blendEqAlpha;  // Blend equation alpha.
-    GLenum blendSrcRGB;   // Blend source RGB.
-    GLenum blendDstRGB;   // Blend destination RGB.
-    GLenum blendSrcAlpha; // Blend source alpha.
-    GLenum blendDstAlpha; // Blend destination alpha.
-    GLenum logicOp;       // Logic op.
-
-    /* Texture */
-    GLuint textureUnits[GLASS_NUM_TEX_UNITS]; // Texture units.
-    size_t activeTextureUnit;                 // Currently active texture unit.  
-
-    /* Combiners */
-    GLint combinerStage;                               // Current combiner stage.
-    CombinerInfo combiners[GLASS_NUM_COMBINER_STAGES]; // Combiners.
-} CtxCommon;
-
 GLuint GLASS_createObject(u32 type);
-bool GLASS_checkObjectType(GLuint obj, u32 type);
 
 #endif /* _GLASS_BASE_TYPES_H */

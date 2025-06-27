@@ -1,0 +1,6 @@
+#ifndef _GLASS_PLATFORM_GFX_H
+#define _GLASS_PLATFORM_GFX_H
+
+
+
+#endif /* _GLASS_PLATFORM_GFX_H */

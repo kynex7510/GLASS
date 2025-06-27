@@ -1,66 +1,89 @@
 #ifndef _GLASS_H
 #define _GLASS_H
 
-#include <GLASS/Tex3DS.h>
+#include <GLASS/Defs.h>
 
-#define GLASS_VERSION_2_0 0x20 // OpenGL ES 2.0
+typedef struct GLASSCtxImpl* GLASSCtx;
 
-typedef struct glassCtxImpl* glassCtx;
-typedef u32 glassVersion;
+/// @brief OpenGL ES version.
+typedef enum {
+    GLASS_VERSION_2_0, ///< OpenGL ES 2.0
+} GLASSVersion;
 
-// Context initialization parameters.
+/// @brief Context initialization parameters.
 typedef struct {
-    u8 version;             // Context version.
-    bool flushAllLinearMem; // Whether to flush all linear memory (default: true).
-} glassInitParams;
+    GLASSVersion version;   ///< Context version.
+    bool flushAllLinearMem; ///< Whether to flush all linear memory (default: true).
+} GLASSInitParams;
 
-// GPU command list.
+/// @brief Target screen.
+typedef enum {
+    GLASS_SCREEN_TOP,    ///< Top screen.
+    GLASS_SCREEN_BOTTOM, ///< Bottom screen.
+} GLASSScreen;
+
+/// @brief Target screen side.
+typedef enum {
+    GLASS_SIDE_LEFT,  ///< Left side.
+    GLASS_SIDE_RIGHT, ///< Right side.
+} GLASSSide;
+
+/// @brief GPU command list.
 typedef struct {
-    void* mainBuffer;    // Main command buffer.
-    void* secondBuffer;  // Second command buffer.
-    size_t capacity;     // Max size of each buffer, in bytes.
-    size_t offset;       // Offset of the current GPU command location.
-} glassGPUCommandList;
+    void* mainBuffer;    ///< Main command buffer.
+    void* secondBuffer;  ///< Second command buffer.
+    size_t capacity;     ///< Max size of each buffer, in bytes.
+    size_t offset;       ///< Offset of the current GPU command location.
+} GLASSGPUCommandList;
 
-// Context settings.
+/// @brief Framebuffer dimension downscale (anti-aliasing).
+typedef enum {
+    GLASS_DOWNSCALE_NONE, ///< No downscale.
+    GLASS_DOWNSCALE_1X2,  ///< Halve height.
+    GLASS_DOWNSCALE_2X2,  ///< Halve width and height.
+} GLASSDownscale;
+
+/// @brief Context settings.
 typedef struct {
-    gfxScreen_t targetScreen;        // Draw target screen (default: GFX_TOP).
-    gfx3dSide_t targetSide;          // Draw target side (default: GFX_LEFT).
-    bool verticalFlip;               // Flip display buffer vertically (default: false).
-    glassGPUCommandList gpuCmdList;  // GPU command list (default: all 0).
-} glassSettings;
+    GLASSScreen targetScreen;       ///< Draw target screen (default: GLASS_SCREEN_TOP).
+    GLASSSide targetSide;           ///< Draw target side (default: GLASS_SCREEN_LEFT).
+    GLASSGPUCommandList GPUCmdList; ///< GPU command list (default: all NULL).
+    bool vsync;                     ///< Enable VSync (default: true).
+    bool horizontalFlip;            ///< Flip display buffer horizontally (default: false).
+    GLASSDownscale downscale;       ///< Set downscale for anti-aliasing (default: GLASS_DOWNSCALE_NONE).
+} GLASSSettings;
 
-#if defined(__cplusplus)
+#ifdef __cplusplus
 extern "C" {
 #endif // __cplusplus
 
-glassCtx glassCreateContext(glassVersion version);
-glassCtx glassCreateContextEx(const glassInitParams* initParams, const glassSettings* settings);
-void glassDestroyContext(glassCtx ctx);
-void glassBindContext(glassCtx ctx);
+GLASSCtx glassCreateContext(const GLASSInitParams* initParams, const GLASSSettings* settings);
+GLASSCtx glassCreateDefaultContext(GLASSVersion version);
+void glassDestroyContext(GLASSCtx ctx);
+void glassBindContext(GLASSCtx ctx);
 
-void glassReadSettings(glassCtx ctx, glassSettings* settings);
-void glassWriteSettings(glassCtx ctx, const glassSettings* settings);
+void glassReadSettings(GLASSCtx ctx, GLASSSettings* settings);
+void glassWriteSettings(GLASSCtx ctx, const GLASSSettings* settings);
 
 void glassSwapBuffers(void);
-void glassSwapContextBuffers(glassCtx top, glassCtx bottom);
+void glassSwapContextBuffers(GLASSCtx top, GLASSCtx bottom);
 
-void* glassVirtualAlloc(size_t size);
-void glassVirtualFree(void* p);
-size_t glassVirtualSize(const void* p);
-bool glassIsVirtual(const void* p);
+void* glassHeapAlloc(size_t size);
+void glassHeapFree(void* p);
+size_t glassHeapSize(const void* p);
+bool glassIsHeap(const void* p);
 
 void* glassLinearAlloc(size_t size);
 void glassLinearFree(void* p);
 size_t glassLinearSize(const void* p);
 bool glassIsLinear(const void* p);
 
-void* glassVRAMAlloc(size_t size, vramAllocPos pos);
+void* glassVRAMAlloc(GXVRAMBank bank, size_t size);
 void glassVRAMFree(void* p);
 size_t glassVRAMSize(const void* p);
 bool glassIsVRAM(const void* p);
 
-#if defined(__cplusplus)
+#ifdef __cplusplus
 }
 #endif // __cplusplus
 

@@ -1,12 +1,15 @@
 #ifndef _GLASS_DEFS_H
 #define _GLASS_DEFS_H
 
+#include <GX/GX.h>
+#include <RIP/Tex3DS.h>
+
 typedef void GLvoid;
-typedef unsigned int GLboolean;
-typedef char GLchar;
-typedef unsigned char GLubyte;
-typedef int GLint;
-typedef unsigned int GLuint;
+typedef bool GLboolean;
+typedef s8 GLchar;
+typedef u8 GLubyte;
+typedef s32 GLint;
+typedef u32 GLuint;
 typedef float GLfloat;
 
 typedef GLuint GLboolean;

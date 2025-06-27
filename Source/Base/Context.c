@@ -1,28 +1,29 @@
 #include "Base/Context.h"
 #include "Platform/GPU.h"
-#include "Platform/GX.h"
 
 #include <string.h> // memset
 
 static CtxCommon* g_Context = NULL;
 static CtxCommon* g_OldCtx = NULL;
 
-void GLASS_context_initCommon(CtxCommon* ctx, const glassInitParams* initParams, const glassSettings* settings) {
-    ASSERT(ctx);
+void GLASS_context_initCommon(CtxCommon* ctx, const GLASSInitParams* initParams, const GLASSSettings* settings) {
+    KYGX_ASSERT(ctx);
 
     ctx->initParams.version = initParams->version;
     ctx->initParams.flushAllLinearMem = initParams->flushAllLinearMem;
 
     if (settings) {
-        memcpy(&ctx->settings, settings, sizeof(glassSettings));
+        memcpy(&ctx->settings, settings, sizeof(GLASSSettings));
     } else {
-        ctx->settings.targetScreen = GFX_TOP;
-        ctx->settings.targetSide = GFX_LEFT;
-        ctx->settings.gpuCmdList.mainBuffer = 0;
-        ctx->settings.gpuCmdList.secondBuffer = 0;
+        ctx->settings.targetScreen = GLASS_SCREEN_TOP;
+        ctx->settings.targetSide = GLASS_SIDE_LEFT;
+        ctx->settings.gpuCmdList.mainBuffer = NULL;
+        ctx->settings.gpuCmdList.secondBuffer = NULL;
         ctx->settings.gpuCmdList.capacity = 0;
         ctx->settings.gpuCmdList.offset = 0;
-        ctx->settings.verticalFlip = false;
+        ctx->settings.vsync = true;
+        ctx->settings.horizontalFlip = false;
+        ctx->settings.downscale = GLASS_DOWNSCALE_NONE;
     }
 
     // Platform.
@@ -31,7 +32,7 @@ void GLASS_context_initCommon(CtxCommon* ctx, const glassInitParams* initParams,
     memset(&ctx->gxQueue, 0, sizeof(ctx->gxQueue));
 
     GLASS_gpu_allocList(&ctx->settings.gpuCmdList);
-    GLASS_gx_init(ctx);
+    KYGX_BREAK_UNLESS(kygxInit());
 
     // Buffers.
     ctx->arrayBuffer = GLASS_INVALID_OBJECT;

@@ -1,10 +1,15 @@
 cmake_minimum_required(VERSION 3.13 FATAL_ERROR)
+include(CMake/CPM.cmake)
 
-set(CMAKE_C_STANDARD 11)
+set(CMAKE_C_STANDARD 23)
 set(CMAKE_C_STANDARD_REQUIRED ON)
 project(GLASS C)
 
 option(GLASS_COMPILE_EXAMPLES "Enable examples compilation" OFF)
+
+# Setup dependencies.
+CPMAddPackage("gh:kynex7510/KYGX#302d8d0")
+CPMAddPackage("gh:kynex7510/RIP#4b0906b")
 
 # Setup library.
 set(GLASS_SOURCES

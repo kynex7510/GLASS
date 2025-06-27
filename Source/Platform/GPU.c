@@ -1,6 +1,6 @@
 #include "Platform/GPU.h"
-#include "Base/Utility.h"
-#include "Base/Pixels.h"
+#include "Platform/GPUDefs.h"
+#include "Base/Math.h"
 
 #include <string.h> // memcpy, memset
 
@@ -12,14 +12,14 @@
 #define PAD_12 14
 #define PAD_16 15
 
-#define GPU_CMD_HEADER(id, mask, numParams, consecutive) \
+#define CMD_HEADER(id, mask, numParams, consecutive) \
     ((id) & 0xFFFF) | (((mask) & 0xF) << 16) | ((((numParams) - 1) & 0xFF) << 20) | ((consecutive) ? (1 << 31) : 0)
 
-static size_t GLASS_addCmdImplStep(u32* cmdBuffer, u32 header, const u32* params, size_t numParams) {
-    ASSERT(cmdBuffer);
-    ASSERT(params);
-    ASSERT(numParams);
-    ASSERT(GLASS_utility_isAligned((size_t)cmdBuffer, 0x8));
+static inline size_t addCmdImplStep(u32* cmdBuffer, u32 header, const u32* params, size_t numParams) {
+    KYGX_ASSERT(cmdBuffer);
+    KYGX_ASSERT(params);
+    KYGX_ASSERT(numParams);
+    KYGX_ASSERT(kygxIsAligned((size_t)cmdBuffer, 8));
 
     // Write header + first parameter.
     cmdBuffer[0] = params[0];
@@ -37,24 +37,24 @@ static size_t GLASS_addCmdImplStep(u32* cmdBuffer, u32 header, const u32* params
     return (numParams + 1) * sizeof(u32);
 }
 
-static void GLASS_addMultiParamCmd(glassGPUCommandList* list, u32 id, u32 mask, const u32* params, size_t numParams, bool consecutive) {
-    ASSERT(list);
-    ASSERT(params);
-    ASSERT(numParams > 0);
+static void addMultiParamCmd(GLASSGPUCommandList* list, u32 id, u32 mask, const u32* params, size_t numParams, bool consecutive) {
+    KYGX_ASSERT(list);
+    KYGX_ASSERT(params);
+    KYGX_ASSERT(numParams > 0);
     
     if (list->offset + (numParams * sizeof(u32)) < list->capacity) {
-        UNREACHABLE("GPU command list OOB!");
+        KYGX_UNREACHABLE("GPU command list OOB!");
     }
 
     for (size_t i = 0; i < numParams; i += 256) {
         u32* cmdBuffer = (u32*)((u8*)(list->mainBuffer) + list->offset);
 
         // Calculate current number of parameters and header.
-        const size_t curNumParams = MIN(numParams, 255);
-        const u32 header = GPU_CMD_HEADER(id, mask, curNumParams, consecutive);
+        const size_t curNumParams = GLASS_MIN(numParams, 255);
+        const u32 header = CMD_HEADER(id, mask, curNumParams, consecutive);
 
         // Write params data.
-        list->offset += GLASS_addCmdImplStep(cmdBuffer, header, &params[i], curNumParams);
+        list->offset += addCmdImplStep(cmdBuffer, header, &params[i], curNumParams);
 
         // Update id for consecutive writes.
         if (consecutive)
@@ -62,59 +62,59 @@ static void GLASS_addMultiParamCmd(glassGPUCommandList* list, u32 id, u32 mask, 
     }
 }
 
-static void GLASS_addMaskedWrites(glassGPUCommandList* list, u32 id, u32 mask, const u32* params, size_t numParams) {
-    GLASS_addMultiParamCmd(list, id, mask, params, numParams, false);
+static inline void addMaskedWrites(GLASSGPUCommandList* list, u32 id, u32 mask, const u32* params, size_t numParams) {
+    addMultiParamCmd(list, id, mask, params, numParams, false);
 }
 
-static void GLASS_addMaskedIncrementalWrites(glassGPUCommandList* list, u32 id, u32 mask, const u32* params, size_t numParams) {
-    GLASS_addMultiParamCmd(list, id, mask, params, numParams, true);
+static inline void addMaskedIncrementalWrites(GLASSGPUCommandList* list, u32 id, u32 mask, const u32* params, size_t numParams) {
+    addMultiParamCmd(list, id, mask, params, numParams, true);
 }
 
-static void GLASS_addWrites(glassGPUCommandList* list, u32 id, const u32* params, size_t numParams) { GLASS_addMaskedWrites(list, id, 0xF, params, numParams); };
+static inline void addWrites(GLASSGPUCommandList* list, u32 id, const u32* params, size_t numParams) { addMaskedWrites(list, id, 0xF, params, numParams); };
 
-static void GLASS_addIncrementalWrites(glassGPUCommandList* list, u32 id, const u32* params, size_t numParams) {
-    GLASS_addMaskedIncrementalWrites(list, id, 0xF, params, numParams);
+static inline void addIncrementalWrites(GLASSGPUCommandList* list, u32 id, const u32* params, size_t numParams) {
+    addMaskedIncrementalWrites(list, id, 0xF, params, numParams);
 }
 
-static void GLASS_addMaskedWrite(glassGPUCommandList* list, u32 id, u32 mask, u32 v) {
-    ASSERT(list);
-    ASSERT(list->offset + (2 * sizeof(u32)) < list->capacity);
+static inline void addMaskedWrite(GLASSGPUCommandList* list, u32 id, u32 mask, u32 v) {
+    KYGX_ASSERT(list);
+    KYGX_ASSERT(list->offset + (2 * sizeof(u32)) < list->capacity);
     u32* cmdBuffer = (u32*)((u8*)(list->mainBuffer) + list->offset);
     cmdBuffer[0] = v;
-    cmdBuffer[1] = GPU_CMD_HEADER(id, mask, 1, false);
+    cmdBuffer[1] = CMD_HEADER(id, mask, 1, false);
     list->offset += 2 * sizeof(u32);
 }
 
-static void GLASS_addWrite(glassGPUCommandList* list, u32 id, u32 v) { GLASS_addMaskedWrite(list, id, 0xF, v); }
+static inline void addWrite(GLASSGPUCommandList* list, u32 id, u32 v) { addMaskedWrite(list, id, 0xF, v); }
 
-void GLASS_gpu_allocList(glassGPUCommandList* list) {
-    ASSERT(list);
+void GLASS_gpu_allocList(GLASSGPUCommandList* list) {
+    KYGX_ASSERT(list);
 
     if (!list->capacity) {
-        ASSERT(!list->mainBuffer);
-        ASSERT(!list->secondBuffer);
+        KYGX_ASSERT(!list->mainBuffer);
+        KYGX_ASSERT(!list->secondBuffer);
         list->capacity = DEFAULT_CMDBUF_CAPACITY;
     } else {
-        ASSERT(GLASS_utility_isAligned(list->capacity, 0x10));
+        KYGX_ASSERT(kygxIsAligned(list->capacity, 16));
     }
 
     if (!list->mainBuffer) {
         list->mainBuffer = glassLinearAlloc(list->capacity);
-        ASSERT(list->mainBuffer);
+        KYGX_ASSERT(list->mainBuffer);
     } else {
-        ASSERT(glassIsLinear(list->mainBuffer));
+        KYGX_ASSERT(glassIsLinear(list->mainBuffer));
     }
 
     if (!list->secondBuffer) {
         list->secondBuffer = glassLinearAlloc(list->capacity);
-        ASSERT(list->secondBuffer);
+        KYGX_ASSERT(list->secondBuffer);
     } else {
-        ASSERT(glassIsLinear(list->secondBuffer));
+        KYGX_ASSERT(glassIsLinear(list->secondBuffer));
     }
 }
 
-void GLASS_gpu_freeList(glassGPUCommandList* list) {
-    ASSERT(list);
+void GLASS_gpu_freeList(GLASSGPUCommandList* list) {
+    KYGX_ASSERT(list);
 
     glassLinearFree(list->secondBuffer);
     glassLinearFree(list->mainBuffer);
@@ -124,16 +124,16 @@ void GLASS_gpu_freeList(glassGPUCommandList* list) {
     list->offset = 0;
 }
 
-bool GLASS_gpu_swapListBuffers(glassGPUCommandList* list, void** outBuffer, size_t* outSize) {
-    ASSERT(list);
-    ASSERT(outBuffer);
-    ASSERT(outSize);
+bool GLASS_gpu_swapListBuffers(GLASSGPUCommandList* list, void** outBuffer, size_t* outSize) {
+    KYGX_ASSERT(list);
+    KYGX_ASSERT(outBuffer);
+    KYGX_ASSERT(outSize);
 
     if (list->offset > 0) {
         // Finalize list.
-        GLASS_addWrite(list, GPUREG_FINALIZE, 0x12345678);
-        if (!GLASS_utility_isAligned(list->offset, 0x10))
-            GLASS_addWrite(list, GPUREG_FINALIZE, 0x12345678);
+        addWrite(list, GPUREG_FINALIZE, 0x12345678);
+        if (!kygxIsAligned(list->offset, 16))
+            addWrite(list, GPUREG_FINALIZE, 0x12345678);
 
         if (outBuffer)
             *outBuffer = list->mainBuffer;
@@ -151,7 +151,7 @@ bool GLASS_gpu_swapListBuffers(glassGPUCommandList* list, void** outBuffer, size
     return false;
 }
 
-static size_t GLASS_unwrapRBPixelSize(GLenum format) {
+static inline unwrapRBPixelSize(GLenum format) {
     switch (format) {
         case GL_RGBA8_OES:
             return 2;
@@ -163,33 +163,33 @@ static size_t GLASS_unwrapRBPixelSize(GLenum format) {
             return 0;
     }
 
-    UNREACHABLE("Invalid parameter!");
+    KYGX_UNREACHABLE("Invalid parameter!");
 }
 
-static GPU_COLORBUF GLASS_unwrapRBFormat(GLenum format) {
+static inline GPURenderbufferFormat unwrapRBFormat(GLenum format) {
     switch (format) {
         case GL_RGBA8_OES:
-            return GPU_RB_RGBA8;
+            return RBFMT_RGBA8;
         case GL_RGB8_OES:
-            return GPU_RB_RGB8;
+            return RBFMT_RGB8;
         case GL_RGB5_A1:
-            return GPU_RB_RGBA5551;
+            return RBFMT_RGBA5551;
         case GL_RGB565:
-            return GPU_RB_RGB565;
+            return RBFMT_RGB565;
         case GL_RGBA4:
-            return GPU_RB_RGBA4;
+            return RBFMT_RGBA4;
         case GL_DEPTH_COMPONENT16:
-            return GPU_RB_DEPTH16;
+            return RBFMT_DEPTH16;
         case GL_DEPTH_COMPONENT24_OES:
-            return GPU_RB_DEPTH24;
+            return RBFMT_DEPTH24;
         case GL_DEPTH24_STENCIL8_OES:
-            return GPU_RB_DEPTH24_STENCIL8;
+            return RBFMT_DEPTH24_STENCIL8;
     }
 
-    UNREACHABLE("Invalid parameter!");
+    KYGX_UNREACHABLE("Invalid parameter!");
 }
 
-void GLASS_gpu_bindFramebuffer(glassGPUCommandList* list, const FramebufferInfo* info, bool block32) {
+void GLASS_gpu_bindFramebuffer(GLASSGPUCommandList* list, const FramebufferInfo* info, bool block32) {
     u8* colorBuffer = NULL;
     u8* depthBuffer = NULL;
     u32 width = 0;
@@ -220,95 +220,95 @@ void GLASS_gpu_bindFramebuffer(glassGPUCommandList* list, const FramebufferInfo*
     GLASS_gpu_invalidateFramebuffer(list);
 
     // Set depth buffer, color buffer and dimensions.
-    params[0] = osConvertVirtToPhys(depthBuffer) >> 3;
-    params[1] = osConvertVirtToPhys(colorBuffer) >> 3;
+    params[0] = kygxGetPhysicalAddress(depthBuffer) >> 3;
+    params[1] = kygxGetPhysicalAddress(colorBuffer) >> 3;
     params[2] = 0x01000000 | (((width - 1) & 0xFFF) << 12) | (height & 0xFFF);
-    GLASS_addIncrementalWrites(list, GPUREG_DEPTHBUFFER_LOC, params, 3);
-    GLASS_addWrite(list, GPUREG_RENDERBUF_DIM, params[2]);
+    addIncrementalWrites(list, GPUREG_DEPTHBUFFER_LOC, params, 3);
+    addWrite(list, GPUREG_RENDERBUF_DIM, params[2]);
 
     // Set buffer parameters.
     if (colorBuffer) {
-        GLASS_addWrite(list, GPUREG_COLORBUFFER_FORMAT, (GLASS_unwrapRBFormat(colorFormat) << 16) | GLASS_unwrapRBPixelSize(colorFormat));
+        addWrite(list, GPUREG_COLORBUFFER_FORMAT, (unwrapRBFormat(colorFormat) << 16) | unwrapRBPixelSize(colorFormat));
         params[0] = params[1] = 0x0F;
     } else {
         params[0] = params[1] = 0;
     }
 
     if (depthBuffer) {
-        GLASS_addWrite(list, GPUREG_DEPTHBUFFER_FORMAT, GLASS_unwrapRBFormat(depthFormat));
+        addWrite(list, GPUREG_DEPTHBUFFER_FORMAT, unwrapRBFormat(depthFormat));
         params[2] = params[3] = 0x03;
     } else {
         params[2] = params[3] = 0;
     }
 
-    GLASS_addWrite(list, GPUREG_FRAMEBUFFER_BLOCK32, block32 ? 1 : 0);
-    GLASS_addIncrementalWrites(list, GPUREG_COLORBUFFER_READ, params, 4);
+    addWrite(list, GPUREG_FRAMEBUFFER_BLOCK32, block32 ? 1 : 0);
+    addIncrementalWrites(list, GPUREG_COLORBUFFER_READ, params, 4);
 }
 
-void GLASS_gpu_flushFramebuffer(glassGPUCommandList* list) { GLASS_addWrite(list, GPUREG_FRAMEBUFFER_FLUSH, 1); }
-void GLASS_gpu_invalidateFramebuffer(glassGPUCommandList* list) { GLASS_addWrite(list, GPUREG_FRAMEBUFFER_INVALIDATE, 1); }
+void GLASS_gpu_flushFramebuffer(GLASSGPUCommandList* list) { addWrite(list, GPUREG_FRAMEBUFFER_FLUSH, 1); }
+void GLASS_gpu_invalidateFramebuffer(GLASSGPUCommandList* list) { addWrite(list, GPUREG_FRAMEBUFFER_INVALIDATE, 1); }
 
-void GLASS_gpu_setViewport(glassGPUCommandList* list, GLint x, GLint y, GLsizei width, GLsizei height) {
+void GLASS_gpu_setViewport(GLASSGPUCommandList* list, GLint x, GLint y, GLsizei width, GLsizei height) {
     u32 data[4];
 
-    data[0] = f32tof24(height / 2.0f);
-    data[1] = (f32tof31(2.0f / height) << 1);
-    data[2] = f32tof24(width / 2.0f);
-    data[3] = (f32tof31(2.0f / width) << 1);
+    data[0] = GLASS_math_f32tof24(height / 2.0f);
+    data[1] = GLASS_math_f32tof31(2.0f / height) << 1;
+    data[2] = GLASS_math_f32tof24(width / 2.0f);
+    data[3] = GLASS_math_f32tof31(2.0f / width) << 1;
 
-    GLASS_addIncrementalWrites(list, GPUREG_VIEWPORT_WIDTH, data, 4);
-    GLASS_addWrite(list, GPUREG_VIEWPORT_XY, (x << 16) | (y & 0xFFFF));
+    addIncrementalWrites(list, GPUREG_VIEWPORT_WIDTH, data, 4);
+    addWrite(list, GPUREG_VIEWPORT_XY, (x << 16) | (y & 0xFFFF));
 }
 
-void GLASS_gpu_setScissorTest(glassGPUCommandList* list, GPU_SCISSORMODE mode, GLint x, GLint y, GLsizei width, GLsizei height) {
-    GLASS_addMaskedWrite(list, GPUREG_SCISSORTEST_MODE, 0x01, mode);
-    GLASS_addWrite(list, GPUREG_SCISSORTEST_POS, (y << 16) | (x & 0xFFFF));
-    GLASS_addWrite(list, GPUREG_SCISSORTEST_DIM, ((width - x - 1) << 16) | ((height - y - 1) & 0xFFFF));
+void GLASS_gpu_setScissorTest(GLASSGPUCommandList* list, GPUScissorMode mode, GLint x, GLint y, GLsizei width, GLsizei height) {
+    addMaskedWrite(list, GPUREG_SCISSORTEST_MODE, 0x01, mode);
+    addWrite(list, GPUREG_SCISSORTEST_POS, (y << 16) | (x & 0xFFFF));
+    addWrite(list, GPUREG_SCISSORTEST_DIM, ((width - x - 1) << 16) | ((height - y - 1) & 0xFFFF));
 }
 
-static void GLASS_uploadShaderBinary(glassGPUCommandList* list, const ShaderInfo* shader) {
+static void uploadShaderBinary(GLASSGPUCommandList* list, const ShaderInfo* shader) {
     if (shader->sharedData) {
         // Set write offset for code upload.
-        GLASS_addWrite(list, (shader->flags & GLASS_SHADER_FLAG_GEOMETRY) ? GPUREG_GSH_CODETRANSFER_CONFIG : GPUREG_VSH_CODETRANSFER_CONFIG, 0);
+        addWrite(list, (shader->flags & GLASS_SHADER_FLAG_GEOMETRY) ? GPUREG_GSH_CODETRANSFER_CONFIG : GPUREG_VSH_CODETRANSFER_CONFIG, 0);
 
         // Write code.
-        GLASS_addWrites(list, (shader->flags & GLASS_SHADER_FLAG_GEOMETRY) ? GPUREG_GSH_CODETRANSFER_DATA : GPUREG_VSH_CODETRANSFER_DATA,
-                        shader->sharedData->binaryCode,
-                        shader->sharedData->numOfCodeWords < 512 ? shader->sharedData->numOfCodeWords : 512);
+        addWrites(list, (shader->flags & GLASS_SHADER_FLAG_GEOMETRY) ? GPUREG_GSH_CODETRANSFER_DATA : GPUREG_VSH_CODETRANSFER_DATA,
+            shader->sharedData->binaryCode,
+            shader->sharedData->numOfCodeWords < 512 ? shader->sharedData->numOfCodeWords : 512);
 
         // Finalize code.
-        GLASS_addWrite(list, (shader->flags & GLASS_SHADER_FLAG_GEOMETRY) ? GPUREG_GSH_CODETRANSFER_END : GPUREG_VSH_CODETRANSFER_END, 1);
+        addWrite(list, (shader->flags & GLASS_SHADER_FLAG_GEOMETRY) ? GPUREG_GSH_CODETRANSFER_END : GPUREG_VSH_CODETRANSFER_END, 1);
 
         // Set write offset for op descs.
-        GLASS_addWrite(list, (shader->flags & GLASS_SHADER_FLAG_GEOMETRY) ? GPUREG_GSH_OPDESCS_CONFIG : GPUREG_VSH_OPDESCS_CONFIG, 0);
+        addWrite(list, (shader->flags & GLASS_SHADER_FLAG_GEOMETRY) ? GPUREG_GSH_OPDESCS_CONFIG : GPUREG_VSH_OPDESCS_CONFIG, 0);
 
         // Write op descs.
-        GLASS_addWrites(list, (shader->flags & GLASS_SHADER_FLAG_GEOMETRY) ? GPUREG_GSH_OPDESCS_DATA : GPUREG_VSH_OPDESCS_DATA,
-                        shader->sharedData->opDescs,
-                        shader->sharedData->numOfOpDescs < 128 ? shader->sharedData->numOfOpDescs : 128);
+        addWrites(list, (shader->flags & GLASS_SHADER_FLAG_GEOMETRY) ? GPUREG_GSH_OPDESCS_DATA : GPUREG_VSH_OPDESCS_DATA,
+            shader->sharedData->opDescs,
+            shader->sharedData->numOfOpDescs < 128 ? shader->sharedData->numOfOpDescs : 128);
     }
 }
 
-void GLASS_gpu_bindShaders(glassGPUCommandList* list, const ShaderInfo* vertexShader, const ShaderInfo* geometryShader) {
+void GLASS_gpu_bindShaders(GLASSGPUCommandList* list, const ShaderInfo* vertexShader, const ShaderInfo* geometryShader) {
     // Initialize geometry engine.
-    GLASS_addMaskedWrite(list, GPUREG_GEOSTAGE_CONFIG, 0x03, geometryShader ? 2 : 0);
-    GLASS_addMaskedWrite(list, GPUREG_GEOSTAGE_CONFIG2, 0x03, 0);
-    GLASS_addMaskedWrite(list, GPUREG_VSH_COM_MODE, 0x01, geometryShader ? 1 : 0);
+    addMaskedWrite(list, GPUREG_GEOSTAGE_CONFIG, 0x03, geometryShader ? 2 : 0);
+    addMaskedWrite(list, GPUREG_GEOSTAGE_CONFIG2, 0x03, 0);
+    addMaskedWrite(list, GPUREG_VSH_COM_MODE, 0x01, geometryShader ? 1 : 0);
 
     if (vertexShader) {
-        GLASS_uploadShaderBinary(list, vertexShader);
-        GLASS_addWrite(list, GPUREG_VSH_ENTRYPOINT, 0x7FFF0000 | (vertexShader->codeEntrypoint & 0xFFFF));
-        GLASS_addMaskedWrite(list, GPUREG_VSH_OUTMAP_MASK, 0x03, vertexShader->outMask);
+        uploadShaderBinary(list, vertexShader);
+        addWrite(list, GPUREG_VSH_ENTRYPOINT, 0x7FFF0000 | (vertexShader->codeEntrypoint & 0xFFFF));
+        addMaskedWrite(list, GPUREG_VSH_OUTMAP_MASK, 0x03, vertexShader->outMask);
 
         // Set vertex shader outmap number.
-        GLASS_addMaskedWrite(list, GPUREG_VSH_OUTMAP_TOTAL1, 0x01, vertexShader->outTotal - 1);
-        GLASS_addMaskedWrite(list, GPUREG_VSH_OUTMAP_TOTAL2, 0x01, vertexShader->outTotal - 1);
+        addMaskedWrite(list, GPUREG_VSH_OUTMAP_TOTAL1, 0x01, vertexShader->outTotal - 1);
+        addMaskedWrite(list, GPUREG_VSH_OUTMAP_TOTAL2, 0x01, vertexShader->outTotal - 1);
     }
 
     if (geometryShader) {
-        GLASS_uploadShaderBinary(list, geometryShader);
-        GLASS_addWrite(list, GPUREG_GSH_ENTRYPOINT, 0x7FFF0000 | (geometryShader->codeEntrypoint & 0xFFFF));
-        GLASS_addMaskedWrite(list, GPUREG_GSH_OUTMAP_MASK, 0x01, geometryShader->outMask);
+        uploadShaderBinary(list, geometryShader);
+        addWrite(list, GPUREG_GSH_ENTRYPOINT, 0x7FFF0000 | (geometryShader->codeEntrypoint & 0xFFFF));
+        addMaskedWrite(list, GPUREG_GSH_OUTMAP_MASK, 0x01, geometryShader->outMask);
     }
 
     // Handle outmaps.
@@ -346,77 +346,77 @@ void GLASS_gpu_bindShaders(glassGPUCommandList* list, const ShaderInfo* vertexSh
     }
 
     if (mergedOutTotal) {
-        GLASS_addMaskedWrite(list, GPUREG_PRIMITIVE_CONFIG, 0x01, mergedOutTotal - 1);
-        GLASS_addMaskedWrite(list, GPUREG_SH_OUTMAP_TOTAL, 0x01, mergedOutTotal);
-        GLASS_addIncrementalWrites(list, GPUREG_SH_OUTMAP_O0, mergedOutSems, 7);
-        GLASS_addMaskedWrite(list, GPUREG_SH_OUTATTR_MODE, 0x01, useTexcoords ? 1 : 0);
-        GLASS_addWrite(list, GPUREG_SH_OUTATTR_CLOCK, mergedOutClock);
+        addMaskedWrite(list, GPUREG_PRIMITIVE_CONFIG, 0x01, mergedOutTotal - 1);
+        addMaskedWrite(list, GPUREG_SH_OUTMAP_TOTAL, 0x01, mergedOutTotal);
+        addIncrementalWrites(list, GPUREG_SH_OUTMAP_O0, mergedOutSems, 7);
+        addMaskedWrite(list, GPUREG_SH_OUTATTR_MODE, 0x01, useTexcoords ? 1 : 0);
+        addWrite(list, GPUREG_SH_OUTATTR_CLOCK, mergedOutClock);
     }
 
     // TODO: configure geostage.
-    GLASS_addMaskedWrite(list, GPUREG_GEOSTAGE_CONFIG, 0x0A, 0);
-    GLASS_addWrite(list, GPUREG_GSH_MISC0, 0);
-    GLASS_addWrite(list, GPUREG_GSH_MISC1, 0);
-    GLASS_addWrite(list, GPUREG_GSH_INPUTBUFFER_CONFIG, 0xA0000000);
+    addMaskedWrite(list, GPUREG_GEOSTAGE_CONFIG, 0x0A, 0);
+    addWrite(list, GPUREG_GSH_MISC0, 0);
+    addWrite(list, GPUREG_GSH_MISC1, 0);
+    addWrite(list, GPUREG_GSH_INPUTBUFFER_CONFIG, 0xA0000000);
 }
 
-static void GLASS_uploadBoolUniformMask(glassGPUCommandList* list, const ShaderInfo* shader, u16 mask) {
+static inline void uploadBoolUniformMask(GLASSGPUCommandList* list, const ShaderInfo* shader, u16 mask) {
     const u32 reg = (shader->flags & GLASS_SHADER_FLAG_GEOMETRY) ? GPUREG_GSH_BOOLUNIFORM : GPUREG_VSH_BOOLUNIFORM;
-    GLASS_addWrite(list, reg, 0x7FFF0000 | mask);
+    addWrite(list, reg, 0x7FFF0000 | mask);
 }
 
-static void GLASS_uploadConstIntUniforms(glassGPUCommandList* list ,const ShaderInfo* shader) {
+static inline void uploadConstIntUniforms(GLASSGPUCommandList* list ,const ShaderInfo* shader) {
     const u32 reg = (shader->flags & GLASS_SHADER_FLAG_GEOMETRY) ? GPUREG_GSH_INTUNIFORM_I0 : GPUREG_VSH_INTUNIFORM_I0;
 
     for (size_t i = 0; i < 4; ++i) {
         if (!((shader->constIntMask >> i) & 1))
             continue;
 
-        GLASS_addWrite(list, reg + i, shader->constIntData[i]);
+        addWrite(list, reg + i, shader->constIntData[i]);
     }
 }
 
-static void GLASS_uploadConstFloatUniforms(glassGPUCommandList* list, const ShaderInfo* shader) {
+static inline void uploadConstFloatUniforms(GLASSGPUCommandList* list, const ShaderInfo* shader) {
     const u32 idReg = (shader->flags & GLASS_SHADER_FLAG_GEOMETRY) ? GPUREG_GSH_FLOATUNIFORM_CONFIG : GPUREG_VSH_FLOATUNIFORM_CONFIG;
     const u32 dataReg = (shader->flags & GLASS_SHADER_FLAG_GEOMETRY) ? GPUREG_GSH_FLOATUNIFORM_DATA : GPUREG_VSH_FLOATUNIFORM_DATA;
 
     for (size_t i = 0; i < shader->numOfConstFloatUniforms; ++i) {
         const ConstFloatInfo* uni = &shader->constFloatUniforms[i];
-        GLASS_addWrite(list, idReg, uni->ID);
-        GLASS_addIncrementalWrites(list, dataReg, uni->data, 3);
+        addWrite(list, idReg, uni->ID);
+        addIncrementalWrites(list, dataReg, uni->data, 3);
     }
 }
 
-void GLASS_gpu_uploadConstUniforms(glassGPUCommandList* list, const ShaderInfo* shader) {
-    ASSERT(shader);
+void GLASS_gpu_uploadConstUniforms(GLASSGPUCommandList* list, const ShaderInfo* shader) {
+    KYGX_ASSERT(shader);
     GLASS_uploadBoolUniformMask(list, shader, shader->constBoolMask);
     GLASS_uploadConstIntUniforms(list, shader);
     GLASS_uploadConstFloatUniforms(list, shader);
 }
 
-static void GLASS_uploadIntUniform(glassGPUCommandList* list, const ShaderInfo* shader, UniformInfo* info) {
+static inline void uploadIntUniform(GLASSGPUCommandList* list, const ShaderInfo* shader, UniformInfo* info) {
     const u32 reg = (shader->flags & GLASS_SHADER_FLAG_GEOMETRY) ? GPUREG_GSH_INTUNIFORM_I0 : GPUREG_VSH_INTUNIFORM_I0;
 
     if (info->count == 1) {
-        GLASS_addWrite(list, reg + info->ID, info->data.value);
+        addWrite(list, reg + info->ID, info->data.value);
     } else {
-        GLASS_addIncrementalWrites(list, reg + info->ID, info->data.values, info->count);
+        addIncrementalWrites(list, reg + info->ID, info->data.values, info->count);
     }
 }
 
-static void GLASS_uploadFloatUniform(glassGPUCommandList* list, const ShaderInfo* shader, UniformInfo* info) {
+static inline void uploadFloatUniform(GLASSGPUCommandList* list, const ShaderInfo* shader, UniformInfo* info) {
     const u32 idReg = (shader->flags & GLASS_SHADER_FLAG_GEOMETRY) ? GPUREG_GSH_FLOATUNIFORM_CONFIG : GPUREG_VSH_FLOATUNIFORM_CONFIG;
     const u32 dataReg = (shader->flags & GLASS_SHADER_FLAG_GEOMETRY) ? GPUREG_GSH_FLOATUNIFORM_DATA : GPUREG_VSH_FLOATUNIFORM_DATA;
 
     // ID is automatically incremented after each write.
-    GLASS_addWrite(list, idReg, info->ID);
+    addWrite(list, idReg, info->ID);
 
     for (size_t i = 0; i < info->count; ++i)
-        GLASS_addIncrementalWrites(list, dataReg, &info->data.values[i * 3], 3);
+        addIncrementalWrites(list, dataReg, &info->data.values[i * 3], 3);
 }
 
-void GLASS_gpu_uploadUniforms(glassGPUCommandList* list, ShaderInfo* shader) {
-    ASSERT(shader);
+void GLASS_gpu_uploadUniforms(GLASSGPUCommandList* list, ShaderInfo* shader) {
+    KYGX_ASSERT(shader);
 
     bool uploadBool = false;
     u16 boolMask = shader->constBoolMask;
@@ -433,39 +433,39 @@ void GLASS_gpu_uploadUniforms(glassGPUCommandList* list, ShaderInfo* shader) {
                 uploadBool = true;
                 break;
             case GLASS_UNI_INT:
-                GLASS_uploadIntUniform(list, shader, uni);
+                uploadIntUniform(list, shader, uni);
                 break;
             case GLASS_UNI_FLOAT:
-                GLASS_uploadFloatUniform(list, shader, uni);
+                uploadFloatUniform(list, shader, uni);
                 break;
             default:
-                UNREACHABLE("Invalid uniform type!");
+                KYGX_UNREACHABLE("Invalid uniform type!");
         }
 
         uni->dirty = false;
     }
 
     if (uploadBool)
-        GLASS_uploadBoolUniformMask(list, shader, boolMask);
+        uploadBoolUniformMask(list, shader, boolMask);
 }
 
-static GPU_FORMATS GLASS_unwrapAttribType(GLenum type) {
+static GPUAttribType unwrapAttribType(GLenum type) {
     switch (type) {
         case GL_BYTE:
-            return GPU_BYTE;
+            return ATTRIBTYPE_BYTE;
         case GL_UNSIGNED_BYTE:
-            return GPU_UNSIGNED_BYTE;
+            return ATTRIBTYPE_UNSIGNED_BYTE;
         case GL_SHORT:
-            return GPU_SHORT;
+            return ATTRIBTYPE_SHORT;
         case GL_FLOAT:
-            return GPU_FLOAT;
+            return ATTRIBTYPE_FLOAT;
     }
 
-    UNREACHABLE("Invalid parameter!");
+    KYGX_UNREACHABLE("Invalid parameter!");
 }
 
-static size_t GLASS_insertAttribPad(u32* permutation, size_t startIndex, size_t padSize) {
-    ASSERT(permutation);
+static size_t insertAttribPad(u32* permutation, size_t startIndex, size_t padSize) {
+    KYGX_ASSERT(permutation);
 
     size_t index = startIndex;
     size_t handled = 0;
@@ -493,14 +493,14 @@ static size_t GLASS_insertAttribPad(u32* permutation, size_t startIndex, size_t 
         }
 
         ++index;
-        ASSERT(index < 12); // We can have at most 12 components.
+        KYGX_ASSERT(index < 12); // We can have at most 12 components.
     }
 
     return index;
 }
 
-void GLASS_gpu_uploadAttributes(glassGPUCommandList* list, const AttributeInfo* attribs) {
-    ASSERT(attribs);
+void GLASS_gpu_uploadAttributes(GLASSGPUCommandList* list, const AttributeInfo* attribs) {
+    KYGX_ASSERT(attribs);
 
     u32 format[2];
     u32 permutation[2];
@@ -520,12 +520,12 @@ void GLASS_gpu_uploadAttributes(glassGPUCommandList* list, const AttributeInfo* 
 
         if (!(attrib->flags & GLASS_ATTRIB_FLAG_FIXED)) {
             // Set buffer params.
-            const GPU_FORMATS attribType = GLASS_unwrapAttribType(attrib->type);
+            const GPUAttribType attribType = unwrapAttribType(attrib->type);
 
             if (attribCount < 8) {
-                format[0] |= GPU_ATTRIBFMT(attribCount, attrib->count, attribType);
+                format[0] |= ATTRIBFMT(attribCount, attrib->count, attribType);
             } else {
-                format[1] |= GPU_ATTRIBFMT(attribCount - 8, attrib->count, attribType);
+                format[1] |= ATTRIBFMT(attribCount - 8, attrib->count, attribType);
             }
 
             // Clear fixed flag.
@@ -546,15 +546,15 @@ void GLASS_gpu_uploadAttributes(glassGPUCommandList* list, const AttributeInfo* 
     format[1] |= ((attribCount - 1) << 28);
 
     // Set the type, num of components, is fixed, and total count of attributes.
-    GLASS_addIncrementalWrites(list, GPUREG_ATTRIBBUFFERS_FORMAT_LOW, format, 2);
-    GLASS_addMaskedWrite(list, GPUREG_VSH_INPUTBUFFER_CONFIG, 0x0B, 0xA0000000 | (attribCount - 1));
-    GLASS_addWrite(list, GPUREG_VSH_NUM_ATTR, attribCount - 1);
+    addIncrementalWrites(list, GPUREG_ATTRIBBUFFERS_FORMAT_LOW, format, 2);
+    addMaskedWrite(list, GPUREG_VSH_INPUTBUFFER_CONFIG, 0x0B, 0xA0000000 | (attribCount - 1));
+    addWrite(list, GPUREG_VSH_NUM_ATTR, attribCount - 1);
 
     // Map each vertex attribute to an input register.
-    GLASS_addIncrementalWrites(list, GPUREG_VSH_ATTRIBUTES_PERMUTATION_LOW, permutation, 2);
+    addIncrementalWrites(list, GPUREG_VSH_ATTRIBUTES_PERMUTATION_LOW, permutation, 2);
 
     // Set buffers base.
-    GLASS_addWrite(list, GPUREG_ATTRIBBUFFERS_LOC, PHYSICAL_LINEAR_BASE >> 3);
+    addWrite(list, GPUREG_ATTRIBBUFFERS_LOC, PHYSICAL_LINEAR_BASE >> 3);
 
     // Step 2: setup fixed attributes.
     // This must be set after initial configuration.
@@ -565,9 +565,9 @@ void GLASS_gpu_uploadAttributes(glassGPUCommandList* list, const AttributeInfo* 
 
         if (attrib->flags & GLASS_ATTRIB_FLAG_FIXED) {
             u32 packed[3];
-            GLASS_utility_packFloatVector(attrib->components, packed);
-            GLASS_addWrite(list, GPUREG_FIXEDATTRIB_INDEX, regTable[regId]);
-            GLASS_addIncrementalWrites(list, GPUREG_FIXEDATTRIB_DATA0, packed, 3);
+            GLASS_math_packFloatVector(attrib->components, packed);
+            addWrite(list, GPUREG_FIXEDATTRIB_INDEX, regTable[regId]);
+            addIncrementalWrites(list, GPUREG_FIXEDATTRIB_DATA0, packed, 3);
         }
     }
 
@@ -586,7 +586,7 @@ void GLASS_gpu_uploadAttributes(glassGPUCommandList* list, const AttributeInfo* 
             u32 permutation[2];
             memset(&permutation, 0, sizeof(permutation));
 
-            const size_t permIndex = GLASS_insertAttribPad(permutation, 0, attrib->sizeOfPrePad);
+            const size_t permIndex = insertAttribPad(permutation, 0, attrib->sizeOfPrePad);
             const size_t attribIndex = regTable[regId];
 
             if (permIndex < 8) {
@@ -595,139 +595,139 @@ void GLASS_gpu_uploadAttributes(glassGPUCommandList* list, const AttributeInfo* 
                 permutation[1] |= (attribIndex << (permIndex * 4));
             }
 
-            const size_t numPerms = GLASS_insertAttribPad(permutation, permIndex + 1, attrib->sizeOfPostPad);
+            const size_t numPerms = insertAttribPad(permutation, permIndex + 1, attrib->sizeOfPostPad);
 
             params[0] = attrib->physAddr - PHYSICAL_LINEAR_BASE;
             params[1] = permutation[0];
             params[2] = permutation[1] | ((attrib->bufferSize & 0xFF) << 16) | ((numPerms & 0xF) << 28);
         }
 
-        GLASS_addIncrementalWrites(list, GPUREG_ATTRIBBUFFER0_OFFSET + (currentAttribBuffer * 0x03), params, 3);
+        addIncrementalWrites(list, GPUREG_ATTRIBBUFFER0_OFFSET + (currentAttribBuffer * 0x03), params, 3);
         ++currentAttribBuffer;
-        ASSERT(currentAttribBuffer <= 12); // We can have at most 12 attribute buffers.
+        KYGX_ASSERT(currentAttribBuffer <= 12); // We can have at most 12 attribute buffers.
     }
 }
 
-static GPU_TEVSRC GLASS_unwrapCombinerSrc(GLenum src) {
+static inline GPUCombinerSource unwrapCombinerSrc(GLenum src) {
     switch (src) {
         case GL_PRIMARY_COLOR:
-            return GPU_PRIMARY_COLOR;
+            return COMBINERSRC_PRIMARY_COLOR;
         case GL_FRAGMENT_PRIMARY_COLOR_PICA:
-            return GPU_FRAGMENT_PRIMARY_COLOR;
+            return COMBINERSRC_FRAGMENT_PRIMARY_COLOR;
         case GL_FRAGMENT_SECONDARY_COLOR_PICA:
-            return GPU_FRAGMENT_SECONDARY_COLOR;
+            return COMBINERSRC_FRAGMENT_SECONDARY_COLOR;
         case GL_TEXTURE0:
-            return GPU_TEXTURE0;
+            return COMBINERSRC_TEXTURE0;
         case GL_TEXTURE1:
-            return GPU_TEXTURE1;
+            return COMBINERSRC_TEXTURE1;
         case GL_TEXTURE2:
-            return GPU_TEXTURE2;
+            return COMBINERSRC_TEXTURE2;
             // TODO: what constant to use?
         //case GL_TEXTURE3:
-        //    return GPU_TEXTURE3;
+        //    return COMBINERSRC_TEXTURE3;
         case GL_PREVIOUS_BUFFER_PICA:
-            return GPU_PREVIOUS_BUFFER;
+            return COMBINERSRC_PREVIOUS_BUFFER;
         case GL_CONSTANT:
-            return GPU_CONSTANT;
+            return COMBINERSRC_CONSTANT;
         case GL_PREVIOUS:
-            return GPU_PREVIOUS;
+            return COMBINERSRC_PREVIOUS;
     }
 
-    UNREACHABLE("Invalid parameter!");
+    KYGX_UNREACHABLE("Invalid parameter!");
 }
 
-static GPU_TEVOP_RGB GLASS_unwrapCombinerOpRGB(GLenum op) {
+static inline GPUCombinerOpRGB unwrapCombinerOpRGB(GLenum op) {
     switch (op) {
         case GL_SRC_COLOR:
-            return GPU_TEVOP_RGB_SRC_COLOR;
+            return COMBINEROPRGB_SRC_COLOR;
         case GL_ONE_MINUS_SRC_COLOR:
-            return GPU_TEVOP_RGB_ONE_MINUS_SRC_COLOR;
+            return COMBINEROPRGB_ONE_MINUS_SRC_COLOR;
         case GL_SRC_ALPHA:
-            return GPU_TEVOP_RGB_SRC_ALPHA;
+            return COMBINEROPRGB_SRC_ALPHA;
         case GL_ONE_MINUS_SRC_ALPHA:
-            return GPU_TEVOP_RGB_ONE_MINUS_SRC_ALPHA;
+            return COMBINEROPRGB_ONE_MINUS_SRC_ALPHA;
         case GL_SRC_R_PICA:
-            return GPU_TEVOP_RGB_SRC_R;
+            return COMBINEROPRGB_SRC_R;
         case GL_ONE_MINUS_SRC_R_PICA:
-            return GPU_TEVOP_RGB_ONE_MINUS_SRC_R;
+            return COMBINEROPRGB_ONE_MINUS_SRC_R;
         case GL_SRC_G_PICA:
-            return GPU_TEVOP_RGB_SRC_G;
+            return COMBINEROPRGB_SRC_G;
         case GL_ONE_MINUS_SRC_G_PICA:
-            return GPU_TEVOP_RGB_ONE_MINUS_SRC_G;
+            return COMBINEROPRGB_ONE_MINUS_SRC_G;
         case GL_SRC_B_PICA:
-            return GPU_TEVOP_RGB_SRC_B;
+            return COMBINEROPRGB_SRC_B;
         case GL_ONE_MINUS_SRC_B_PICA:
-            return GPU_TEVOP_RGB_ONE_MINUS_SRC_B;
+            return COMBINEROPRGB_ONE_MINUS_SRC_B;
     }
 
-    UNREACHABLE("Invalid parameter!");
+    KYGX_UNREACHABLE("Invalid parameter!");
 }
 
-static GPU_TEVOP_A GLASS_unwrapCombinerOpAlpha(GLenum op) {
+static inline GPUCombinerOpAlpha unwrapCombinerOpAlpha(GLenum op) {
     switch (op) {
         case GL_SRC_ALPHA:
-            return GPU_TEVOP_A_SRC_ALPHA;
+            return COMBINEROPALPHA_SRC_ALPHA;
         case GL_ONE_MINUS_SRC_ALPHA:
-            return GPU_TEVOP_A_ONE_MINUS_SRC_ALPHA;
+            return COMBINEROPALPHA_ONE_MINUS_SRC_ALPHA;
         case GL_SRC_R_PICA:
-            return GPU_TEVOP_A_SRC_R;
+            return COMBINEROPALPHA_SRC_R;
         case GL_ONE_MINUS_SRC_R_PICA:
-            return GPU_TEVOP_A_ONE_MINUS_SRC_R;
+            return COMBINEROPALPHA_ONE_MINUS_SRC_R;
         case GL_SRC_G_PICA:
-            return GPU_TEVOP_A_SRC_G;
+            return COMBINEROPALPHA_SRC_G;
         case GL_ONE_MINUS_SRC_G_PICA:
-            return GPU_TEVOP_A_ONE_MINUS_SRC_G;
+            return COMBINEROPALPHA_ONE_MINUS_SRC_G;
         case GL_SRC_B_PICA:
-            return GPU_TEVOP_A_SRC_B;
+            return COMBINEROPALPHA_SRC_B;
         case GL_ONE_MINUS_SRC_B_PICA:
-            return GPU_TEVOP_A_ONE_MINUS_SRC_B;
+            return COMBINEROPALPHA_ONE_MINUS_SRC_B;
     }
 
-    UNREACHABLE("Invalid parameter!");
+    KYGX_UNREACHABLE("Invalid parameter!");
 }
 
-static GPU_COMBINEFUNC GLASS_unwrapCombinerFunc(GLenum func) {
+static inline GPUCombinerFunc unwrapCombinerFunc(GLenum func) {
     switch (func) {
         case GL_REPLACE:
-            return GPU_REPLACE;
+            return COMBINERFUNC_REPLACE;
         case GL_MODULATE:
-            return GPU_MODULATE;
+            return COMBINERFUNC_MODULATE;
         case GL_ADD:
-            return GPU_ADD;
+            return COMBINERFUNC_ADD;
         case GL_ADD_SIGNED:
-            return GPU_ADD_SIGNED;
+            return COMBINERFUNC_ADD_SIGNED;
         case GL_INTERPOLATE:
-            return GPU_INTERPOLATE;
+            return COMBINERFUNC_INTERPOLATE;
         case GL_SUBTRACT:
-            return GPU_SUBTRACT;
+            return COMBINERFUNC_SUBTRACT;
         case GL_DOT3_RGB:
-            return GPU_DOT3_RGB;
+            return COMBINERFUNC_DOT3_RGB;
         case GL_DOT3_RGBA:
-            return GPU_DOT3_RGBA;
+            return COMBINERFUNC_DOT3_RGBA;
         case GL_MULT_ADD_PICA:
-            return GPU_MULTIPLY_ADD;
+            return COMBINERFUNC_MULTIPLY_ADD;
         case GL_ADD_MULT_PICA:
-            return GPU_ADD_MULTIPLY;
+            return COMBINERFUNC_ADD_MULTIPLY;
     }
 
-    UNREACHABLE("Invalid parameter!");
+    KYGX_UNREACHABLE("Invalid parameter!");
 }
 
-static GPU_TEVSCALE GLASS_unwrapCombinerScale(GLfloat scale) {
+static inline GPUCombinerScale unwrapCombinerScale(GLfloat scale) {
     if (scale == 1.0f)
-        return GPU_TEVSCALE_1;
+        return COMBINERSCALE_1;
 
     if (scale == 2.0f)
-        return GPU_TEVSCALE_2;
+        return COMBINERSCALE_2;
 
     if (scale == 4.0f)
-        return GPU_TEVSCALE_4;
+        return COMBINERSCALE_4;
 
-    UNREACHABLE("Invalid parameter!");
+    KYGX_UNREACHABLE("Invalid parameter!");
 }
 
-void GLASS_gpu_setCombiners(glassGPUCommandList* list, const CombinerInfo* combiners) {
-    ASSERT(combiners);
+void GLASS_gpu_setCombiners(GLASSGPUCommandList* list, const CombinerInfo* combiners) {
+    KYGX_ASSERT(combiners);
 
     const size_t offsets[GLASS_NUM_COMBINER_STAGES] = {
         GPUREG_TEXENV0_SOURCE, GPUREG_TEXENV1_SOURCE, GPUREG_TEXENV2_SOURCE,
@@ -738,76 +738,76 @@ void GLASS_gpu_setCombiners(glassGPUCommandList* list, const CombinerInfo* combi
         u32 params[5];
         const CombinerInfo* combiner = &combiners[i];
 
-        params[0] = GLASS_unwrapCombinerSrc(combiner->rgbSrc[0]);
-        params[0] |= (GLASS_unwrapCombinerSrc(combiner->rgbSrc[1]) << 4);
-        params[0] |= (GLASS_unwrapCombinerSrc(combiner->rgbSrc[2]) << 8);
-        params[0] |= (GLASS_unwrapCombinerSrc(combiner->alphaSrc[0]) << 16);
-        params[0] |= (GLASS_unwrapCombinerSrc(combiner->alphaSrc[1]) << 20);
-        params[0] |= (GLASS_unwrapCombinerSrc(combiner->alphaSrc[2]) << 24);
-        params[1] = GLASS_unwrapCombinerOpRGB(combiner->rgbOp[0]);
-        params[1] |= (GLASS_unwrapCombinerOpRGB(combiner->rgbOp[1]) << 4);
-        params[1] |= (GLASS_unwrapCombinerOpRGB(combiner->rgbOp[2]) << 8);
-        params[1] |= (GLASS_unwrapCombinerOpAlpha(combiner->alphaOp[0]) << 12);
-        params[1] |= (GLASS_unwrapCombinerOpAlpha(combiner->alphaOp[1]) << 16);
-        params[1] |= (GLASS_unwrapCombinerOpAlpha(combiner->alphaOp[2]) << 20);
-        params[2] = GLASS_unwrapCombinerFunc(combiner->rgbFunc);
-        params[2] |= (GLASS_unwrapCombinerFunc(combiner->alphaFunc) << 16);
+        params[0] = unwrapCombinerSrc(combiner->rgbSrc[0]);
+        params[0] |= (unwrapCombinerSrc(combiner->rgbSrc[1]) << 4);
+        params[0] |= (unwrapCombinerSrc(combiner->rgbSrc[2]) << 8);
+        params[0] |= (unwrapCombinerSrc(combiner->alphaSrc[0]) << 16);
+        params[0] |= (unwrapCombinerSrc(combiner->alphaSrc[1]) << 20);
+        params[0] |= (unwrapCombinerSrc(combiner->alphaSrc[2]) << 24);
+        params[1] = unwrapCombinerOpRGB(combiner->rgbOp[0]);
+        params[1] |= (unwrapCombinerOpRGB(combiner->rgbOp[1]) << 4);
+        params[1] |= (unwrapCombinerOpRGB(combiner->rgbOp[2]) << 8);
+        params[1] |= (unwrapCombinerOpAlpha(combiner->alphaOp[0]) << 12);
+        params[1] |= (unwrapCombinerOpAlpha(combiner->alphaOp[1]) << 16);
+        params[1] |= (unwrapCombinerOpAlpha(combiner->alphaOp[2]) << 20);
+        params[2] = unwrapCombinerFunc(combiner->rgbFunc);
+        params[2] |= (unwrapCombinerFunc(combiner->alphaFunc) << 16);
         params[3] = combiner->color;
-        params[4] = GLASS_unwrapCombinerScale(combiner->rgbScale);
-        params[4] |= (GLASS_unwrapCombinerScale(combiner->alphaScale) << 16);
+        params[4] = unwrapCombinerScale(combiner->rgbScale);
+        params[4] |= (unwrapCombinerScale(combiner->alphaScale) << 16);
 
-        GLASS_addIncrementalWrites(list, offsets[i], params, 5);
+        addIncrementalWrites(list, offsets[i], params, 5);
     }
 }
 
-static GPU_FRAGOPMODE GLASS_unwrapFragOpMode(GLenum mode) {
+static inline GPUFragOpMode unwrapFragOpMode(GLenum mode) {
     switch (mode) {
         case GL_FRAGOP_MODE_DEFAULT_PICA:
-            return GPU_FRAGOPMODE_GL;
+            return FRAGOPMODE_DEFAULT;
         case GL_FRAGOP_MODE_SHADOW_PICA:
-            return GPU_FRAGOPMODE_SHADOW;
+            return FRAGOPMODE_SHADOW;
         case GL_FRAGOP_MODE_GAS_PICA:
-            return GPU_FRAGOPMODE_GAS_ACC;
+            return FRAGOPMODE_GAS;
             break;
     }
 
-    UNREACHABLE("Invalid parameter!");
+    KYGX_UNREACHABLE("Invalid parameter!");
 }
 
-void GLASS_gpu_setFragOp(glassGPUCommandList* list, GLenum mode, bool blendMode) {
-    GLASS_addMaskedWrite(list, GPUREG_COLOR_OPERATION, 0x07, 0xE40000 | (blendMode ? 0x100 : 0x0) | GLASS_unwrapFragOpMode(mode));
+void GLASS_gpu_setFragOp(GLASSGPUCommandList* list, GLenum mode, bool blendMode) {
+    addMaskedWrite(list, GPUREG_COLOR_OPERATION, 0x07, 0xE40000 | (blendMode ? 0x100 : 0x0) | unwrapFragOpMode(mode));
 }
 
-static GPU_TESTFUNC GLASS_unwrapTestFunc(GLenum func) {
+static inline GPUTestFunc unwrapTestFunc(GLenum func) {
     switch (func) {
         case GL_NEVER:
-            return GPU_NEVER;
+            return TESTFUNC_NEVER;
         case GL_LESS:
-            return GPU_LESS;
+            return TESTFUNC_LESS;
         case GL_EQUAL:
-            return GPU_EQUAL;
+            return TESTFUNC_EQUAL;
         case GL_LEQUAL:
-            return GPU_LEQUAL;
+            return TESTFUNC_LEQUAL;
         case GL_GREATER:
-            return GPU_GREATER;
+            return TESTFUNC_GREATER;
         case GL_NOTEQUAL:
-            return GPU_NOTEQUAL;
+            return TESTFUNC_NOTEQUAL;
         case GL_GEQUAL:
-            return GPU_GEQUAL;
+            return TESTFUNC_GEQUAL;
         case GL_ALWAYS:
-            return GPU_ALWAYS;
+            return TESTFUNC_ALWAYS;
     }
 
-    UNREACHABLE("Invalid parameter!");
+    KYGX_UNREACHABLE("Invalid parameter!");
 }
 
-void GLASS_gpu_setColorDepthMask(glassGPUCommandList* list, bool writeRed, bool writeGreen, bool writeBlue, bool writeAlpha, bool writeDepth, bool depthTest, GLenum depthFunc) {
+void GLASS_gpu_setColorDepthMask(GLASSGPUCommandList* list, bool writeRed, bool writeGreen, bool writeBlue, bool writeAlpha, bool writeDepth, bool depthTest, GLenum depthFunc) {
     u32 value = (writeRed ? 0x0100 : 0x00) | (writeGreen ? 0x0200 : 0x00) | (writeBlue ? 0x0400 : 0x00) | (writeAlpha ? 0x0800 : 0x00);
-    value |= (GLASS_unwrapTestFunc(depthFunc) << 4) | (writeDepth ? 0x1000 : 0x00) | (depthTest ? 1 : 0);
-    GLASS_addMaskedWrite(list, GPUREG_DEPTH_COLOR_MASK, 0x03, value);
+    value |= (unwrapTestFunc(depthFunc) << 4) | (writeDepth ? 0x1000 : 0x00) | (depthTest ? 1 : 0);
+    addMaskedWrite(list, GPUREG_DEPTH_COLOR_MASK, 0x03, value);
 }
 
-static float GLASS_getDepthMapOffset(GLenum format, GLfloat units) {
+static inline float getDepthMapOffset(GLenum format, GLfloat units) {
     switch (format) {
         case GL_DEPTH_COMPONENT16:
             return units / 65535.0f;
@@ -816,213 +816,213 @@ static float GLASS_getDepthMapOffset(GLenum format, GLfloat units) {
             return units / 16777215.0f;
     }
 
-    UNREACHABLE("Invalid parameter!");
+    KYGX_UNREACHABLE("Invalid parameter!");
 }
 
-void GLASS_gpu_setDepthMap(glassGPUCommandList* list, bool enabled, GLclampf nearVal, GLclampf farVal, GLfloat units, GLenum format) {
-    ASSERT(nearVal >= 0.0f && nearVal <= 1.0f);
-    ASSERT(farVal >= 0.0f && farVal <= 1.0f);
+void GLASS_gpu_setDepthMap(GLASSGPUCommandList* list, bool enabled, GLclampf nearVal, GLclampf farVal, GLfloat units, GLenum format) {
+    KYGX_ASSERT(nearVal >= 0.0f && nearVal <= 1.0f);
+    KYGX_ASSERT(farVal >= 0.0f && farVal <= 1.0f);
 
-    const float offset = GLASS_getDepthMapOffset(format, units);
+    const float offset = getDepthMapOffset(format, units);
     
-    GLASS_addMaskedWrite(list, GPUREG_DEPTHMAP_ENABLE, 0x01, enabled ? 1 : 0);
-    GLASS_addWrite(list, GPUREG_DEPTHMAP_SCALE, f32tof24(nearVal - farVal));
-    GLASS_addWrite(list, GPUREG_DEPTHMAP_OFFSET, f32tof24(nearVal + offset));
+    addMaskedWrite(list, GPUREG_DEPTHMAP_ENABLE, 0x01, enabled ? 1 : 0);
+    addWrite(list, GPUREG_DEPTHMAP_SCALE, GLASS_math_f32tof24(nearVal - farVal));
+    addWrite(list, GPUREG_DEPTHMAP_OFFSET, GLASS_math_f32tof24(nearVal + offset));
 }
 
-void GLASS_gpu_setEarlyDepthTest(glassGPUCommandList* list, bool enabled) {
-    GLASS_addMaskedWrite(list, GPUREG_EARLYDEPTH_TEST1, 0x01, enabled ? 1 : 0);
-    GLASS_addMaskedWrite(list, GPUREG_EARLYDEPTH_TEST2, 0x01, enabled ? 1 : 0);
+void GLASS_gpu_setEarlyDepthTest(GLASSGPUCommandList* list, bool enabled) {
+    addMaskedWrite(list, GPUREG_EARLYDEPTH_TEST1, 0x01, enabled ? 1 : 0);
+    addMaskedWrite(list, GPUREG_EARLYDEPTH_TEST2, 0x01, enabled ? 1 : 0);
 }
 
-void GLASS_gpu_setEarlyDepthFunc(glassGPUCommandList* list, GPU_EARLYDEPTHFUNC func) { GLASS_addMaskedWrite(list, GPUREG_EARLYDEPTH_FUNC, 0x01, func); }
+void GLASS_gpu_setEarlyDepthFunc(GLASSGPUCommandList* list, GPUEarlyDepthFunc func) { addMaskedWrite(list, GPUREG_EARLYDEPTH_FUNC, 0x01, func); }
 
-void GLASS_gpu_setEarlyDepthClear(glassGPUCommandList* list, GLclampf value) {
-    ASSERT(value >= 0.0f && value <= 1.0f);
-    GLASS_addMaskedWrite(list, GPUREG_EARLYDEPTH_DATA, 0x07, 0xFFFFFF * value);
+void GLASS_gpu_setEarlyDepthClear(GLASSGPUCommandList* list, GLclampf value) {
+    KYGX_ASSERT(value >= 0.0f && value <= 1.0f);
+    addMaskedWrite(list, GPUREG_EARLYDEPTH_DATA, 0x07, 0xFFFFFF * value);
 }
 
-void GLASS_gpu_clearEarlyDepthBuffer(glassGPUCommandList* list) { GLASS_addWrite(list, GPUREG_EARLYDEPTH_CLEAR, 1); }
+void GLASS_gpu_clearEarlyDepthBuffer(GLASSGPUCommandList* list) { addWrite(list, GPUREG_EARLYDEPTH_CLEAR, 1); }
 
-void GLASS_gpu_setStencilTest(glassGPUCommandList* list, bool enabled, GLenum func, GLint ref, GLuint mask, GLuint writeMask) {
-    GLASS_addWrite(list, GPUREG_STENCIL_TEST, (GLASS_unwrapTestFunc(func) << 4) | ((u8)writeMask << 8) | ((s8)ref << 16) | ((u8)mask << 24) | (enabled ? 1 : 0));
+void GLASS_gpu_setStencilTest(GLASSGPUCommandList* list, bool enabled, GLenum func, GLint ref, GLuint mask, GLuint writeMask) {
+    addWrite(list, GPUREG_STENCIL_TEST, (unwrapTestFunc(func) << 4) | ((u8)writeMask << 8) | ((s8)ref << 16) | ((u8)mask << 24) | (enabled ? 1 : 0));
 }
 
-static GPU_STENCILOP GLASS_unwrapStencilOp(GLenum op) {
+static inline GPUStencilOp unwrapStencilOp(GLenum op) {
     switch (op) {
         case GL_KEEP:
-            return GPU_STENCIL_KEEP;
+            return STENCILOP_KEEP;
         case GL_ZERO:
-            return GPU_STENCIL_ZERO;
+            return STENCILOP_ZERO;
         case GL_REPLACE:
-            return GPU_STENCIL_REPLACE;
+            return STENCILOP_REPLACE;
         case GL_INCR:
-            return GPU_STENCIL_INCR;
+            return STENCILOP_INCR;
         case GL_INCR_WRAP:
-            return GPU_STENCIL_INCR_WRAP;
+            return STENCILOP_INCR_WRAP;
         case GL_DECR:
-            return GPU_STENCIL_DECR;
+            return STENCILOP_DECR;
         case GL_DECR_WRAP:
-            return GPU_STENCIL_DECR_WRAP;
+            return STENCILOP_DECR_WRAP;
         case GL_INVERT:
-            return GPU_STENCIL_INVERT;
+            return STENCILOP_INVERT;
     }
 
-    UNREACHABLE("Invalid parameter!");
+    KYGX_UNREACHABLE("Invalid parameter!");
 }
 
-void GLASS_gpu_setStencilOp(glassGPUCommandList* list, GLenum sfail, GLenum dpfail, GLenum dppass) { GLASS_addMaskedWrite(list, GPUREG_STENCIL_OP, 0x03, GLASS_unwrapStencilOp(sfail) | (GLASS_unwrapStencilOp(dpfail) << 4) | (GLASS_unwrapStencilOp(dppass) << 8)); }
+void GLASS_gpu_setStencilOp(GLASSGPUCommandList* list, GLenum sfail, GLenum dpfail, GLenum dppass) { addMaskedWrite(list, GPUREG_STENCIL_OP, 0x03, unwrapStencilOp(sfail) | (unwrapStencilOp(dpfail) << 4) | (unwrapStencilOp(dppass) << 8)); }
 
-void GLASS_gpu_setCullFace(glassGPUCommandList* list, bool enabled, GLenum cullFace, GLenum frontFace) {
+void GLASS_gpu_setCullFace(GLASSGPUCommandList* list, bool enabled, GLenum cullFace, GLenum frontFace) {
     // Essentially:
     // - set FRONT-CCW for FRONT-CCW/BACK-CW;
     // - set BACK-CCW in all other cases.
-    const GPU_CULLMODE mode = ((cullFace == GL_FRONT) != (frontFace == GL_CCW)) ? GPU_CULL_BACK_CCW : GPU_CULL_FRONT_CCW;
-    GLASS_addMaskedWrite(list, GPUREG_FACECULLING_CONFIG, 0x01, enabled ? mode : GPU_CULL_NONE);
+    const GPUCullMode mode = ((cullFace == GL_FRONT) != (frontFace == GL_CCW)) ? CULLMODE_BACK_CCW : CULLMODE_FRONT_CCW;
+    addMaskedWrite(list, GPUREG_FACECULLING_CONFIG, 0x01, enabled ? mode : CULLMODE_NONE);
 }
 
-void GLASS_gpu_setAlphaTest(glassGPUCommandList* list, bool enabled, GLenum func, GLclampf ref) {
-    ASSERT(ref >= 0.0f && ref <= 1.0f);
-    GLASS_addMaskedWrite(list, GPUREG_FRAGOP_ALPHA_TEST, 0x03, (GLASS_unwrapTestFunc(func) << 4) | ((u32)(ref * 0xFF) << 8) | (enabled ? 1 : 0));
+void GLASS_gpu_setAlphaTest(GLASSGPUCommandList* list, bool enabled, GLenum func, GLclampf ref) {
+    KYGX_ASSERT(ref >= 0.0f && ref <= 1.0f);
+    addMaskedWrite(list, GPUREG_FRAGOP_ALPHA_TEST, 0x03, (unwrapTestFunc(func) << 4) | ((u32)(ref * 0xFF) << 8) | (enabled ? 1 : 0));
 }
 
-static GPU_BLENDEQUATION GLASS_unwrapBlendEq(GLenum eq) {
+static inline GPUBlendEq unwrapBlendEq(GLenum eq) {
     switch (eq) {
         case GL_FUNC_ADD:
-            return GPU_BLEND_ADD;
+            return BLENDEQ_ADD;
         case GL_MIN:
-            return GPU_BLEND_MIN;
+            return BLENDEQ_MIN;
         case GL_MAX:
-            return GPU_BLEND_MAX;
+            return BLENDEQ_MAX;
         case GL_FUNC_SUBTRACT:
-            return GPU_BLEND_SUBTRACT;
+            return BLENDEQ_SUBTRACT;
         case GL_FUNC_REVERSE_SUBTRACT:
-            return GPU_BLEND_REVERSE_SUBTRACT;
+            return BLENDEQ_REVERSE_SUBTRACT;
     }
 
-    UNREACHABLE("Invalid parameter!");
+    KYGX_UNREACHABLE("Invalid parameter!");
 }
 
-static GPU_BLENDFACTOR GLASS_unwrapBlendFactor(GLenum func) {
+static inline GPUBlendFactor unwrapBlendFactor(GLenum func) {
     switch (func) {
         case GL_ZERO:
-            return GPU_ZERO;
+            return BLENDFACTOR_ZERO;
         case GL_ONE:
-            return GPU_ONE;
+            return BLENDFACTOR_ONE;
         case GL_SRC_COLOR:
-            return GPU_SRC_COLOR;
+            return BLENDFACTOR_SRC_COLOR;
         case GL_ONE_MINUS_SRC_COLOR:
-            return GPU_ONE_MINUS_SRC_COLOR;
+            return BLENDFACTOR_ONE_MINUS_SRC_COLOR;
         case GL_DST_COLOR:
-            return GPU_DST_COLOR;
+            return BLENDFACTOR_DST_COLOR;
         case GL_ONE_MINUS_DST_COLOR:
-            return GPU_ONE_MINUS_DST_COLOR;
+            return BLENDFACTOR_ONE_MINUS_DST_COLOR;
         case GL_SRC_ALPHA:
-            return GPU_SRC_ALPHA;
+            return BLENDFACTOR_SRC_ALPHA;
         case GL_ONE_MINUS_SRC_ALPHA:
-            return GPU_ONE_MINUS_SRC_ALPHA;
+            return BLENDFACTOR_ONE_MINUS_SRC_ALPHA;
         case GL_DST_ALPHA:
-            return GPU_DST_ALPHA;
+            return BLENDFACTOR_DST_ALPHA;
         case GL_ONE_MINUS_DST_ALPHA:
-            return GPU_ONE_MINUS_DST_ALPHA;
+            return BLENDFACTOR_ONE_MINUS_DST_ALPHA;
         case GL_CONSTANT_COLOR:
-            return GPU_CONSTANT_COLOR;
+            return BLENDFACTOR_CONSTANT_COLOR;
         case GL_ONE_MINUS_CONSTANT_COLOR:
-            return GPU_ONE_MINUS_CONSTANT_COLOR;
+            return BLENDFACTOR_ONE_MINUS_CONSTANT_COLOR;
         case GL_CONSTANT_ALPHA:
-            return GPU_CONSTANT_ALPHA;
+            return BLENDFACTOR_CONSTANT_ALPHA;
         case GL_ONE_MINUS_CONSTANT_ALPHA:
-            return GPU_ONE_MINUS_CONSTANT_ALPHA;
+            return BLENDFACTOR_ONE_MINUS_CONSTANT_ALPHA;
         case GL_SRC_ALPHA_SATURATE:
-            return GPU_SRC_ALPHA_SATURATE;
+            return BLENDFACTOR_SRC_ALPHA_SATURATE;
     }
 
-    UNREACHABLE("Invalid parameter!");
+    KYGX_UNREACHABLE("Invalid parameter!");
 }
 
-void GLASS_gpu_setBlendFunc(glassGPUCommandList* list, GLenum rgbEq, GLenum alphaEq, GLenum srcColor, GLenum dstColor, GLenum srcAlpha, GLenum dstAlpha) {
-    const GPU_BLENDEQUATION gpuRGBEq = GLASS_unwrapBlendEq(rgbEq);
-    const GPU_BLENDEQUATION gpuAlphaEq = GLASS_unwrapBlendEq(alphaEq);
-    const GPU_BLENDFACTOR gpuSrcColor = GLASS_unwrapBlendFactor(srcColor);
-    const GPU_BLENDFACTOR gpuDstColor = GLASS_unwrapBlendFactor(dstColor);
-    const GPU_BLENDFACTOR gpuSrcAlpha = GLASS_unwrapBlendFactor(srcAlpha);
-    const GPU_BLENDFACTOR gpuDstAlpha = GLASS_unwrapBlendFactor(dstAlpha);
-    GLASS_addWrite(list, GPUREG_BLEND_FUNC, (gpuDstAlpha << 28) | (gpuSrcAlpha << 24) | (gpuDstColor << 20) | (gpuSrcColor << 16) | (gpuAlphaEq << 8) | gpuRGBEq);
+void GLASS_gpu_setBlendFunc(GLASSGPUCommandList* list, GLenum rgbEq, GLenum alphaEq, GLenum srcColor, GLenum dstColor, GLenum srcAlpha, GLenum dstAlpha) {
+    const GPUBlendEq nativeRGBEq = unwrapBlendEq(rgbEq);
+    const GPUBlendEq nativeAlphaEq = unwrapBlendEq(alphaEq);
+    const GPUBlendFactor nativeSrcColor = unwrapBlendFactor(srcColor);
+    const GPUBlendFactor nativeDstColor = unwrapBlendFactor(dstColor);
+    const GPUBlendFactor nativeSrcAlpha = unwrapBlendFactor(srcAlpha);
+    const GPUBlendFactor nativeDstAlpha = unwrapBlendFactor(dstAlpha);
+    addWrite(list, GPUREG_BLEND_FUNC, (nativeDstAlpha << 28) | (nativeSrcAlpha << 24) | (nativeDstColor << 20) | (nativeSrcColor << 16) | (nativeAlphaEq << 8) | nativeRGBEq);
 }
 
-void GLASS_gpu_setBlendColor(glassGPUCommandList* list, u32 color) { GLASS_addWrite(list, GPUREG_BLEND_COLOR, color); }
+void GLASS_gpu_setBlendColor(GLASSGPUCommandList* list, u32 color) { addWrite(list, GPUREG_BLEND_COLOR, color); }
 
-static GPU_LOGICOP GLASS_unwrapLogicOp(GLenum op) {
+static inline GPULogicOp unwrapLogicOp(GLenum op) {
     switch (op) {
         case GL_CLEAR:
-            return GPU_LOGICOP_CLEAR;
+            return LOGICOP_CLEAR;
         case GL_AND:
-            return GPU_LOGICOP_AND;
+            return LOGICOP_AND;
         case GL_AND_REVERSE:
-            return GPU_LOGICOP_AND_REVERSE;
+            return LOGICOP_AND_REVERSE;
         case GL_COPY:
-            return GPU_LOGICOP_COPY;
+            return LOGICOP_COPY;
         case GL_AND_INVERTED:
-            return GPU_LOGICOP_AND_INVERTED;
+            return LOGICOP_AND_INVERTED;
         case GL_NOOP:
-            return GPU_LOGICOP_NOOP;
+            return LOGICOP_NOOP;
         case GL_XOR:
-            return GPU_LOGICOP_XOR;
+            return LOGICOP_XOR;
         case GL_OR:
-            return GPU_LOGICOP_OR;
+            return LOGICOP_OR;
         case GL_NOR:
-            return GPU_LOGICOP_NOR;
+            return LOGICOP_NOR;
         case GL_EQUIV:
-            return GPU_LOGICOP_EQUIV;
+            return LOGICOP_EQUIV;
         case GL_INVERT:
-            return GPU_LOGICOP_INVERT;
+            return LOGICOP_INVERT;
         case GL_OR_REVERSE:
-            return GPU_LOGICOP_OR_REVERSE;
+            return LOGICOP_OR_REVERSE;
         case GL_COPY_INVERTED:
-            return GPU_LOGICOP_COPY_INVERTED;
+            return LOGICOP_COPY_INVERTED;
         case GL_OR_INVERTED:
-            return GPU_LOGICOP_OR_INVERTED;
+            return LOGICOP_OR_INVERTED;
         case GL_NAND:
-            return GPU_LOGICOP_NAND;
+            return LOGICOP_NAND;
         case GL_SET:
-            return GPU_LOGICOP_SET;
+            return LOGICOP_SET;
     }
 
-    UNREACHABLE("Invalid parameter!");
+    KYGX_UNREACHABLE("Invalid parameter!");
 }
 
-void GLASS_gpu_setLogicOp(glassGPUCommandList* list, GLenum op) { GLASS_addMaskedWrite(list, GPUREG_LOGIC_OP, 0x01, GLASS_unwrapLogicOp(op)); }
+void GLASS_gpu_setLogicOp(GLASSGPUCommandList* list, GLenum op) { addMaskedWrite(list, GPUREG_LOGIC_OP, 0x01, unwrapLogicOp(op)); }
 
-static GPU_Primitive_t GLASS_unwrapDrawPrimitive(GLenum mode) {
+static inline GPUPrimitive unwrapDrawPrimitive(GLenum mode) {
     switch (mode) {
         case GL_TRIANGLES:
-            return GPU_TRIANGLES;
+            return PRIMITIVE_TRIANGLES;
         case GL_TRIANGLE_STRIP:
-            return GPU_TRIANGLE_STRIP;
+            return PRIMITIVE_TRIANGLE_STRIP;
         case GL_TRIANGLE_FAN:
-            return GPU_TRIANGLE_FAN;
+            return PRIMITIVE_TRIANGLE_FAN;
         case GL_GEOMETRY_PRIMITIVE_PICA:
-            return GPU_GEOMETRY_PRIM;
+            return PRIMITIVE_GEOMETRY;
     }
 
-    UNREACHABLE("Invalid parameter!");
+    KYGX_UNREACHABLE("Invalid parameter!");
 }
 
-void GLASS_gpu_drawArrays(glassGPUCommandList* list, GLenum mode, GLint first, GLsizei count) {
-    GLASS_addMaskedWrite(list, GPUREG_PRIMITIVE_CONFIG, 2, GLASS_unwrapDrawPrimitive(mode));
-    GLASS_addWrite(list, GPUREG_RESTART_PRIMITIVE, 1);
-    GLASS_addWrite(list, GPUREG_INDEXBUFFER_CONFIG, 0x80000000);
-    GLASS_addWrite(list, GPUREG_NUMVERTICES, count);
-    GLASS_addWrite(list, GPUREG_VERTEX_OFFSET, first);
-    GLASS_addMaskedWrite(list, GPUREG_GEOSTAGE_CONFIG2, 1, 1);
-    GLASS_addMaskedWrite(list, GPUREG_START_DRAW_FUNC0, 1, 0);
-    GLASS_addWrite(list, GPUREG_DRAWARRAYS, 1);
-    GLASS_addMaskedWrite(list, GPUREG_START_DRAW_FUNC0, 1, 1);
-    GLASS_addMaskedWrite(list, GPUREG_GEOSTAGE_CONFIG2, 1, 0);
-    GLASS_addWrite(list, GPUREG_VTX_FUNC, 1);
+void GLASS_gpu_drawArrays(GLASSGPUCommandList* list, GLenum mode, GLint first, GLsizei count) {
+    addMaskedWrite(list, GPUREG_PRIMITIVE_CONFIG, 2, unwrapDrawPrimitive(mode) << 8);
+    addWrite(list, GPUREG_RESTART_PRIMITIVE, 1);
+    addWrite(list, GPUREG_INDEXBUFFER_CONFIG, 0x80000000);
+    addWrite(list, GPUREG_NUMVERTICES, count);
+    addWrite(list, GPUREG_VERTEX_OFFSET, first);
+    addMaskedWrite(list, GPUREG_GEOSTAGE_CONFIG2, 1, 1);
+    addMaskedWrite(list, GPUREG_START_DRAW_FUNC0, 1, 0);
+    addWrite(list, GPUREG_DRAWARRAYS, 1);
+    addMaskedWrite(list, GPUREG_START_DRAW_FUNC0, 1, 1);
+    addMaskedWrite(list, GPUREG_GEOSTAGE_CONFIG2, 1, 0);
+    addWrite(list, GPUREG_VTX_FUNC, 1);
 }
 
-static u32 GLASS_unwrapDrawType(GLenum type) {
+static inline u32 unwrapDrawType(GLenum type) {
     switch (type) {
         case GL_UNSIGNED_BYTE:
             return 0;
@@ -1030,86 +1030,86 @@ static u32 GLASS_unwrapDrawType(GLenum type) {
             return 1;
     }
 
-    UNREACHABLE("Invalid parameter!");
+    KYGX_UNREACHABLE("Invalid parameter!");
 }
 
-void GLASS_gpu_drawElements(glassGPUCommandList* list, GLenum mode, GLsizei count, GLenum type, u32 physIndices) {
-    const GPU_Primitive_t primitive = GLASS_unwrapDrawPrimitive(mode);
+void GLASS_gpu_drawElements(GLASSGPUCommandList* list, GLenum mode, GLsizei count, GLenum type, u32 physIndices) {
+    const GPUPrimitive primitive = unwrapDrawPrimitive(mode);
 
-    GLASS_addMaskedWrite(list, GPUREG_PRIMITIVE_CONFIG, 2, primitive != GPU_TRIANGLES ? primitive : GPU_GEOMETRY_PRIM);
+    addMaskedWrite(list, GPUREG_PRIMITIVE_CONFIG, 2, (primitive != PRIMITIVE_TRIANGLES ? primitive : PRIMITIVE_GEOMETRY) << 8);
 
-    GLASS_addWrite(list, GPUREG_RESTART_PRIMITIVE, 1);
-    GLASS_addWrite(list, GPUREG_INDEXBUFFER_CONFIG, (physIndices - PHYSICAL_LINEAR_BASE) | (GLASS_unwrapDrawType(type) << 31));
+    addWrite(list, GPUREG_RESTART_PRIMITIVE, 1);
+    addWrite(list, GPUREG_INDEXBUFFER_CONFIG, (physIndices - PHYSICAL_LINEAR_BASE) | (unwrapDrawType(type) << 31));
 
-    GLASS_addWrite(list, GPUREG_NUMVERTICES, count);
-    GLASS_addWrite(list, GPUREG_VERTEX_OFFSET, 0);
+    addWrite(list, GPUREG_NUMVERTICES, count);
+    addWrite(list, GPUREG_VERTEX_OFFSET, 0);
 
-    if (primitive == GPU_TRIANGLES) {
-        GLASS_addMaskedWrite(list, GPUREG_GEOSTAGE_CONFIG, 2, 0x100);
-        GLASS_addMaskedWrite(list, GPUREG_GEOSTAGE_CONFIG2, 2, 0x100);
+    if (primitive == PRIMITIVE_TRIANGLES) {
+        addMaskedWrite(list, GPUREG_GEOSTAGE_CONFIG, 2, 0x100);
+        addMaskedWrite(list, GPUREG_GEOSTAGE_CONFIG2, 2, 0x100);
     }
 
-    GLASS_addMaskedWrite(list, GPUREG_START_DRAW_FUNC0, 1, 0);
-    GLASS_addWrite(list, GPUREG_DRAWELEMENTS, 1);
-    GLASS_addMaskedWrite(list, GPUREG_START_DRAW_FUNC0, 1, 1);
+    addMaskedWrite(list, GPUREG_START_DRAW_FUNC0, 1, 0);
+    addWrite(list, GPUREG_DRAWELEMENTS, 1);
+    addMaskedWrite(list, GPUREG_START_DRAW_FUNC0, 1, 1);
 
-    if (primitive == GPU_TRIANGLES) {
-        GLASS_addMaskedWrite(list, GPUREG_GEOSTAGE_CONFIG, 2, 0);
-        GLASS_addMaskedWrite(list, GPUREG_GEOSTAGE_CONFIG2, 2, 0);
+    if (primitive == PRIMITIVE_TRIANGLES) {
+        addMaskedWrite(list, GPUREG_GEOSTAGE_CONFIG, 2, 0);
+        addMaskedWrite(list, GPUREG_GEOSTAGE_CONFIG2, 2, 0);
     }
 
-    GLASS_addWrite(list, GPUREG_VTX_FUNC, 1);
-    GLASS_addMaskedWrite(list, GPUREG_PRIMITIVE_CONFIG, 0x08, 0);
-    GLASS_addMaskedWrite(list, GPUREG_PRIMITIVE_CONFIG, 0x08, 0);
+    addWrite(list, GPUREG_VTX_FUNC, 1);
+    addMaskedWrite(list, GPUREG_PRIMITIVE_CONFIG, 0x08, 0);
+    addMaskedWrite(list, GPUREG_PRIMITIVE_CONFIG, 0x08, 0);
 }
 
-static GPU_TEXTURE_FILTER_PARAM GLASS_unwrapTexFilter(GLenum filter) {
+static inline GPUTexFilter unwrapTexFilter(GLenum filter) {
     switch (filter) {
         case GL_NEAREST:
         case GL_NEAREST_MIPMAP_NEAREST:
         case GL_NEAREST_MIPMAP_LINEAR:
-            return GPU_NEAREST;
+            return TEXFILTER_NEAREST;
         case GL_LINEAR:
         case GL_LINEAR_MIPMAP_NEAREST:
         case GL_LINEAR_MIPMAP_LINEAR:
-            return GPU_LINEAR;
+            return TEXFILTER_LINEAR;
     }
 
-    UNREACHABLE("Invalid parameter!");
+    KYGX_UNREACHABLE("Invalid parameter!");
 }
 
-static GPU_TEXTURE_FILTER_PARAM GLASS_unwrapMipFilter(GLenum minFilter) {
+static inline GPUTexFilter unwrapMipFilter(GLenum minFilter) {
     switch (minFilter) {
         case GL_NEAREST:
         case GL_NEAREST_MIPMAP_NEAREST:
         case GL_LINEAR:
         case GL_LINEAR_MIPMAP_NEAREST:
-            return GPU_NEAREST;
+            return TEXFILTER_NEAREST;
         case GL_NEAREST_MIPMAP_LINEAR:
         case GL_LINEAR_MIPMAP_LINEAR:
-            return GPU_LINEAR;
+            return TEXFILTER_LINEAR;
     }
 
-    UNREACHABLE("Invalid parameter!");
+    KYGX_UNREACHABLE("Invalid parameter!");
 }
 
-static GPU_TEXTURE_WRAP_PARAM GLASS_unwrapTexWrap(GLenum wrap) {
+static inline GPUTexWrap unwrapTexWrap(GLenum wrap) {
     switch (wrap) {
         case GL_CLAMP_TO_EDGE:
-            return GPU_CLAMP_TO_EDGE;
+            return TEXWRAP_CLAMP_TO_EDGE;
         case GL_CLAMP_TO_BORDER:
-            return GPU_CLAMP_TO_BORDER;
+            return TEXWRAP_CLAMP_TO_BORDER;
         case GL_MIRRORED_REPEAT:
-            return GPU_MIRRORED_REPEAT;
+            return TEXWRAP_MIRRORED_REPEAT;
         case GL_REPEAT:
-            return GPU_REPEAT;
+            return TEXWRAP_REPEAT;
     }
 
-    UNREACHABLE("Invalid parameter!");
+    KYGX_UNREACHABLE("Invalid parameter!");
 }
 
-void GLASS_gpu_setTextureUnits(glassGPUCommandList* list, const GLuint* units) {
-    ASSERT(units);
+void GLASS_gpu_setTextureUnits(GLASSGPUCommandList* list, const GLuint* units) {
+    KYGX_ASSERT(units);
 
     const u32 setupCmds[3] = { 
         GPUREG_TEXUNIT0_BORDER_COLOR,
@@ -1140,45 +1140,45 @@ void GLASS_gpu_setTextureUnits(glassGPUCommandList* list, const GLuint* units) {
         params[0] = tex->borderColor;
         params[1] = ((u32)(tex->width & 0x3FF) << 16) | (tex->height & 0x3FF);
 
-        const GPU_TEXTURE_FILTER_PARAM minFilter = GLASS_unwrapTexFilter(tex->minFilter);
-        const GPU_TEXTURE_FILTER_PARAM magFilter = GLASS_unwrapTexFilter(tex->magFilter);
-        const GPU_TEXTURE_FILTER_PARAM mipFilter = GLASS_unwrapMipFilter(tex->minFilter);
-        const GPU_TEXTURE_WRAP_PARAM wrapS = GLASS_unwrapTexWrap(tex->wrapS);
-        const GPU_TEXTURE_WRAP_PARAM wrapT = GLASS_unwrapTexWrap(tex->wrapT);
+        const GPUTexFilter minFilter = unwrapTexFilter(tex->minFilter);
+        const GPUTexFilter magFilter = unwrapTexFilter(tex->magFilter);
+        const GPUTexFilter mipFilter = unwrapMipFilter(tex->minFilter);
+        const GPUTexWrap wrapS = unwrapTexWrap(tex->wrapS);
+        const GPUTexWrap wrapT = unwrapTexWrap(tex->wrapT);
 
-        params[2] = (GPU_TEXTURE_MIN_FILTER(minFilter) | GPU_TEXTURE_MAG_FILTER(magFilter) | GPU_TEXTURE_MIP_FILTER(mipFilter) | GPU_TEXTURE_WRAP_S(wrapS) | GPU_TEXTURE_WRAP_T(wrapT));
+        params[2] = (minFilter << 2) | (magFilter << 1) | (mipFilter << 24) | (wrapS << 12) | (wrapT << 8);
         
-        if (tex->pixelFormat.format == GL_ETC1_RGB8_OES)
-            params[2] |= GPU_TEXTURE_ETC1_PARAM;
+        if (tex->pixelFormat == GL_ETC1_RGB8_OES)
+            params[2] |= (1u << 5);
 
         if (i == 0) {
-            params[2] |= GPU_TEXTURE_MODE(tex->target == GL_TEXTURE_CUBE_MAP ? GPU_TEX_CUBE_MAP : GPU_TEX_2D);
+            params[2] |= ((tex->target == GL_TEXTURE_CUBE_MAP ? TEXMODE_CUBEMAP : TEXMODE_2D) << 28);
             // TODO: Shadow
         }
 
-        params[3] = GLASS_utility_f32tofixed13(tex->lodBias) | (((u32)tex->maxLod & 0x0F) << 16) | (((u32)tex->minLod & 0x0F) << 24);
+        params[3] = GLASS_math_f32tofixed13(tex->lodBias) | (((u32)tex->maxLod & 0x0F) << 16) | (((u32)tex->minLod & 0x0F) << 24);
 
-        const u32 mainTexAddr = osConvertVirtToPhys(tex->faces[0]);
-        ASSERT(mainTexAddr);
+        const u32 mainTexAddr = kygxGetPhysicalAddress(tex->faces[0]);
+        KYGX_ASSERT(mainTexAddr);
         params[4] = mainTexAddr >> 3;
 
         if (hasCubeMap) {
             const u32 mask = (mainTexAddr >> 3) & ~(0x3FFFFFu);
 
             for (size_t j = 1; j < GLASS_NUM_TEX_FACES; ++j) {
-                const u32 dataAddr = osConvertVirtToPhys(tex->faces[j]);
-                ASSERT(dataAddr);
-                ASSERT(((dataAddr >> 3) & ~(0x3FFFFFu)) == mask);
+                const u32 dataAddr = kygxGetPhysicalAddress(tex->faces[j]);
+                KYGX_ASSERT(dataAddr);
+                KYGX_ASSERT(((dataAddr >> 3) & ~(0x3FFFFFu)) == mask);
                 params[4 + j] = (dataAddr >> 3) & 0x3FFFFFu;
             }
         }
 
-        GLASS_addIncrementalWrites(list, setupCmds[i], params, hasCubeMap ? 10 : 5);
+        addIncrementalWrites(list, setupCmds[i], params, hasCubeMap ? 10 : 5);
         const GPU_TEXCOLOR format = GLASS_pixels_tryUnwrapTexFormat(&tex->pixelFormat);
-        ASSERT(format != GLASS_INVALID_TEX_FORMAT);
-        GLASS_addWrite(list, typeCmds[i], format);
+        KYGX_ASSERT(format != GLASS_INVALID_TEX_FORMAT);
+        addWrite(list, typeCmds[i], format);
     }
 
-    GLASS_addWrite(list, GPUREG_TEXUNIT_CONFIG, config);
-    GLASS_addMaskedWrite(list, GPUREG_TEXUNIT_CONFIG, 0x4, (1u << 16)); // Clear cache.
+    addWrite(list, GPUREG_TEXUNIT_CONFIG, config);
+    addMaskedWrite(list, GPUREG_TEXUNIT_CONFIG, 0x4, (1u << 16)); // Clear cache.
 }

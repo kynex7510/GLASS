@@ -16,35 +16,6 @@ size_t GLASS_tex_getNumFaces(GLenum target) {
     UNREACHABLE("Invalid parameter!");
 }
 
-size_t GLASS_tex_getOffset(size_t width, size_t height, const glassPixelFormat* pixelFormat, size_t level) {
-    ASSERT(pixelFormat);
-    ASSERT(level <= GLASS_NUM_TEX_LEVELS);
-
-    if (level > 0) {
-        // Basically rewrite the offset in terms of the previous level dimensions:
-        // B * W(L-1) * H(L-1) * (2^2(L-1) + 2^2(L-2) + ... + 2^2(L-L)) / 8
-        const u16 prevWidth = (width >> (level - 1));
-        const u16 prevHeight = (height >> (level - 1));
-        const size_t bpp = GLASS_pixels_bpp(pixelFormat);
-        return ((bpp * prevWidth * prevHeight * (((1u << (level << 1)) - 1) & 0x55555)) >> 3);
-    }
-
-    return 0;
-}
-
-static size_t GLASS_numTexLevels(GLsizei width, GLsizei height) {
-    return 29 - __builtin_clz(MAX(width, height));
-}
-
-size_t GLASS_tex_getAllocSize(size_t width, size_t height, const glassPixelFormat* pixelFormat, size_t levels) {
-    ASSERT(pixelFormat);
-
-    if (levels == -1)
-        levels = GLASS_numTexLevels(width, height);
-
-    return GLASS_tex_getOffset(width, height, pixelFormat, levels);
-}
-
 void GLASS_tex_set(TextureInfo* tex, size_t width, size_t height, const glassPixelFormat* pixelFormat, bool vram, u8** faces) {
     ASSERT(tex);
     ASSERT(faces);
