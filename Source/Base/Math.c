@@ -1,6 +1,6 @@
 #include "Base/Math.h"
 
-static u32 fbits(float f) {
+static inline u32 fbits(float f) {
     union {
         float val;
         u32 bits;
@@ -15,7 +15,7 @@ static u32 fbits(float f) {
 
 // BEGIN CTRU CODE
 
-static float makef(u32 bits) {
+static inline float makef(u32 bits) {
     union {
         float val;
         u32 bits;
@@ -26,7 +26,7 @@ static float makef(u32 bits) {
 }
 
 u32 GLASS_math_f32tof31(float f) {
-    const u32 bits = GLASS_fbits(f);
+    const u32 bits = fbits(f);
 	const u32 mantissa = (bits << 9) >> 9;
 	const u32 sign = bits >> 31;
     const s32 exponent = ((bits << 1) >> 24) - 127 + 63;
@@ -42,7 +42,7 @@ u32 GLASS_math_f32tof31(float f) {
 }
 
 u32 GLASS_math_f32tof24(float f) {
-    const u32 bits = GLASS_fbits(f);
+    const u32 bits = fbits(f);
     const u32 mantissa = ((bits << 9) >> 9) >> 7;
 	const u32 sign = bits >> 31;
 	const s32 exponent = ((bits << 1) >> 24) - 127 + 63;

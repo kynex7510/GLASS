@@ -4,7 +4,7 @@
 #include <stdlib.h> // atoi
 #include <string.h> // strstr, strlen, strncpy, memcpy
 
-static bool GLASS_getUniformLocInfo(GLint loc, size_t* index, size_t* offset, bool* isGeometry) {
+static inline bool getUniformLocInfo(GLint loc, size_t* index, size_t* offset, bool* isGeometry) {
     KYGX_ASSERT(index);
     KYGX_ASSERT(offset);
     KYGX_ASSERT(isGeometry);
@@ -19,7 +19,7 @@ static bool GLASS_getUniformLocInfo(GLint loc, size_t* index, size_t* offset, bo
     return false;
 }
 
-static UniformInfo* GLASS_getShaderUniform(const ProgramInfo* program, size_t index, bool isGeometry) {
+static UniformInfo* getShaderUniform(const ProgramInfo* program, size_t index, bool isGeometry) {
     KYGX_ASSERT(program);
 
     ShaderInfo* shader = NULL;
@@ -105,11 +105,11 @@ void glGetActiveUniform(GLuint program, GLuint index, GLsizei bufSize, GLsizei* 
             *type = GL_FLOAT_VEC4;
             break;
         default:
-            UNREACHABLE("Invalid uniform type!");
+            KYGX_UNREACHABLE("Invalid uniform type!");
     }
 }
 
-static bool GLASS_getBoolUniform(const UniformInfo* info, size_t offset) {
+static inline bool getBoolUniform(const UniformInfo* info, size_t offset) {
     KYGX_ASSERT(info);
     KYGX_ASSERT(info->type == GLASS_UNI_BOOL);
     KYGX_ASSERT(info->count <= GLASS_NUM_BOOL_UNIFORMS);
@@ -118,7 +118,7 @@ static bool GLASS_getBoolUniform(const UniformInfo* info, size_t offset) {
     return (info->data.mask >> offset) & 1;
 }
 
-static void GLASS_getIntUniform(const UniformInfo* info, size_t offset, u32* out) {
+static inline void getIntUniform(const UniformInfo* info, size_t offset, u32* out) {
     KYGX_ASSERT(info);
     KYGX_ASSERT(out);
     KYGX_ASSERT(info->type == GLASS_UNI_INT);
@@ -128,7 +128,7 @@ static void GLASS_getIntUniform(const UniformInfo* info, size_t offset, u32* out
     *out = (info->count == 1) ? info->data.value : info->data.values[offset];
 }
 
-static void GLASS_getFloatUniform(const UniformInfo* info, size_t offset, u32* out) {
+static inline void getFloatUniform(const UniformInfo* info, size_t offset, u32* out) {
     KYGX_ASSERT(info);
     KYGX_ASSERT(out);
     KYGX_ASSERT(info->type == GLASS_UNI_FLOAT);
@@ -137,7 +137,7 @@ static void GLASS_getFloatUniform(const UniformInfo* info, size_t offset, u32* o
     memcpy(out, &info->data.values[3 * offset], 3 * sizeof(u32));
 }
 
-static void GLASS_getUniformValues(GLuint program, GLint location, GLint* intParams, GLfloat* floatParams) {
+static void getUniformValues(GLuint program, GLint location, GLint* intParams, GLfloat* floatParams) {
     KYGX_ASSERT(intParams || floatParams);
 
     if (!GLASS_OBJ_IS_PROGRAM(program)) {
@@ -151,13 +151,13 @@ static void GLASS_getUniformValues(GLuint program, GLint location, GLint* intPar
     size_t locIndex = 0;
     size_t locOffset = 0;
     bool locIsGeometry = 0;
-    if (!GLASS_getUniformLocInfo(location, &locIndex, &locOffset, &locIsGeometry)) {
+    if (!getUniformLocInfo(location, &locIndex, &locOffset, &locIsGeometry)) {
         GLASS_context_setError(GL_INVALID_OPERATION);
         return;
     }
 
     // Get uniform.
-    UniformInfo* uni = GLASS_getShaderUniform(prog, locIndex, locIsGeometry);
+    UniformInfo* uni = getShaderUniform(prog, locIndex, locIsGeometry);
     if (!uni) {
         GLASS_context_setError(GL_INVALID_OPERATION);
         return;
@@ -167,11 +167,11 @@ static void GLASS_getUniformValues(GLuint program, GLint location, GLint* intPar
     if (uni->type == GLASS_UNI_BOOL) {
         if (intParams) {
             KYGX_ASSERT(!floatParams);
-            intParams[0] = GLASS_getBoolUniform(uni, locOffset) ? 1 : 0;
+            intParams[0] = getBoolUniform(uni, locOffset) ? 1 : 0;
         }
 
         if (floatParams)
-            floatParams[0] = GLASS_getBoolUniform(uni, locOffset) ? 1.0f : 0.0f;
+            floatParams[0] = getBoolUniform(uni, locOffset) ? 1.0f : 0.0f;
 
         return;
     }
@@ -180,8 +180,8 @@ static void GLASS_getUniformValues(GLuint program, GLint location, GLint* intPar
     if (uni->type == GLASS_UNI_INT) {
         u32 packed = 0;
         u32 components[4];
-        GLASS_getIntUniform(uni, locOffset, &packed);
-        GLASS_utility_unpackIntVector(packed, components);
+        getIntUniform(uni, locOffset, &packed);
+        GLASS_math_unpackIntVector(packed, components);
 
         if (intParams) {
             KYGX_ASSERT(!floatParams);
@@ -200,7 +200,7 @@ static void GLASS_getUniformValues(GLuint program, GLint location, GLint* intPar
     // Handle float.
     if (uni->type == GLASS_UNI_FLOAT) {
         u32 packed[3];
-        GLASS_getFloatUniform(uni, locOffset, packed);
+        getFloatUniform(uni, locOffset, packed);
 
         if (floatParams) {
             KYGX_ASSERT(!intParams);
@@ -218,13 +218,13 @@ static void GLASS_getUniformValues(GLuint program, GLint location, GLint* intPar
         return;
     }
 
-    UNREACHABLE("Invalid uniform type!");
+    KYGX_UNREACHABLE("Invalid uniform type!");
 }
 
-void glGetUniformfv(GLuint program, GLint location, GLfloat* params) { GLASS_getUniformValues(program, location, NULL, params); }
-void glGetUniformiv(GLuint program, GLint location, GLint* params) { GLASS_getUniformValues(program, location, params, NULL); }
+void glGetUniformfv(GLuint program, GLint location, GLfloat* params) { getUniformValues(program, location, NULL, params); }
+void glGetUniformiv(GLuint program, GLint location, GLint* params) { getUniformValues(program, location, params, NULL); }
 
-static size_t GLASS_extractUniformOffset(const char* name) {
+static size_t extractUniformOffset(const char* name) {
     KYGX_ASSERT(name);
 
     if (strstr(name, ".") || (strstr(name, "gl_") == name))
@@ -241,7 +241,7 @@ static size_t GLASS_extractUniformOffset(const char* name) {
     return atoi(&beg[1]);
 }
 
-static bool GLASS_checkUniformOffset(u8 type, size_t offset) {
+static bool checkUniformOffset(u8 type, size_t offset) {
     switch (type) {
         case GLASS_UNI_BOOL:
             return offset < GLASS_NUM_BOOL_UNIFORMS;
@@ -249,19 +249,21 @@ static bool GLASS_checkUniformOffset(u8 type, size_t offset) {
             return offset < GLASS_NUM_INT_UNIFORMS;
         case GLASS_UNI_FLOAT:
             return offset < GLASS_NUM_FLOAT_UNIFORMS;
+        default:
+            KYGX_UNREACHABLE("Invalid uniform type!");
     }
 
-    UNREACHABLE("Invalid uniform type!");
+    return false;
 }
 
-static GLint GLASS_lookupUniform(const ShaderInfo* shader, const char* name, size_t offset) {
+static GLint lookupUniform(const ShaderInfo* shader, const char* name, size_t offset) {
     for (size_t i = 0; i < shader->numOfActiveUniforms; ++i) {
         const UniformInfo* uni = &shader->activeUniforms[i];
 
         if (strstr(name, uni->symbol) != name)
             continue;
 
-        if (!GLASS_checkUniformOffset(uni->type, offset) || (offset > uni->count))
+        if (!checkUniformOffset(uni->type, offset) || (offset > uni->count))
             break;
 
         // Make location.
@@ -284,7 +286,7 @@ GLint glGetUniformLocation(GLuint program, const GLchar* name) {
     }
 
     // Get offset.
-    const size_t offset = GLASS_extractUniformOffset(name);
+    const size_t offset = extractUniformOffset(name);
     if (offset == -1)
         return -1;
 
@@ -293,10 +295,10 @@ GLint glGetUniformLocation(GLuint program, const GLchar* name) {
         if (GLASS_OBJ_IS_SHADER(prog->linkedVertex)) {
             ShaderInfo* vshad = (ShaderInfo*)prog->linkedVertex;
             ShaderInfo* gshad = (ShaderInfo*)prog->linkedGeometry;
-            GLint loc = GLASS_lookupUniform(vshad, name, offset);
+            GLint loc = lookupUniform(vshad, name, offset);
 
             if ((loc == -1) && gshad)
-                loc = GLASS_lookupUniform(gshad, name, offset);
+                loc = lookupUniform(gshad, name, offset);
 
             return loc;
         }
@@ -305,7 +307,7 @@ GLint glGetUniformLocation(GLuint program, const GLchar* name) {
     return -1;
 }
 
-static void GLASS_setBoolUniform(UniformInfo* info, size_t offset, bool enabled) {
+static inline void setBoolUniform(UniformInfo* info, size_t offset, bool enabled) {
     KYGX_ASSERT(info);
     KYGX_ASSERT(info->type == GLASS_UNI_BOOL);
     KYGX_ASSERT(info->count <= GLASS_NUM_BOOL_UNIFORMS);
@@ -320,7 +322,7 @@ static void GLASS_setBoolUniform(UniformInfo* info, size_t offset, bool enabled)
     info->dirty = true;
 }
 
-static void GLASS_setIntUniform(UniformInfo* info, size_t offset, u32 vector) {
+static inline void setIntUniform(UniformInfo* info, size_t offset, u32 vector) {
     KYGX_ASSERT(info);
     KYGX_ASSERT(info->type == GLASS_UNI_INT);
     KYGX_ASSERT(info->count <= GLASS_NUM_INT_UNIFORMS);
@@ -335,7 +337,7 @@ static void GLASS_setIntUniform(UniformInfo* info, size_t offset, u32 vector) {
     info->dirty = true;
 }
 
-static void GLASS_setFloatUniform(UniformInfo* info, size_t offset, const u32* vector) {
+static inline void setFloatUniform(UniformInfo* info, size_t offset, const u32* vector) {
     KYGX_ASSERT(info);
     KYGX_ASSERT(info->type == GLASS_UNI_FLOAT);
     KYGX_ASSERT(info->count <= GLASS_NUM_FLOAT_UNIFORMS);
@@ -345,7 +347,7 @@ static void GLASS_setFloatUniform(UniformInfo* info, size_t offset, const u32* v
     info->dirty = true;
 }
 
-static void GLASS_setUniformValues(GLint location, const GLint* intValues, const GLfloat* floatValues, size_t numOfComponents, GLsizei numOfElements) {
+static void setUniformValues(GLint location, const GLint* intValues, const GLfloat* floatValues, size_t numOfComponents, GLsizei numOfElements) {
     KYGX_ASSERT(numOfComponents <= 4);
 
     if (numOfElements < 0) {
@@ -357,7 +359,7 @@ static void GLASS_setUniformValues(GLint location, const GLint* intValues, const
     size_t locIndex = 0;
     size_t locOffset = 0;
     bool locIsGeometry = 0;
-    if (!GLASS_getUniformLocInfo(location, &locIndex, &locOffset, &locIsGeometry))
+    if (!getUniformLocInfo(location, &locIndex, &locOffset, &locIsGeometry))
         return; // A value of -1 is silently ignored.
 
     // Get program.
@@ -370,7 +372,7 @@ static void GLASS_setUniformValues(GLint location, const GLint* intValues, const
     ProgramInfo* prog = (ProgramInfo*)ctx->currentProgram;
 
     // Get uniform.
-    UniformInfo* uni = GLASS_getShaderUniform(prog, locIndex, locIsGeometry);
+    UniformInfo* uni = getShaderUniform(prog, locIndex, locIsGeometry);
     if (!uni || (locOffset >= uni->count) || (uni->count == 1 && numOfElements != 1)) {
         GLASS_context_setError(GL_INVALID_OPERATION);
         return;
@@ -386,11 +388,11 @@ static void GLASS_setUniformValues(GLint location, const GLint* intValues, const
         for (size_t i = locOffset; i < GLASS_MIN(uni->count, locOffset + numOfElements); ++i) {
             if (intValues) {
                 KYGX_ASSERT(!floatValues);
-                GLASS_setBoolUniform(uni, i, intValues[i] != 0);
+                setBoolUniform(uni, i, intValues[i] != 0);
             } else if (floatValues) {
-                GLASS_setBoolUniform(uni, i, floatValues[i] != 0.0f);
+                setBoolUniform(uni, i, floatValues[i] != 0.0f);
             } else {
-                UNREACHABLE("Value buffer was nullptr!");
+                KYGX_UNREACHABLE("Value buffer was nullptr!");
             }
         }
 
@@ -408,14 +410,14 @@ static void GLASS_setUniformValues(GLint location, const GLint* intValues, const
             u32 components[4];
             u32 packed = 0;
 
-            GLASS_getIntUniform(uni, i, &packed);
-            GLASS_utility_unpackIntVector(packed, components);
+            getIntUniform(uni, i, &packed);
+            GLASS_math_unpackIntVector(packed, components);
 
             for (size_t j = 0; j < numOfComponents; ++j)
                 components[j] = intValues[(numOfComponents * (i - locOffset)) + j];
 
-            GLASS_utility_packIntVector(components, &packed);
-            GLASS_setIntUniform(uni, i, packed);
+            GLASS_math_packIntVector(components, &packed);
+            setIntUniform(uni, i, packed);
         }
 
         return;
@@ -432,30 +434,30 @@ static void GLASS_setUniformValues(GLint location, const GLint* intValues, const
             float components[4];
             u32 packed[3];
 
-            GLASS_getFloatUniform(uni, i, packed);
+            getFloatUniform(uni, i, packed);
             GLASS_math_unpackFloatVector(packed, components);
 
             for (size_t j = 0; j < numOfComponents; ++j)
                 components[j] = floatValues[(numOfComponents * (i - locOffset)) + j];
 
-            GLASS_utility_packFloatVector(components, packed);
-            GLASS_setFloatUniform(uni, i, packed);
+            GLASS_math_packFloatVector(components, packed);
+            setFloatUniform(uni, i, packed);
         }
 
         return;
     }
 
-    UNREACHABLE("Invalid uniform type!");
+    KYGX_UNREACHABLE("Invalid uniform type!");
 }
 
-void glUniform1fv(GLint location, GLsizei count, const GLfloat* value) { GLASS_setUniformValues(location, NULL, value, 1, count); }
-void glUniform2fv(GLint location, GLsizei count, const GLfloat* value) { GLASS_setUniformValues(location, NULL, value, 2, count); }
-void glUniform3fv(GLint location, GLsizei count, const GLfloat* value) { GLASS_setUniformValues(location, NULL, value, 3, count); }
-void glUniform4fv(GLint location, GLsizei count, const GLfloat* value) { GLASS_setUniformValues(location, NULL, value, 4, count); }
-void glUniform1iv(GLint location, GLsizei count, const GLint* value) { GLASS_setUniformValues(location, value, NULL, 1, count); }
-void glUniform2iv(GLint location, GLsizei count, const GLint* value) { GLASS_setUniformValues(location, value, NULL, 2, count); }
-void glUniform3iv(GLint location, GLsizei count, const GLint* value) { GLASS_setUniformValues(location, value, NULL, 3, count); }
-void glUniform4iv(GLint location, GLsizei count, const GLint* value) { GLASS_setUniformValues(location, value, NULL, 4, count); }
+void glUniform1fv(GLint location, GLsizei count, const GLfloat* value) { setUniformValues(location, NULL, value, 1, count); }
+void glUniform2fv(GLint location, GLsizei count, const GLfloat* value) { setUniformValues(location, NULL, value, 2, count); }
+void glUniform3fv(GLint location, GLsizei count, const GLfloat* value) { setUniformValues(location, NULL, value, 3, count); }
+void glUniform4fv(GLint location, GLsizei count, const GLfloat* value) { setUniformValues(location, NULL, value, 4, count); }
+void glUniform1iv(GLint location, GLsizei count, const GLint* value) { setUniformValues(location, value, NULL, 1, count); }
+void glUniform2iv(GLint location, GLsizei count, const GLint* value) { setUniformValues(location, value, NULL, 2, count); }
+void glUniform3iv(GLint location, GLsizei count, const GLint* value) { setUniformValues(location, value, NULL, 3, count); }
+void glUniform4iv(GLint location, GLsizei count, const GLint* value) { setUniformValues(location, value, NULL, 4, count); }
 
 void glUniform1f(GLint location, GLfloat v0) {
     GLfloat values[] = {v0};

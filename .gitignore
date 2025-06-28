@@ -1,12 +1,2 @@
 .vscode
-Build
-Debug
-Release
-Lib
-lib
-include
-*.3dsx
-*.smdh
-*.elf
-*.elf.*
-Examples/BothScreens
+BuildHOS

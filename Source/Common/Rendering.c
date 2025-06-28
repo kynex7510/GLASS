@@ -5,6 +5,8 @@
 #include "Base/Math.h"
 #include "Platform/GPU.h"
 
+#include <string.h> // memset
+
 #define REMOVE_CLEAR_BITS(mask) \
   (((((mask) & ~GL_COLOR_BUFFER_BIT) & ~GL_DEPTH_BUFFER_BIT) & ~GL_STENCIL_BUFFER_BIT) & ~GL_EARLY_DEPTH_BUFFER_BIT_PICA)
 
@@ -12,6 +14,9 @@
 #define HAS_DEPTH(mask) ((mask) & GL_DEPTH_BUFFER_BIT)
 #define HAS_STENCIL(mask) ((mask) & GL_STENCIL_BUFFER_BIT)
 #define HAS_EARLY_DEPTH(mask) ((mask) & GL_EARLY_DEPTH_BUFFER_BIT_PICA)
+
+// Defined in Framebuffer.c.
+extern GLenum glCheckFramebufferStatus(GLenum target);
 
 static inline bool checkFB(void) {
     if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
@@ -136,6 +141,8 @@ void glClear(GLbitfield mask) {
     FramebufferInfo* fb = (FramebufferInfo*)ctx->framebuffer;
 
     KYGXMemoryFillBuffer colorFill;
+    memset(&colorFill, 0, sizeof(KYGXMemoryFillBuffer));
+
     if (HAS_COLOR(mask)) {
         const RenderbufferInfo* cb = (RenderbufferInfo*)fb->colorBuffer;
         if (cb) {
@@ -147,6 +154,8 @@ void glClear(GLbitfield mask) {
     }
     
     KYGXMemoryFillBuffer depthFill;
+    memset(&depthFill, 0, sizeof(KYGXMemoryFillBuffer));
+
     if (HAS_DEPTH(mask)) {
         const RenderbufferInfo* db = (RenderbufferInfo*)fb->depthBuffer;
         if (db) {
@@ -209,7 +218,7 @@ void glDrawArrays(GLenum mode, GLint first, GLsizei count) {
         return;
     }
 
-    if (!GLASS_checkFB())
+    if (!checkFB())
         return;
 
     // Apply prior commands.

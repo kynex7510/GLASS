@@ -5,8 +5,7 @@
 #include <RIP/Tex3DS.h>
 
 typedef void GLvoid;
-typedef bool GLboolean;
-typedef s8 GLchar;
+typedef char GLchar;
 typedef u8 GLubyte;
 typedef s32 GLint;
 typedef u32 GLuint;

@@ -260,7 +260,7 @@ void GLASS_context_flush(CtxCommon* ctx, bool send) {
     // Handle viewport.
     if (ctx->flags & GLASS_CONTEXT_FLAG_VIEWPORT) {
         // Account for rotated screens.
-        const GLsizei x = (GLASS_renderWidth(ctx) - (ctx->viewportX + ctx->viewportW));
+        const GLsizei x = (renderWidth(ctx) - (ctx->viewportX + ctx->viewportW));
         GLASS_gpu_setViewport(&ctx->settings.GPUCmdList, x, ctx->viewportY, ctx->viewportW, ctx->viewportH);
         ctx->flags &= ~GLASS_CONTEXT_FLAG_VIEWPORT;
     }
@@ -268,7 +268,7 @@ void GLASS_context_flush(CtxCommon* ctx, bool send) {
     // Handle scissor.
     if (ctx->flags & GLASS_CONTEXT_FLAG_SCISSOR) {
         // Account for rotated screens.
-        const GLsizei x = (GLASS_renderWidth(ctx) - (ctx->scissorX + ctx->scissorW));
+        const GLsizei x = (renderWidth(ctx) - (ctx->scissorX + ctx->scissorW));
         GLASS_gpu_setScissorTest(&ctx->settings.GPUCmdList, ctx->scissorMode, x, ctx->scissorY, ctx->scissorW, ctx->scissorH);
         ctx->flags &= ~GLASS_CONTEXT_FLAG_SCISSOR;
     }

@@ -113,10 +113,10 @@ void glGetVertexAttribiv(GLuint index, GLenum pname, GLint* params) {
         return;
     }
 
-    if (!GLASS_readInt(index, pname, params)) {
+    if (!readInt(index, pname, params)) {
         GLfloat components[4];
 
-        if (!GLASS_readFloats(index, pname, components)) {
+        if (!readFloats(index, pname, components)) {
             GLASS_context_setError(GL_INVALID_ENUM);
             return;
         }

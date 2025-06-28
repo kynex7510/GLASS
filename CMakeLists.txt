@@ -8,40 +8,41 @@ project(GLASS C)
 option(GLASS_COMPILE_EXAMPLES "Enable examples compilation" OFF)
 
 # Setup dependencies.
-CPMAddPackage("gh:kynex7510/KYGX#302d8d0")
-CPMAddPackage("gh:kynex7510/RIP#4b0906b")
+CPMAddPackage("gh:kynex7510/KYGX#9531fa7")
+
+CPMAddPackage(
+    URI "gh:kynex7510/RIP#8d21d11"
+    OPTIONS "RIP_BACKEND kygx"
+)
 
 # Setup library.
 set(GLASS_SOURCES
-    Base/Context.c
-    Base/Flip.c
-    Base/Format.c
-    Base/GLASS.c
-    Base/Memory.c
-    Base/Texture.c
-    Base/Tiling.c
-    Base/Types.c
-    Base/Utility.c
-    Common/Attribs.c
-    Common/Buffers.c
-    Common/Combiners.c
-    Common/Effects.c
-    Common/Framebuffer.c
-    Common/Rendering.c
-    Common/Shaders.c
-    Common/State.c
-    Common/Tex3DS.c
-    Common/TexGL.c
-    Common/Uniforms.c
-    Platform/GFX.c
-    Platform/GPU.c
+    Source/Base/Context.c
+    Source/Base/GLASS.c
+    Source/Base/Math.c
+    Source/Base/Memory.c
+    # Source/Base/Texture.c
+    Source/Base/Types.c
+    Source/Common/Attribs.c
+    Source/Common/Buffers.c
+    Source/Common/Combiners.c
+    Source/Common/Effects.c
+    Source/Common/Framebuffer.c
+    Source/Common/Rendering.c
+    Source/Common/Shaders.c
+    Source/Common/State.c
+    # Source/Common/TexGL.c
+    Source/Common/Uniforms.c
+    Source/Platform/GFX.c
+    Source/Platform/GPU.c
 )
 
-add_library(glass STATIC ${GLASS_SOURCES})
-target_include_directories(glass PUBLIC Include)
-target_compile_options(glass PRIVATE -Wall -Werror)
+add_library(GLASSv2 STATIC ${GLASS_SOURCES})
+target_include_directories(GLASSv2 PUBLIC Include PRIVATE Source)
+target_link_libraries(GLASSv2 PUBLIC kygx rip)
+target_compile_options(GLASSv2 PRIVATE -Wall -Werror)
 
-install(TARGETS glass)
+install(TARGETS GLASSv2)
 install(DIRECTORY Include/ DESTINATION include)
 
 if (GLASS_COMPILE_EXAMPLES)

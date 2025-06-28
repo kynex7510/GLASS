@@ -394,9 +394,9 @@ static inline void uploadConstFloatUniforms(GLASSGPUCommandList* list, const Sha
 
 void GLASS_gpu_uploadConstUniforms(GLASSGPUCommandList* list, const ShaderInfo* shader) {
     KYGX_ASSERT(shader);
-    GLASS_uploadBoolUniformMask(list, shader, shader->constBoolMask);
-    GLASS_uploadConstIntUniforms(list, shader);
-    GLASS_uploadConstFloatUniforms(list, shader);
+    uploadBoolUniformMask(list, shader, shader->constBoolMask);
+    uploadConstIntUniforms(list, shader);
+    uploadConstFloatUniforms(list, shader);
 }
 
 static inline void uploadIntUniform(GLASSGPUCommandList* list, const ShaderInfo* shader, UniformInfo* info) {

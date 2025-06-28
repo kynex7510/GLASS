@@ -25,7 +25,7 @@ GLASSCtx glassCreateDefaultContext(GLASSVersion version) {
     GLASSInitParams initParams;
     initParams.version = version;
     initParams.flushAllLinearMem = true;
-    return glassCreateContextEx(&initParams, NULL);
+    return glassCreateContext(&initParams, NULL);
 }
 
 void glassDestroyContext(GLASSCtx wrapped) {
@@ -59,25 +59,10 @@ void glassWriteSettings(GLASSCtx wrapped, const GLASSSettings* settings) {
     memcpy(&ctx->settings, settings, sizeof(ctx->settings));
 }
 
-static GLenum GLASS_wrapFBFormat(GSPGPU_FramebufferFormat format) {
-    switch (format) {
-        case GSP_RGBA8_OES:
-            return GL_RGBA8_OES;
-        case GSP_BGR8_OES:
-            return GL_RGB8_OES;
-        case GSP_RGB565_OES:
-            return GL_RGB565;
-        case GSP_RGB5_A1_OES:
-            return GL_RGB5_A1;
-        case GSP_RGBA4_OES:
-            return GL_RGBA4;
-    }
-
-    KYGX_UNREACHABLE("Invalid parameter!");
-}
-
-static void swapScreenBuffers(CtxCommon* ctx) {
+static void swapScreenBuffers(void* c) {
+    CtxCommon* ctx = (CtxCommon*)c;
     KYGX_ASSERT(ctx);
+    
     const bool stereo = ctx->settings.targetScreen == GLASS_SCREEN_TOP && ctx->settings.targetSide == GLASS_SIDE_RIGHT;
     GLASS_gfx_swapScreenBuffers(ctx->settings.targetScreen, stereo);
 }
@@ -139,9 +124,9 @@ static void doSwapBuffers(CtxCommon* ctx) {
     const RenderbufferInfo* cb = (RenderbufferInfo*)fb->colorBuffer;
 
     // Get display buffer.
-    u16 fbWidth;
-    u16 fbHeight;
-    u8* fb = GLASS_gfx_getFramebuffer(ctx->settings.targetScreen, ctx->settings.targetSide, &fbWidth, &fbHeight);
+    u16 screenWidth;
+    u16 screenHeight;
+    u8* screenFb = GLASS_gfx_getFramebuffer(ctx->settings.targetScreen, ctx->settings.targetSide, &screenWidth, &screenHeight);
 
     // Perform transfer.
     KYGXDisplayTransferFlags transferFlags;
@@ -153,16 +138,16 @@ static void doSwapBuffers(CtxCommon* ctx) {
     transferFlags.blockMode32 = false;
 
     if (transferFlags.downscale == KYGX_DISPLAYTRANSFER_DOWNSCALE_2X1) {
-        fbWidth <<= 1;
+        screenWidth <<= 1;
     } else if (transferFlags.downscale == KYGX_DISPLAYTRANSFER_DOWNSCALE_2X2) {
-        fbWidth <<= 1;
-        fbHeight <<= 1;
+        screenWidth <<= 1;
+        screenHeight <<= 1;
     }
 
     KYGXCmd cmd;
-    kygxMakeDisplayTransferChecked(&cmd, cb->address, fb, cb->height, cb->width, fbWidth, fbHeight, &transferFlags);
+    kygxMakeDisplayTransferChecked(&cmd, cb->address, screenFb, cb->height, cb->width, screenWidth, screenHeight, &transferFlags);
 
-    CtxCommon* boundCtx = GLASS_context_getCommon();
+    CtxCommon* boundCtx = GLASS_context_getBound();
     if (ctx != boundCtx)
         kygxExchangeCmdBuffer(&ctx->GXCmdBuf, true);
 
@@ -195,4 +180,4 @@ void glassSwapContextBuffers(GLASSCtx top, GLASSCtx bottom) {
     }
 }
 
-void glassSwapBuffers(void) { glassSwapContextBuffers((GLASSCtx)GLASS_context_getCommon(), NULL); }
+void glassSwapBuffers(void) { glassSwapContextBuffers((GLASSCtx)GLASS_context_getBound(), NULL); }
