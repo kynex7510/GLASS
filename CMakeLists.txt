@@ -51,5 +51,5 @@ install(TARGETS GLASSv2)
 install(DIRECTORY Include/ DESTINATION include)
 
 if (GLASS_COMPILE_EXAMPLES)
-    #add_subdirectory(Examples)
+    add_subdirectory(Examples)
 endif()
