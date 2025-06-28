@@ -1,8 +1,9 @@
+#include <KYGX/Wrappers/MemoryFill.h>
+#include <KYGX/Utility.h>
+
 #include "Base/Context.h"
+#include "Base/Math.h"
 #include "Platform/GPU.h"
-#include "Platform/GX.h"
-#include "Base/Utility.h"
-#include "Base/Pixels.h"
 
 #define REMOVE_CLEAR_BITS(mask) \
   (((((mask) & ~GL_COLOR_BUFFER_BIT) & ~GL_DEPTH_BUFFER_BIT) & ~GL_STENCIL_BUFFER_BIT) & ~GL_EARLY_DEPTH_BUFFER_BIT_PICA)
@@ -12,7 +13,7 @@
 #define HAS_STENCIL(mask) ((mask) & GL_STENCIL_BUFFER_BIT)
 #define HAS_EARLY_DEPTH(mask) ((mask) & GL_EARLY_DEPTH_BUFFER_BIT_PICA)
 
-static bool GLASS_checkFB(void) {
+static inline bool checkFB(void) {
     if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
         GLASS_context_setError(GL_INVALID_FRAMEBUFFER_OPERATION);
         return false;
@@ -21,7 +22,26 @@ static bool GLASS_checkFB(void) {
     return true;
 }
 
-static u32 GLASS_makeClearColor(GLenum format, u32 color) {
+static inline size_t getBytesPerPixel(GLenum format) {
+    switch (format) {
+        case GL_RGBA8_OES:
+        case GL_DEPTH24_STENCIL8_OES:
+            return 4;
+        case GL_DEPTH_COMPONENT24_OES:
+            return 3;
+        case GL_RGB5_A1:
+        case GL_RGB565:
+        case GL_RGBA4:
+        case GL_DEPTH_COMPONENT16:
+            return 2;
+        default:
+            KYGX_UNREACHABLE("Invalid format!");
+    }
+
+    return 0;
+}
+
+static inline u32 makeClearColor(GLenum format, u32 color) {
     u32 cvt = 0;
 
     switch (format) {
@@ -49,14 +69,14 @@ static u32 GLASS_makeClearColor(GLenum format, u32 color) {
             cvt |= (color >> 8) & 0x1F;
             break;
         default:
-            UNREACHABLE("Invalid parameter!");
+            KYGX_UNREACHABLE("Invalid parameter!");
     }
 
     return cvt;
 }
 
-static u32 GLASS_makeClearDepth(GLenum format, GLclampf factor, u8 stencil) {
-    ASSERT(factor >= 0.0 && factor <= 1.0);
+static u32 makeClearDepth(GLenum format, GLclampf factor, u8 stencil) {
+    KYGX_ASSERT(factor >= 0.0 && factor <= 1.0);
 
     u32 clearDepth = 0;
     switch (format) {
@@ -70,28 +90,30 @@ static u32 GLASS_makeClearDepth(GLenum format, GLclampf factor, u8 stencil) {
             clearDepth = (((u32)(0xFFFFFF * factor) << 8) | stencil);
             break;
         default:
-            UNREACHABLE("Invalid parameter!");
+            KYGX_UNREACHABLE("Invalid parameter!");
     }
 
     return clearDepth;
 }
 
-static size_t GLASS_fillWidth(GLenum format) {
+static inline u8 fillWidth(GLenum format) {
     switch (format) {
         case GL_RGBA8_OES:
         case GL_DEPTH24_STENCIL8_OES:
-            return GLASS_GX_SET_WIDTH_32;
+            return KYGX_MEMORYFILL_WIDTH_32;
         case GL_RGB8_OES:
         case GL_DEPTH_COMPONENT24_OES:
-            return GLASS_GX_SET_WIDTH_24;
+            return KYGX_MEMORYFILL_WIDTH_24;
         case GL_RGB565:
         case GL_RGB5_A1:
         case GL_RGBA4:
         case GL_DEPTH_COMPONENT16:
-            return GLASS_GX_SET_WIDTH_16;
+            return KYGX_MEMORYFILL_WIDTH_16;
+        default:
+            KYGX_UNREACHABLE("Invalid parameter!");
     }
 
-    UNREACHABLE("Invalid parameter!");
+    return 0;
 }
 
 void glClear(GLbitfield mask) {
@@ -101,10 +123,10 @@ void glClear(GLbitfield mask) {
         return;
     }
 
-    if (!GLASS_checkFB())
+    if (!checkFB())
         return;
 
-    CtxCommon* ctx = GLASS_context_getCommon();
+    CtxCommon* ctx = GLASS_context_getBound();
 
     // Clear early depth buffer.
     if (HAS_EARLY_DEPTH(mask))
@@ -113,71 +135,58 @@ void glClear(GLbitfield mask) {
     // Clear framebuffers.
     FramebufferInfo* fb = (FramebufferInfo*)ctx->framebuffer;
 
-    u32 colorAddr = 0;
-    size_t colorSize = 0;
-    u32 clearColor = 0;
-    size_t colorFillWidth = 0;
+    KYGXMemoryFillBuffer colorFill;
     if (HAS_COLOR(mask)) {
         const RenderbufferInfo* cb = (RenderbufferInfo*)fb->colorBuffer;
         if (cb) {
-            colorAddr = (u32)cb->address;
-
-            glassPixelFormat fmt;
-            fmt.format = cb->format;
-            fmt.type = GL_RENDERBUFFER;
-            colorSize = cb->width * cb->height * GLASS_pixels_bpp(&fmt);
-
-            clearColor = GLASS_makeClearColor(cb->format, ctx->clearColor);
-            colorFillWidth = GLASS_fillWidth(cb->format);
+            colorFill.addr = cb->address;
+            colorFill.size = cb->width * cb->height * getBytesPerPixel(cb->format);
+            colorFill.value = makeClearColor(cb->format, ctx->clearColor);
+            colorFill.width = fillWidth(cb->format);
         }
     }
     
-    u32 depthAddr = 0;
-    size_t depthSize = 0;
-    u32 clearDepth = 0;
-    size_t depthFillWidth = 0;
+    KYGXMemoryFillBuffer depthFill;
     if (HAS_DEPTH(mask)) {
         const RenderbufferInfo* db = (RenderbufferInfo*)fb->depthBuffer;
         if (db) {
-            depthAddr = (u32)db->address;
-
-            glassPixelFormat fmt;
-            fmt.format = db->format;
-            fmt.type = GL_RENDERBUFFER;
-            depthSize = db->width * db->height * GLASS_pixels_bpp(&fmt);
-
-            clearDepth = GLASS_makeClearDepth(db->format, ctx->clearDepth, ctx->clearStencil);
-            depthFillWidth = GLASS_fillWidth(db->format);
+            depthFill.addr = db->address;
+            depthFill.size = db->width * db->height * getBytesPerPixel(db->format);
+            depthFill.value = makeClearDepth(db->format, ctx->clearDepth, ctx->clearStencil);
+            depthFill.width = fillWidth(db->format);
         }
     }
 
-    if (colorAddr || depthAddr) {
+    if (colorFill.addr || depthFill.addr) {
         // Flush GPU commands to enforce draw order.
-        GLASS_context_flush();
-        GLASS_gx_sendGPUCommands();
-        GLASS_gx_set(colorAddr, colorSize, clearColor, colorFillWidth, depthAddr, depthSize, clearDepth, depthFillWidth, false);
+        GLASS_context_flush(ctx, true);
+
+        kygxLock();
+        kygxAddMemoryFill(&ctx->GXCmdBuf, &colorFill, &depthFill);
+        kygxCmdBufferFinalize(&ctx->GXCmdBuf, NULL, NULL);
+        kygxUnlock(true);
     }
 }
 
 void glClearColor(GLclampf red, GLclampf green, GLclampf blue, GLclampf alpha) {
-    CtxCommon* ctx = GLASS_context_getCommon();
-    ctx->clearColor = (u32)(0xFF * CLAMP(0.0f, 1.0f, red)) << 24;
-    ctx->clearColor |= (u32)(0xFF * CLAMP(0.0f, 1.0f, green)) << 16;
-    ctx->clearColor |= (u32)(0xFF * CLAMP(0.0f, 1.0f, blue)) << 8;
-    ctx->clearColor |= (u32)(0xFF * CLAMP(0.0f, 1.0f, alpha));
+    CtxCommon* ctx = GLASS_context_getBound();
+    ctx->clearColor = (u32)(0xFF * GLASS_CLAMP(0.0f, 1.0f, red)) << 24;
+    ctx->clearColor |= (u32)(0xFF * GLASS_CLAMP(0.0f, 1.0f, green)) << 16;
+    ctx->clearColor |= (u32)(0xFF * GLASS_CLAMP(0.0f, 1.0f, blue)) << 8;
+    ctx->clearColor |= (u32)(0xFF * GLASS_CLAMP(0.0f, 1.0f, alpha));
 }
 
 void glClearDepthf(GLclampf depth) {
-    CtxCommon* ctx = GLASS_context_getCommon();
-    ctx->clearDepth = CLAMP(0.0f, 1.0f, depth);
+    CtxCommon* ctx = GLASS_context_getBound();
+    ctx->clearDepth = GLASS_CLAMP(0.0f, 1.0f, depth);
 }
 
 void glClearStencil(GLint s) {
-    CtxCommon* ctx = GLASS_context_getCommon();
+    CtxCommon* ctx = GLASS_context_getBound();
     ctx->clearStencil = s;
 }
 
-static bool GLASS_isDrawMode(GLenum mode) {
+static inline bool isDrawMode(GLenum mode) {
     switch (mode) {
         case GL_TRIANGLES:
         case GL_TRIANGLE_STRIP:
@@ -190,7 +199,7 @@ static bool GLASS_isDrawMode(GLenum mode) {
 }
 
 void glDrawArrays(GLenum mode, GLint first, GLsizei count) {
-    if (!GLASS_isDrawMode(mode)) {
+    if (!isDrawMode(mode)) {
         GLASS_context_setError(GL_INVALID_ENUM);
         return;
     }
@@ -204,16 +213,16 @@ void glDrawArrays(GLenum mode, GLint first, GLsizei count) {
         return;
 
     // Apply prior commands.
-    GLASS_context_flush();
+    CtxCommon* ctx = GLASS_context_getBound();
+    GLASS_context_flush(ctx, false);
 
     // Add draw command.
-    CtxCommon* ctx = GLASS_context_getCommon();
-    GLASS_gpu_drawArrays(&ctx->settings.gpuCmdList, mode, first, count);
+    GLASS_gpu_drawArrays(&ctx->settings.GPUCmdList, mode, first, count);
     ctx->flags |= GLASS_CONTEXT_FLAG_DRAW;
 }
 
 void glDrawElements(GLenum mode, GLsizei count, GLenum type, const GLvoid* indices) {
-    if (!GLASS_isDrawMode(mode)) {
+    if (!isDrawMode(mode)) {
         GLASS_context_setError(GL_INVALID_ENUM);
         return;
     }
@@ -228,32 +237,32 @@ void glDrawElements(GLenum mode, GLsizei count, GLenum type, const GLvoid* indic
         return;
     }
 
-    if (!GLASS_checkFB())
+    if (!checkFB())
         return;
 
     // Get physical address.
-    CtxCommon* ctx = GLASS_context_getCommon();
+    CtxCommon* ctx = GLASS_context_getBound();
     u32 physAddr = 0;
     if (ctx->elementArrayBuffer != GLASS_INVALID_OBJECT) {
         const BufferInfo* binfo = (BufferInfo*)ctx->elementArrayBuffer;
-        physAddr = osConvertVirtToPhys((void*)(binfo->address + (u32)indices));
+        physAddr = kygxGetPhysicalAddress((void*)(binfo->address + (u32)indices));
     } else {
-        physAddr = osConvertVirtToPhys(indices);
+        physAddr = kygxGetPhysicalAddress(indices);
     }
 
-    ASSERT(physAddr);
+    KYGX_ASSERT(physAddr);
 
     // Apply prior commands.
-    GLASS_context_flush();
+    GLASS_context_flush(ctx, false);
 
     // Add draw command.
-    GLASS_gpu_drawElements(&ctx->settings.gpuCmdList, mode, count, type, physAddr);
+    GLASS_gpu_drawElements(&ctx->settings.GPUCmdList, mode, count, type, physAddr);
     ctx->flags |= GLASS_CONTEXT_FLAG_DRAW;
 }
 
-void glFlush(void) { GLASS_context_flush(); }
+void glFlush(void) { GLASS_context_flush(GLASS_context_getBound(), true); }
 
 void glFinish(void) {
-    GLASS_context_flush();
-    GLASS_gx_sendGPUCommands();
+    GLASS_context_flush(GLASS_context_getBound(), true);
+    kygxWaitCompletion();
 }

@@ -1,7 +1,7 @@
 #include "Base/Context.h"
-#include "Base/Utility.h"
+#include "Base/Math.h"
 
-static bool GLASS_isTestFunc(GLenum func) {
+static inline bool isTestFunc(GLenum func) {
     switch (func) {
         case GL_NEVER:
         case GL_LESS:
@@ -17,7 +17,7 @@ static bool GLASS_isTestFunc(GLenum func) {
     return false;
 }
 
-static bool GLASS_isEquation(GLenum mode) {
+static inline bool isEquation(GLenum mode) {
     switch (mode) {
         case GL_FUNC_ADD:
         case GL_MIN:
@@ -30,7 +30,7 @@ static bool GLASS_isEquation(GLenum mode) {
     return false;
 }
 
-static bool GLASS_isBlendFunc(GLenum func) {
+static inline bool isBlendFunc(GLenum func) {
     switch (func) {
         case GL_ZERO:
         case GL_ONE:
@@ -53,7 +53,7 @@ static bool GLASS_isBlendFunc(GLenum func) {
     return false;
 }
 
-static bool GLASS_isCullFace(GLenum mode) {
+static inline bool isCullFace(GLenum mode) {
     switch (mode) {
         case GL_FRONT:
         case GL_BACK:
@@ -64,7 +64,7 @@ static bool GLASS_isCullFace(GLenum mode) {
     return false;
 }
 
-static bool GLASS_isFrontFace(GLenum mode) {
+static inline bool isFrontFace(GLenum mode) {
     switch (mode) {
         case GL_CW:
         case GL_CCW:
@@ -74,7 +74,7 @@ static bool GLASS_isFrontFace(GLenum mode) {
     return false;
 }
 
-static bool GLASS_isLogicOp(GLenum opcode) {
+static inline bool isLogicOp(GLenum opcode) {
     switch (opcode) {
         case GL_CLEAR:
         case GL_AND:
@@ -98,7 +98,7 @@ static bool GLASS_isLogicOp(GLenum opcode) {
     return false;
 }
 
-static bool GLASS_isStencilOp(GLenum op) {
+static inline bool isStencilOp(GLenum op) {
     switch (op) {
         case GL_KEEP:
         case GL_ZERO:
@@ -115,35 +115,35 @@ static bool GLASS_isStencilOp(GLenum op) {
 }
 
 void glAlphaFunc(GLenum func, GLclampf ref) {
-    if (!GLASS_isTestFunc(func)) {
+    if (!isTestFunc(func)) {
         GLASS_context_setError(GL_INVALID_ENUM);
         return;
     }
 
-    CtxCommon* ctx = GLASS_context_getCommon();
+    CtxCommon* ctx = GLASS_context_getBound();
     ctx->alphaFunc = func;
     ctx->flags |= GLASS_CONTEXT_FLAG_ALPHA;
 }
 
 void glBlendColor(GLclampf red, GLclampf green, GLclampf blue, GLclampf alpha) {
-    CtxCommon* ctx = GLASS_context_getCommon();
+    CtxCommon* ctx = GLASS_context_getBound();
 
-    u32 blendColor = ((u32)(0xFF * CLAMP(0.0f, 1.0f, red)) << 24);
-    blendColor |= ((u32)(0xFF * CLAMP(0.0f, 1.0f, green)) << 16);
-    blendColor |= ((u32)(0xFF * CLAMP(0.0f, 1.0f, blue)) << 8);
-    blendColor |= ((u32)(0xFF * CLAMP(0.0f, 1.0f, alpha)));
+    u32 blendColor = ((u32)(0xFF * GLASS_CLAMP(0.0f, 1.0f, red)) << 24);
+    blendColor |= ((u32)(0xFF * GLASS_CLAMP(0.0f, 1.0f, green)) << 16);
+    blendColor |= ((u32)(0xFF * GLASS_CLAMP(0.0f, 1.0f, blue)) << 8);
+    blendColor |= ((u32)(0xFF * GLASS_CLAMP(0.0f, 1.0f, alpha)));
 
     ctx->blendColor = blendColor;
     ctx->flags |= GLASS_CONTEXT_FLAG_BLEND;
 }
 
 void glBlendEquationSeparate(GLenum modeRGB, GLenum modeAlpha) {
-  if (!GLASS_isEquation(modeRGB) || !GLASS_isEquation(modeAlpha)) {
+  if (!isEquation(modeRGB) || !isEquation(modeAlpha)) {
     GLASS_context_setError(GL_INVALID_ENUM);
     return;
   }
 
-    CtxCommon* ctx = GLASS_context_getCommon();
+    CtxCommon* ctx = GLASS_context_getBound();
     ctx->blendEqRGB = modeRGB;
     ctx->blendEqAlpha = modeAlpha;
     ctx->flags |= GLASS_CONTEXT_FLAG_BLEND;
@@ -152,12 +152,12 @@ void glBlendEquationSeparate(GLenum modeRGB, GLenum modeAlpha) {
 void glBlendEquation(GLenum mode) { glBlendEquationSeparate(mode, mode); }
 
 void glBlendFuncSeparate(GLenum srcRGB, GLenum dstRGB, GLenum srcAlpha, GLenum dstAlpha) {
-    if (!GLASS_isBlendFunc(srcRGB) || !GLASS_isBlendFunc(dstRGB) || !GLASS_isBlendFunc(srcAlpha) || !GLASS_isBlendFunc(dstAlpha)) {
+    if (!isBlendFunc(srcRGB) || !isBlendFunc(dstRGB) || !isBlendFunc(srcAlpha) || !isBlendFunc(dstAlpha)) {
         GLASS_context_setError(GL_INVALID_ENUM);
         return;
     }
 
-    CtxCommon* ctx = GLASS_context_getCommon();
+    CtxCommon* ctx = GLASS_context_getBound();
     ctx->blendSrcRGB = srcRGB;
     ctx->blendDstRGB = dstRGB;
     ctx->blendSrcAlpha = srcAlpha;
@@ -168,7 +168,7 @@ void glBlendFuncSeparate(GLenum srcRGB, GLenum dstRGB, GLenum srcAlpha, GLenum d
 void glBlendFunc(GLenum sfactor, GLenum dfactor) { glBlendFuncSeparate(sfactor, dfactor, sfactor, dfactor); }
 
 void glColorMask(GLboolean red, GLboolean green, GLboolean blue, GLboolean alpha) {
-    CtxCommon* ctx = GLASS_context_getCommon();
+    CtxCommon* ctx = GLASS_context_getBound();
     ctx->writeRed = red == GL_TRUE;
     ctx->writeGreen = green == GL_TRUE;
     ctx->writeBlue = blue == GL_TRUE;
@@ -177,64 +177,64 @@ void glColorMask(GLboolean red, GLboolean green, GLboolean blue, GLboolean alpha
 }
 
 void glCullFace(GLenum mode) {
-    if (!GLASS_isCullFace(mode)) {
+    if (!isCullFace(mode)) {
         GLASS_context_setError(GL_INVALID_ENUM);
         return;
     }
 
-    CtxCommon* ctx = GLASS_context_getCommon();
+    CtxCommon* ctx = GLASS_context_getBound();
     ctx->cullFaceMode = mode;
     ctx->flags |= GLASS_CONTEXT_FLAG_CULL_FACE;
 }
 
 void glDepthFunc(GLenum func) {
-    if (!GLASS_isTestFunc(func)) {
+    if (!isTestFunc(func)) {
         GLASS_context_setError(GL_INVALID_ENUM);
         return;
     }
 
-    CtxCommon* ctx = GLASS_context_getCommon();
+    CtxCommon* ctx = GLASS_context_getBound();
     ctx->depthFunc = func;
     ctx->flags |= GLASS_CONTEXT_FLAG_COLOR_DEPTH;
 }
 
 void glDepthMask(GLboolean flag) {
-    CtxCommon* ctx = GLASS_context_getCommon();
+    CtxCommon* ctx = GLASS_context_getBound();
     ctx->writeDepth = flag == GL_TRUE;
     ctx->flags |= GLASS_CONTEXT_FLAG_COLOR_DEPTH;
 }
 
 void glDepthRangef(GLclampf nearVal, GLclampf farVal) {
-    CtxCommon* ctx = GLASS_context_getCommon();
-    ctx->depthNear = CLAMP(0.0f, 1.0f, nearVal);
-    ctx->depthFar = CLAMP(0.0f, 1.0f, farVal);
+    CtxCommon* ctx = GLASS_context_getBound();
+    ctx->depthNear = GLASS_CLAMP(0.0f, 1.0f, nearVal);
+    ctx->depthFar = GLASS_CLAMP(0.0f, 1.0f, farVal);
     ctx->flags |= GLASS_CONTEXT_FLAG_DEPTHMAP;
 }
 
 void glFrontFace(GLenum mode) {
-    if (!GLASS_isFrontFace(mode)) {
+    if (!isFrontFace(mode)) {
         GLASS_context_setError(GL_INVALID_ENUM);
         return;
     }
 
-    CtxCommon* ctx = GLASS_context_getCommon();
+    CtxCommon* ctx = GLASS_context_getBound();
     ctx->frontFaceMode = mode;
     ctx->flags |= GLASS_CONTEXT_FLAG_CULL_FACE;
 }
 
 void glLogicOp(GLenum opcode) {
-    if (!GLASS_isLogicOp(opcode)) {
+    if (!isLogicOp(opcode)) {
         GLASS_context_setError(GL_INVALID_ENUM);
         return;
     }
 
-    CtxCommon* ctx = GLASS_context_getCommon();
+    CtxCommon* ctx = GLASS_context_getBound();
     ctx->logicOp = opcode;
     ctx->flags |= GLASS_CONTEXT_FLAG_BLEND;
 }
 
 void glPolygonOffset(GLfloat factor, GLfloat units) {
-    CtxCommon* ctx = GLASS_context_getCommon();
+    CtxCommon* ctx = GLASS_context_getBound();
     ctx->polygonFactor = factor;
     ctx->polygonUnits = units;
     ctx->flags |= GLASS_CONTEXT_FLAG_DEPTHMAP;
@@ -246,7 +246,7 @@ void glScissor(GLint x, GLint y, GLsizei width, GLsizei height) {
         return;
     }
 
-    CtxCommon* ctx = GLASS_context_getCommon();
+    CtxCommon* ctx = GLASS_context_getBound();
     ctx->scissorX = x;
     ctx->scissorY = y;
     ctx->scissorW = width;
@@ -255,12 +255,12 @@ void glScissor(GLint x, GLint y, GLsizei width, GLsizei height) {
 }
 
 void glStencilFunc(GLenum func, GLint ref, GLuint mask) {
-    if (!GLASS_isTestFunc(func)) {
+    if (!isTestFunc(func)) {
         GLASS_context_setError(GL_INVALID_ENUM);
         return;
     }
 
-    CtxCommon* ctx = GLASS_context_getCommon();
+    CtxCommon* ctx = GLASS_context_getBound();
     ctx->stencilFunc = func;
     ctx->stencilRef = ref;
     ctx->stencilMask = mask;
@@ -268,18 +268,18 @@ void glStencilFunc(GLenum func, GLint ref, GLuint mask) {
 }
 
 void glStencilMask(GLuint mask) {
-    CtxCommon* ctx = GLASS_context_getCommon();
+    CtxCommon* ctx = GLASS_context_getBound();
     ctx->stencilWriteMask = mask;
     ctx->flags |= GLASS_CONTEXT_FLAG_STENCIL;
 }
 
 void glStencilOp(GLenum sfail, GLenum dpfail, GLenum dppass) {
-    if (!GLASS_isStencilOp(sfail) || !GLASS_isStencilOp(dpfail) || !GLASS_isStencilOp(dppass)) {
+    if (!isStencilOp(sfail) || !isStencilOp(dpfail) || !isStencilOp(dppass)) {
         GLASS_context_setError(GL_INVALID_ENUM);
         return;
     }
 
-    CtxCommon* ctx = GLASS_context_getCommon();
+    CtxCommon* ctx = GLASS_context_getBound();
     ctx->stencilFail = sfail;
     ctx->stencilDepthFail = dpfail;
     ctx->stencilPass = dppass;
@@ -292,11 +292,11 @@ void glViewport(GLint x, GLint y, GLsizei width, GLsizei height) {
         return;
     }
 
-    CtxCommon* ctx = GLASS_context_getCommon();
+    CtxCommon* ctx = GLASS_context_getBound();
     ctx->viewportX = x;
     ctx->viewportY = y;
     ctx->viewportW = width;
     ctx->viewportH = height;
-    ctx->scissorMode = GPU_SCISSOR_DISABLE;
+    ctx->scissorMode = SCISSORMODE_DISABLE;
     ctx->flags |= (GLASS_CONTEXT_FLAG_VIEWPORT | GLASS_CONTEXT_FLAG_SCISSOR);
 }

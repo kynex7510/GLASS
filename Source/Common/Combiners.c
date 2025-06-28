@@ -1,7 +1,8 @@
 #include "Base/Context.h"
+#include "Base/Math.h"
 
 // TODO: GL_TEXTURE3 is a valid source, but that's for proctex, not a "real" texture.
-static bool GLASS_isCombinerSrc(GLenum src) {
+static inline bool isCombinerSrc(GLenum src) {
     switch (src) {
         case GL_PRIMARY_COLOR:
         case GL_FRAGMENT_PRIMARY_COLOR_PICA:
@@ -18,7 +19,7 @@ static bool GLASS_isCombinerSrc(GLenum src) {
     return false;
 }
 
-static bool GLASS_isCombinerOpAlpha(GLenum op) {
+static inline bool isCombinerOpAlpha(GLenum op) {
     switch (op) {
         case GL_SRC_ALPHA:
         case GL_ONE_MINUS_SRC_ALPHA:
@@ -34,8 +35,8 @@ static bool GLASS_isCombinerOpAlpha(GLenum op) {
     return false;
 }
 
-static bool GLASS_isCombinerOpRGB(GLenum op) {
-    if (GLASS_isCombinerOpAlpha(op))
+static inline bool isCombinerOpRGB(GLenum op) {
+    if (isCombinerOpAlpha(op))
         return true;
 
     switch (op) {
@@ -47,7 +48,7 @@ static bool GLASS_isCombinerOpRGB(GLenum op) {
     return false;
 }
 
-static bool GLASS_isCombinerFunc(GLenum func) {
+static inline bool isCombinerFunc(GLenum func) {
     switch (func) {
         case GL_REPLACE:
         case GL_MODULATE:
@@ -65,7 +66,7 @@ static bool GLASS_isCombinerFunc(GLenum func) {
     return false;
 }
 
-static bool GLASS_isCombinerScale(GLfloat scale) { return (scale == 1.0f || scale == 2.0f || scale == 4.0f); }
+static inline bool isCombinerScale(GLfloat scale) { return (scale == 1.0f || scale == 2.0f || scale == 4.0f); }
 
 void glCombinerStagePICA(GLint index) {
     if ((index < 0) || (index >= GLASS_NUM_COMBINER_STAGES)) {
@@ -73,16 +74,16 @@ void glCombinerStagePICA(GLint index) {
         return;
     }
 
-    GLASS_context_getCommon()->combinerStage = index;
+    GLASS_context_getBound()->combinerStage = index;
 }
 
 void glCombinerSrcPICA(GLenum pname, GLenum src) {
-    if (!GLASS_isCombinerSrc(src)) {
+    if (!isCombinerSrc(src)) {
         GLASS_context_setError(GL_INVALID_ENUM);
         return;
     }
 
-    CtxCommon* ctx = GLASS_context_getCommon();
+    CtxCommon* ctx = GLASS_context_getBound();
     CombinerInfo* combiner = &ctx->combiners[ctx->combinerStage];
     GLenum* combinerSrc = NULL;
 
@@ -110,7 +111,7 @@ void glCombinerSrcPICA(GLenum pname, GLenum src) {
             return;
     }
 
-    ASSERT(combinerSrc);
+    KYGX_ASSERT(combinerSrc);
 
     if (*combinerSrc != src) {
         *combinerSrc = src;
@@ -119,13 +120,13 @@ void glCombinerSrcPICA(GLenum pname, GLenum src) {
 }
 
 void glCombinerColorPICA(GLclampf red, GLclampf green, GLclampf blue, GLclampf alpha) {
-    CtxCommon* ctx = GLASS_context_getCommon();
+    CtxCommon* ctx = GLASS_context_getBound();
     CombinerInfo* combiner = &ctx->combiners[ctx->combinerStage];
 
-    u32 color = (u32)(0xFF * CLAMP(0.0f, 1.0f, red));
-    color |= (u32)(0xFF * CLAMP(0.0f, 1.0f, green)) << 8;
-    color |= (u32)(0xFF * CLAMP(0.0f, 1.0f, blue)) << 16;
-    color |= (u32)(0xFF * CLAMP(0.0f, 1.0f, alpha)) << 24;
+    u32 color = (u32)(0xFF * GLASS_CLAMP(0.0f, 1.0f, red));
+    color |= (u32)(0xFF * GLASS_CLAMP(0.0f, 1.0f, green)) << 8;
+    color |= (u32)(0xFF * GLASS_CLAMP(0.0f, 1.0f, blue)) << 16;
+    color |= (u32)(0xFF * GLASS_CLAMP(0.0f, 1.0f, alpha)) << 24;
 
     if (combiner->color != color) {
         combiner->color = color;
@@ -134,7 +135,7 @@ void glCombinerColorPICA(GLclampf red, GLclampf green, GLclampf blue, GLclampf a
 }
 
 void glCombinerOpPICA(GLenum pname, GLenum op) {
-    CtxCommon* ctx = GLASS_context_getCommon();
+    CtxCommon* ctx = GLASS_context_getBound();
     CombinerInfo* combiner = &ctx->combiners[ctx->combinerStage];
     GLenum* combinerOp = NULL;
     bool isRGB = false;
@@ -166,12 +167,12 @@ void glCombinerOpPICA(GLenum pname, GLenum op) {
             return;
     }
 
-    if (!(isRGB ? GLASS_isCombinerOpRGB(op) : GLASS_isCombinerOpAlpha(op))) {
+    if (!(isRGB ? isCombinerOpRGB(op) : isCombinerOpAlpha(op))) {
         GLASS_context_setError(GL_INVALID_ENUM);
         return;
     }
 
-    ASSERT(combinerOp);
+    KYGX_ASSERT(combinerOp);
 
     if (*combinerOp != op) {
         *combinerOp = op;
@@ -180,12 +181,12 @@ void glCombinerOpPICA(GLenum pname, GLenum op) {
 }
 
 void glCombinerFuncPICA(GLenum pname, GLenum func) {
-    if (!GLASS_isCombinerFunc(func)) {
+    if (!isCombinerFunc(func)) {
         GLASS_context_setError(GL_INVALID_ENUM);
         return;
     }
 
-    CtxCommon* ctx = GLASS_context_getCommon();
+    CtxCommon* ctx = GLASS_context_getBound();
     CombinerInfo* combiner = &ctx->combiners[ctx->combinerStage];
     GLenum* combinerFunc = NULL;
 
@@ -201,7 +202,7 @@ void glCombinerFuncPICA(GLenum pname, GLenum func) {
             return;
     }
 
-    ASSERT(combinerFunc);
+    KYGX_ASSERT(combinerFunc);
 
     if (*combinerFunc != func) {
         *combinerFunc = func;
@@ -210,12 +211,12 @@ void glCombinerFuncPICA(GLenum pname, GLenum func) {
 }
 
 void glCombinerScalePICA(GLenum pname, GLfloat scale) {
-    if (!GLASS_isCombinerScale(scale)) {
+    if (!isCombinerScale(scale)) {
         GLASS_context_setError(GL_INVALID_VALUE);
         return;
     }
 
-    CtxCommon* ctx = GLASS_context_getCommon();
+    CtxCommon* ctx = GLASS_context_getBound();
     CombinerInfo* combiner = &ctx->combiners[ctx->combinerStage];
     GLfloat* combinerScale = NULL;
 
@@ -231,7 +232,7 @@ void glCombinerScalePICA(GLenum pname, GLfloat scale) {
             return;
     }
 
-    ASSERT(combinerScale);
+    KYGX_ASSERT(combinerScale);
 
     if (*combinerScale != scale) {
         *combinerScale = scale;

@@ -5,6 +5,8 @@
 
 void GLASS_gpu_allocList(GLASSGPUCommandList* list);
 void GLASS_gpu_freeList(GLASSGPUCommandList* list);
+
+// Returns true if the command list is non-empty.
 bool GLASS_gpu_swapListBuffers(GLASSGPUCommandList* list, void** outBuffer, size_t* outSize);
 
 void GLASS_gpu_bindFramebuffer(GLASSGPUCommandList* list, const FramebufferInfo* info, bool block32);

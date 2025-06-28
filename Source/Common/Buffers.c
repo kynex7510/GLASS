@@ -1,10 +1,12 @@
+#include <KYGX/Wrappers/FlushCacheRegions.h>
+
 #include "Base/Context.h"
 
 #include <string.h> // memcpy
 
-static BufferInfo* GLASS_getBoundBufferInfo(GLenum target) {
+static BufferInfo* getBoundBufferInfo(GLenum target) {
     GLuint buffer = GLASS_INVALID_OBJECT;
-    CtxCommon* ctx = GLASS_context_getCommon();
+    CtxCommon* ctx = GLASS_context_getBound();
 
     switch (target) {
         case GL_ARRAY_BUFFER:
@@ -26,10 +28,10 @@ static BufferInfo* GLASS_getBoundBufferInfo(GLenum target) {
 }
 
 void glBindBuffer(GLenum target, GLuint buffer) {
-    ASSERT(GLASS_OBJ_IS_BUFFER(buffer) || buffer == GLASS_INVALID_OBJECT);
+    KYGX_ASSERT(GLASS_OBJ_IS_BUFFER(buffer) || buffer == GLASS_INVALID_OBJECT);
 
     BufferInfo*info = (BufferInfo*)buffer;
-    CtxCommon* ctx = GLASS_context_getCommon();
+    CtxCommon* ctx = GLASS_context_getBound();
 
     // Bind buffer to context.
     switch (target) {
@@ -60,7 +62,7 @@ void glBufferData(GLenum target, GLsizeiptr size, const void* data, GLenum usage
     }
 
     // Get buffer.
-    BufferInfo* info = GLASS_getBoundBufferInfo(target);
+    BufferInfo* info = getBoundBufferInfo(target);
     if (!info)
         return;
 
@@ -79,15 +81,14 @@ void glBufferData(GLenum target, GLsizeiptr size, const void* data, GLenum usage
     if (data) {
         memcpy(info->address, data, size);
 
-        CtxCommon* ctx = GLASS_context_getCommon();
-        if (!ctx->initParams.flushAllLinearMem) {
-            ASSERT(GLASS_utility_flushCache(info->address, size));
-        }
+        CtxCommon* ctx = GLASS_context_getBound();
+        if (!ctx->initParams.flushAllLinearMem)
+            kygxSyncFlushSingleBuffer(info->address, size);
     }
 }
 
 void glBufferSubData(GLenum target, GLintptr offset, GLsizeiptr size, const void* data) {
-    ASSERT(data);
+    KYGX_ASSERT(data);
 
     if ((offset < 0) || (size < 0)) {
         GLASS_context_setError(GL_INVALID_VALUE);
@@ -95,7 +96,7 @@ void glBufferSubData(GLenum target, GLintptr offset, GLsizeiptr size, const void
     }
 
     // Get buffer.
-    BufferInfo* info = GLASS_getBoundBufferInfo(target);
+    BufferInfo* info = getBoundBufferInfo(target);
     if (!info)
         return;
 
@@ -109,21 +110,20 @@ void glBufferSubData(GLenum target, GLintptr offset, GLsizeiptr size, const void
     // Copy data.
     memcpy(info->address + offset, data, size);
 
-    CtxCommon* ctx = GLASS_context_getCommon();
-    if (!ctx->initParams.flushAllLinearMem) {
-        ASSERT(GLASS_utility_flushCache(info->address + offset, size));
-    }
+    CtxCommon* ctx = GLASS_context_getBound();
+    if (!ctx->initParams.flushAllLinearMem)
+        kygxSyncFlushSingleBuffer(info->address + offset, size);
 }
 
 void glDeleteBuffers(GLsizei n, const GLuint* buffers) {
-    ASSERT(buffers);
+    KYGX_ASSERT(buffers);
 
     if (n < 0) {
         GLASS_context_setError(GL_INVALID_VALUE);
         return;
     }
 
-    CtxCommon* ctx = GLASS_context_getCommon();
+    CtxCommon* ctx = GLASS_context_getBound();
 
     for (size_t i = 0; i < n; ++i) {
         GLuint name = buffers[i];
@@ -150,7 +150,7 @@ void glDeleteBuffers(GLsizei n, const GLuint* buffers) {
 }
 
 void glGenBuffers(GLsizei n, GLuint* buffers) {
-    ASSERT(buffers);
+    KYGX_ASSERT(buffers);
 
     if (n < 0) {
         GLASS_context_setError(GL_INVALID_VALUE);
@@ -171,9 +171,9 @@ void glGenBuffers(GLsizei n, GLuint* buffers) {
 }
 
 void glGetBufferParameteriv(GLenum target, GLenum pname, GLint* data) {
-    ASSERT(data);
+    KYGX_ASSERT(data);
 
-    BufferInfo* info = GLASS_getBoundBufferInfo(target);
+    BufferInfo* info = getBoundBufferInfo(target);
     if (!info)
         return;
 

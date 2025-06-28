@@ -188,7 +188,7 @@ typedef enum {
 
 typedef enum {
     SCISSORMODE_DISABLE = 0x00,
-    SCISSORMODE_INVERT = 0x01,
+    SCISSORMODE_INVERTED = 0x01,
     SCISSORMODE_NORMAL = 0x03,
 } GPUScissorMode;
 

@@ -1,9 +1,9 @@
+#include <KYGX/Utility.h>
+
 #include "Base/Context.h"
-#include "Base/Utility.h"
-#include "Base/Pixels.h"
 
 void glBindFramebuffer(GLenum target, GLuint framebuffer) {
-    ASSERT(GLASS_OBJ_IS_FRAMEBUFFER(framebuffer) || framebuffer == GLASS_INVALID_OBJECT);
+    KYGX_ASSERT(GLASS_OBJ_IS_FRAMEBUFFER(framebuffer) || framebuffer == GLASS_INVALID_OBJECT);
 
     if (target != GL_FRAMEBUFFER) {
         GLASS_context_setError(GL_INVALID_ENUM);
@@ -11,7 +11,7 @@ void glBindFramebuffer(GLenum target, GLuint framebuffer) {
     }
 
     FramebufferInfo* info = (FramebufferInfo*)framebuffer;
-    CtxCommon* ctx = GLASS_context_getCommon();
+    CtxCommon* ctx = GLASS_context_getBound();
 
     // Bind framebuffer to context.
     if (ctx->framebuffer != framebuffer) {
@@ -25,7 +25,7 @@ void glBindFramebuffer(GLenum target, GLuint framebuffer) {
 }
 
 void glBindRenderbuffer(GLenum target, GLuint renderbuffer) {
-    ASSERT(GLASS_OBJ_IS_RENDERBUFFER(renderbuffer) || renderbuffer == GLASS_INVALID_OBJECT);
+    KYGX_ASSERT(GLASS_OBJ_IS_RENDERBUFFER(renderbuffer) || renderbuffer == GLASS_INVALID_OBJECT);
 
     if (target != GL_RENDERBUFFER) {
         GLASS_context_setError(GL_INVALID_ENUM);
@@ -33,7 +33,7 @@ void glBindRenderbuffer(GLenum target, GLuint renderbuffer) {
     }
 
     RenderbufferInfo* info = (RenderbufferInfo*)renderbuffer;
-    CtxCommon* ctx = GLASS_context_getCommon();
+    CtxCommon* ctx = GLASS_context_getBound();
 
     // Bind renderbuffer to context.
     if (ctx->renderbuffer != renderbuffer) {
@@ -50,7 +50,7 @@ GLenum glCheckFramebufferStatus(GLenum target) {
         return 0;
     }
 
-    CtxCommon* ctx = GLASS_context_getCommon();
+    CtxCommon* ctx = GLASS_context_getBound();
 
     // Make sure we have a framebuffer.
     if (!GLASS_OBJ_IS_FRAMEBUFFER(ctx->framebuffer))
@@ -76,14 +76,14 @@ GLenum glCheckFramebufferStatus(GLenum target) {
 }
 
 void glDeleteFramebuffers(GLsizei n, const GLuint* framebuffers) {
-    ASSERT(framebuffers);
+    KYGX_ASSERT(framebuffers);
 
     if (n < 0) {
         GLASS_context_setError(GL_INVALID_VALUE);
         return;
     }
 
-    CtxCommon* ctx = GLASS_context_getCommon();
+    CtxCommon* ctx = GLASS_context_getBound();
 
     for (size_t i = 0; i < n; ++i) {
         GLuint name = framebuffers[i];
@@ -102,14 +102,14 @@ void glDeleteFramebuffers(GLsizei n, const GLuint* framebuffers) {
 }
 
 void glDeleteRenderbuffers(GLsizei n, const GLuint* renderbuffers) {
-    ASSERT(renderbuffers);
+    KYGX_ASSERT(renderbuffers);
 
     if (n < 0) {
         GLASS_context_setError(GL_INVALID_VALUE);
         return;
     }
 
-    CtxCommon* ctx = GLASS_context_getCommon();
+    CtxCommon* ctx = GLASS_context_getBound();
 
     // Get framebuffer.
     FramebufferInfo* fbinfo = NULL;
@@ -153,7 +153,7 @@ void glFramebufferRenderbuffer(GLenum target, GLenum attachment, GLenum renderbu
         return;
     }
 
-    CtxCommon* ctx = GLASS_context_getCommon();
+    CtxCommon* ctx = GLASS_context_getBound();
 
     // Get framebuffer.
     if (!GLASS_OBJ_IS_FRAMEBUFFER(ctx->framebuffer)) {
@@ -183,7 +183,7 @@ void glFramebufferRenderbuffer(GLenum target, GLenum attachment, GLenum renderbu
 void glFramebufferTexture2D(GLenum target, GLenum attachment, GLenum textarget, GLuint texture, GLint level); // TODO
 
 void glGenFramebuffers(GLsizei n, GLuint* framebuffers) {
-    ASSERT(framebuffers);
+    KYGX_ASSERT(framebuffers);
 
     if (n < 0) {
         GLASS_context_setError(GL_INVALID_VALUE);
@@ -202,7 +202,7 @@ void glGenFramebuffers(GLsizei n, GLuint* framebuffers) {
 }
 
 void glGenRenderbuffers(GLsizei n, GLuint* renderbuffers) {
-    ASSERT(renderbuffers);
+    KYGX_ASSERT(renderbuffers);
 
     if (n < 0) {
         GLASS_context_setError(GL_INVALID_VALUE);
@@ -222,7 +222,7 @@ void glGenRenderbuffers(GLsizei n, GLuint* renderbuffers) {
     }
 }
 
-static GLint GLASS_getColorSize(GLenum format, GLenum color) {
+static inline GLint getColorSize(GLenum format, GLenum color) {
     switch (format) {
         case GL_RGBA8_OES:
             return 8;
@@ -238,32 +238,36 @@ static GLint GLASS_getColorSize(GLenum format, GLenum color) {
             }
         case GL_RGBA4:
             return 4;
+        default:
+            KYGX_UNREACHABLE("Invalid parameter!");
     }
 
-    UNREACHABLE("Invalid parameter!");
+    return 0;
 }
 
-static GLint GLASS_getDepthSize(GLenum format) {
+static inline GLint getDepthSize(GLenum format) {
     switch (format) {
         case GL_DEPTH_COMPONENT16:
             return 16;
         case GL_DEPTH_COMPONENT24_OES:
         case GL_DEPTH24_STENCIL8_OES:
             return 24;
+        default:
+            KYGX_UNREACHABLE("Invalid parameter!");
     }
 
-    UNREACHABLE("Invalid parameter!");
+    return 0;
 }
 
 void glGetRenderbufferParameteriv(GLenum target, GLenum pname, GLint* params) {
-    ASSERT(params);
+    KYGX_ASSERT(params);
 
     if (target != GL_RENDERBUFFER) {
         GLASS_context_setError(GL_INVALID_ENUM);
         return;
     }
 
-    CtxCommon* ctx = GLASS_context_getCommon();
+    CtxCommon* ctx = GLASS_context_getBound();
 
     // Get renderbuffer.
     if (!GLASS_OBJ_IS_RENDERBUFFER(ctx->renderbuffer)) {
@@ -287,10 +291,10 @@ void glGetRenderbufferParameteriv(GLenum target, GLenum pname, GLint* params) {
         case GL_RENDERBUFFER_GREEN_SIZE:
         case GL_RENDERBUFFER_BLUE_SIZE:
         case GL_RENDERBUFFER_ALPHA_SIZE:
-            *params = GLASS_getColorSize(info->format, pname);
+            *params = getColorSize(info->format, pname);
             break;
         case GL_RENDERBUFFER_DEPTH_SIZE:
-            *params = GLASS_getDepthSize(info->format);
+            *params = getDepthSize(info->format);
             break;
         case GL_RENDERBUFFER_STENCIL_SIZE:
             *params = info->format == GL_DEPTH24_STENCIL8_OES ? 8 : 0;
@@ -320,7 +324,7 @@ GLboolean glIsRenderbuffer(GLuint renderbuffer) {
     return GL_FALSE;
 }
 
-static bool GLASS_isColorFormat(GLenum format) {
+static inline bool isColorFormat(GLenum format) {
     switch (format) {
         case GL_RGBA8_OES:
         case GL_RGB5_A1:
@@ -332,7 +336,7 @@ static bool GLASS_isColorFormat(GLenum format) {
     return false;
 }
 
-static bool GLASS_isDepthFormat(GLenum format) {
+static inline bool isDepthFormat(GLenum format) {
     switch (format) {
         case GL_DEPTH_COMPONENT16:
         case GL_DEPTH_COMPONENT24_OES:
@@ -343,8 +347,27 @@ static bool GLASS_isDepthFormat(GLenum format) {
     return false;
 }
 
+static inline size_t getBytesPerPixel(GLenum format) {
+    switch (format) {
+        case GL_RGBA8_OES:
+        case GL_DEPTH24_STENCIL8_OES:
+            return 4;
+        case GL_DEPTH_COMPONENT24_OES:
+            return 3;
+        case GL_RGB5_A1:
+        case GL_RGB565:
+        case GL_RGBA4:
+        case GL_DEPTH_COMPONENT16:
+            return 2;
+        default:
+            KYGX_UNREACHABLE("Invalid format!");
+    }
+
+    return 0;
+}
+
 void glRenderbufferStorage(GLenum target, GLenum internalformat, GLsizei width, GLsizei height) {
-    if ((target != GL_RENDERBUFFER) || (!GLASS_isColorFormat(internalformat) && !GLASS_isDepthFormat(internalformat))) {
+    if ((target != GL_RENDERBUFFER) || (!isColorFormat(internalformat) && !isDepthFormat(internalformat))) {
         GLASS_context_setError(GL_INVALID_ENUM);
         return;
     }
@@ -355,12 +378,12 @@ void glRenderbufferStorage(GLenum target, GLenum internalformat, GLsizei width, 
     }
 
     // Renderbuffer dimensions must be multiple of 8.
-    if (!GLASS_utility_isAligned(width, 8) || !GLASS_utility_isAligned(height, 8)) {
+    if (!kygxIsAligned(width, 8) || !kygxIsAligned(height, 8)) {
         GLASS_context_setError(GL_INVALID_VALUE);
         return;
     }
 
-    CtxCommon* ctx = GLASS_context_getCommon();
+    CtxCommon* ctx = GLASS_context_getBound();
 
     // Get renderbuffer.
     if (!GLASS_OBJ_IS_RENDERBUFFER(ctx->renderbuffer)) {
@@ -371,19 +394,16 @@ void glRenderbufferStorage(GLenum target, GLenum internalformat, GLsizei width, 
     RenderbufferInfo* info = (RenderbufferInfo* )ctx->renderbuffer;
 
     // Allocate buffer.
-    glassPixelFormat fmt;
-    fmt.format = internalformat;
-    fmt.type = GL_RENDERBUFFER;
-    const size_t bufferSize = (width * height * (GLASS_pixels_bpp(&fmt) >> 3));
+    const size_t bufferSize = width * height * getBytesPerPixel(internalformat);
 
     if (info->address)
         glassVRAMFree(info->address);
 
-    const bool isDepth = GLASS_isDepthFormat(internalformat);
-    info->address = glassVRAMAlloc(bufferSize, isDepth ? VRAM_ALLOC_B : VRAM_ALLOC_A);
+    const bool isDepth = isDepthFormat(internalformat);
+    info->address = glassVRAMAlloc(bufferSize, isDepth ? KYGX_ALLOC_VRAM_BANK_B : KYGX_ALLOC_VRAM_BANK_A);
 
     if (!info->address)
-        info->address = glassVRAMAlloc(bufferSize, isDepth ? VRAM_ALLOC_A : VRAM_ALLOC_B);
+        info->address = glassVRAMAlloc(bufferSize, isDepth ? KYGX_ALLOC_VRAM_BANK_A : KYGX_ALLOC_VRAM_BANK_B);
 
     if (!info->address) {
         GLASS_context_setError(GL_OUT_OF_MEMORY);

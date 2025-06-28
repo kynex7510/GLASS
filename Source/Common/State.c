@@ -7,7 +7,7 @@
 #define EXTENSIONS_2_0 ""
 
 static void GLASS_setCapability(GLenum cap, bool enabled) {
-    CtxCommon* ctx = GLASS_context_getCommon();
+    CtxCommon* ctx = GLASS_context_getBound();
 
     switch (cap) {
         case GL_ALPHA_TEST:
@@ -32,11 +32,11 @@ static void GLASS_setCapability(GLenum cap, bool enabled) {
             ctx->flags |= GLASS_CONTEXT_FLAG_DEPTHMAP;
             break;
         case GL_SCISSOR_TEST:
-            ctx->scissorMode = (enabled ? GPU_SCISSOR_NORMAL : GPU_SCISSOR_DISABLE);
+            ctx->scissorMode = (enabled ? SCISSORMODE_NORMAL : SCISSORMODE_DISABLE);
             ctx->flags |= GLASS_CONTEXT_FLAG_SCISSOR;
             break;
         case GL_SCISSOR_TEST_INVERTED_PICA:
-            ctx->scissorMode = (enabled ? GPU_SCISSOR_INVERT : GPU_SCISSOR_DISABLE);
+            ctx->scissorMode = (enabled ? SCISSORMODE_INVERTED : SCISSORMODE_DISABLE);
             ctx->flags |= GLASS_CONTEXT_FLAG_SCISSOR;
             break;
         case GL_STENCIL_TEST:
@@ -53,7 +53,7 @@ void glDisable(GLenum cap) { GLASS_setCapability(cap, false); }
 void glEnable(GLenum cap) { GLASS_setCapability(cap, true); }
 
 GLboolean glIsEnabled(GLenum cap) {
-    CtxCommon* ctx = GLASS_context_getCommon();
+    CtxCommon* ctx = GLASS_context_getBound();
 
     switch (cap) {
         case GL_ALPHA_TEST:
@@ -69,9 +69,9 @@ GLboolean glIsEnabled(GLenum cap) {
         case GL_POLYGON_OFFSET_FILL:
             return ctx->polygonOffset ? GL_TRUE : GL_FALSE;
         case GL_SCISSOR_TEST:
-            return ctx->scissorMode == GPU_SCISSOR_NORMAL ? GL_TRUE : GL_FALSE;
+            return ctx->scissorMode == SCISSORMODE_NORMAL ? GL_TRUE : GL_FALSE;
         case GL_SCISSOR_TEST_INVERTED_PICA:
-            return ctx->scissorMode == GPU_SCISSOR_INVERT ? GL_TRUE : GL_FALSE;
+            return ctx->scissorMode == SCISSORMODE_INVERTED ? GL_TRUE : GL_FALSE;
         case GL_STENCIL_TEST:
             return ctx->stencilTest ? GL_TRUE : GL_FALSE;
     }
@@ -81,32 +81,36 @@ GLboolean glIsEnabled(GLenum cap) {
 }
 
 GLenum glGetError(void) {
-    CtxCommon* ctx = GLASS_context_getCommon();
+    CtxCommon* ctx = GLASS_context_getBound();
     GLenum error = ctx->lastError;
     ctx->lastError = GL_NO_ERROR;
     return error;
 }
 
-static const GLubyte* GLASS_glVersionString(u8 version) {
+static inline const GLubyte* getVersionString(u8 version) {
     switch (version) {
         case GLASS_VERSION_2_0:
             return (const GLubyte*)VERSION_2_0;
+        default:
+            KYGX_UNREACHABLE("Invalid parameter!");
     }
 
-    UNREACHABLE("Invalid parameter!");
+    return NULL;
 }
 
-static const GLubyte* GLASS_glExtensionsString(u8 version) {
+static inline const GLubyte* getExtensionsString(u8 version) {
     switch (version) {
         case GLASS_VERSION_2_0:
             return (const GLubyte*)EXTENSIONS_2_0;
+        default:
+            KYGX_UNREACHABLE("Invalid parameter!");
     }
 
-    UNREACHABLE("Invalid parameter!");
+    return NULL;
 }
 
 const GLubyte* glGetString(GLenum name) {
-    CtxCommon* ctx = GLASS_context_getCommon();
+    CtxCommon* ctx = GLASS_context_getBound();
 
     switch (name) {
         case GL_VENDOR:
@@ -118,11 +122,11 @@ const GLubyte* glGetString(GLenum name) {
             return (const GLubyte*)RENDERER " (DEBUG)";
 #endif
         case GL_VERSION:
-            return GLASS_glVersionString(ctx->initParams.version);
+            return getVersionString(ctx->initParams.version);
         case GL_SHADING_LANGUAGE_VERSION:
             return (const GLubyte*)SHADING_LANGUAGE_VERSION;
         case GL_EXTENSIONS:
-            return GLASS_glExtensionsString(ctx->initParams.version);
+            return getExtensionsString(ctx->initParams.version);
     }
 
     GLASS_context_setError(GL_INVALID_ENUM);

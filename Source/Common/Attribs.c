@@ -1,4 +1,8 @@
+#include <KYGX/Wrappers/FlushCacheRegions.h>
+#include <KYGX/Utility.h>
+
 #include "Base/Context.h"
+#include "Base/Math.h"
 
 #include <string.h> // strncpy
 
@@ -11,7 +15,7 @@ void glDisableVertexAttribArray(GLuint index) {
         return;
     }
 
-    CtxCommon* ctx = GLASS_context_getCommon();
+    CtxCommon* ctx = GLASS_context_getBound();
     AttributeInfo* attrib = &ctx->attribs[index];
 
     if (attrib->flags & GLASS_ATTRIB_FLAG_ENABLED) {
@@ -27,7 +31,7 @@ void glEnableVertexAttribArray(GLuint index) {
         return;
     }
 
-    CtxCommon* ctx = GLASS_context_getCommon();
+    CtxCommon* ctx = GLASS_context_getBound();
     AttributeInfo* attrib = &ctx->attribs[index];
 
     if (!(attrib->flags & GLASS_ATTRIB_FLAG_ENABLED)) {
@@ -42,8 +46,8 @@ void glEnableVertexAttribArray(GLuint index) {
     }
 }
 
-static bool GLASS_readFloats(size_t index, GLenum pname, GLfloat* params) {
-    CtxCommon* ctx = GLASS_context_getCommon();
+static bool readFloats(size_t index, GLenum pname, GLfloat* params) {
+    CtxCommon* ctx = GLASS_context_getBound();
     const AttributeInfo* attrib = &ctx->attribs[index];
 
     if (pname == GL_CURRENT_VERTEX_ATTRIB) {
@@ -57,8 +61,8 @@ static bool GLASS_readFloats(size_t index, GLenum pname, GLfloat* params) {
     return false;
 }
 
-static bool GLASS_readInt(size_t index, GLenum pname, GLint* param) {
-    CtxCommon* ctx = GLASS_context_getCommon();
+static bool readInt(size_t index, GLenum pname, GLint* param) {
+    CtxCommon* ctx = GLASS_context_getBound();
     const AttributeInfo* attrib = &ctx->attribs[index];
 
     switch (pname) {
@@ -91,10 +95,10 @@ void glGetVertexAttribfv(GLuint index, GLenum pname, GLfloat* params) {
         return;
     }
 
-    if (!GLASS_readFloats(index, pname, params)) {
+    if (!readFloats(index, pname, params)) {
         GLint param;
 
-        if (!GLASS_readInt(index, pname, &param)) {
+        if (!readInt(index, pname, &param)) {
             GLASS_context_setError(GL_INVALID_ENUM);
             return;
         }
@@ -133,7 +137,7 @@ void glGetVertexAttribPointerv(GLuint index, GLenum pname, GLvoid** pointer) {
         return;
     }
 
-    CtxCommon* ctx = GLASS_context_getCommon();
+    CtxCommon* ctx = GLASS_context_getBound();
     AttributeInfo* attrib = &ctx->attribs[index];
 
     // Get virtual address.
@@ -143,21 +147,21 @@ void glGetVertexAttribPointerv(GLuint index, GLenum pname, GLvoid** pointer) {
         if (attrib->boundBuffer != GLASS_INVALID_OBJECT) {
             virtAddr = (GLvoid*)attrib->bufferOffset;
         } else {
-            virtAddr = GLASS_utility_convertPhysToVirt(attrib->physAddr);
-            ASSERT(virtAddr);
+            virtAddr = kygxGetVirtualAddress(attrib->physAddr);
+            KYGX_ASSERT(virtAddr);
         }
     }
 
     *pointer = virtAddr;
 }
 
-static void GLASS_setFixedAttrib(GLuint reg, const GLfloat* params) {
+static void setFixedAttrib(GLuint reg, const GLfloat* params) {
     if (reg >= GLASS_NUM_ATTRIB_REGS) {
         GLASS_context_setError(GL_INVALID_VALUE);
         return;
     }
 
-    CtxCommon* ctx = GLASS_context_getCommon();
+    CtxCommon* ctx = GLASS_context_getBound();
     AttributeInfo* attrib = &ctx->attribs[reg];
 
     // Set fixed attribute.
@@ -180,45 +184,45 @@ static void GLASS_setFixedAttrib(GLuint reg, const GLfloat* params) {
 
 void glVertexAttrib1f(GLuint index, GLfloat v0) {
     const GLfloat values[4] = {v0, 0.0f, 0.0f, 1.0f};
-    GLASS_setFixedAttrib(index, values);
+    setFixedAttrib(index, values);
 }
 
 void glVertexAttrib2f(GLuint index, GLfloat v0, GLfloat v1) {
     const GLfloat values[4] = {v0, v1, 0.0f, 1.0f};
-    GLASS_setFixedAttrib(index, values);
+    setFixedAttrib(index, values);
 }
 
 void glVertexAttrib3f(GLuint index, GLfloat v0, GLfloat v1, GLfloat v2) {
     const GLfloat values[4] = {v0, v1, v2, 1.0f};
-    GLASS_setFixedAttrib(index, values);
+    setFixedAttrib(index, values);
 }
 
 void glVertexAttrib4f(GLuint index, GLfloat v0, GLfloat v1, GLfloat v2, GLfloat v3) {
     const GLfloat values[4] = {v0, v1, v2, v3};
-    GLASS_setFixedAttrib(index, values);
+    setFixedAttrib(index, values);
 }
 
 void glVertexAttrib1fv(GLuint index, const GLfloat* v) {
-    ASSERT(v);
+    KYGX_ASSERT(v);
     glVertexAttrib1f(index, v[0]);
 }
 
 void glVertexAttrib2fv(GLuint index, const GLfloat* v) {
-    ASSERT(v);
+    KYGX_ASSERT(v);
     glVertexAttrib2f(index, v[0], v[1]);
 }
 
 void glVertexAttrib3fv(GLuint index, const GLfloat* v) {
-    ASSERT(v);
+    KYGX_ASSERT(v);
     glVertexAttrib3f(index, v[0], v[1], v[2]);
 }
 
 void glVertexAttrib4fv(GLuint index, const GLfloat* v) {
-    ASSERT(v);
+    KYGX_ASSERT(v);
     glVertexAttrib4f(index, v[0], v[1], v[2], v[3]);
 }
 
-static size_t GLASS_sizeForAttribType(GLenum type) {
+static inline size_t sizeForAttribType(GLenum type) {
     switch (type) {
         case GL_BYTE:
         case GL_UNSIGNED_BYTE:
@@ -226,13 +230,15 @@ static size_t GLASS_sizeForAttribType(GLenum type) {
         case GL_SHORT:
             return 2;
         case GL_FLOAT:
-            return 4;    
+            return 4;
+        default:
+            KYGX_UNREACHABLE("Invalid parameter!");
     }
 
-    UNREACHABLE("Invalid parameter!");
+    return 0;
 }
 
-static bool GLASS_isAttribPhysAddrAligned(GLenum type, u32 physAddr) {
+static inline bool isAttribPhysAddrAligned(GLenum type, u32 physAddr) {
     if (type == GL_SHORT)
         return (physAddr & 0x01) == 0;
 
@@ -258,11 +264,11 @@ void glVertexAttribPointer(GLuint index, GLint size, GLenum type, GLboolean norm
         return;
     }
 
-    CtxCommon* ctx = GLASS_context_getCommon();
+    CtxCommon* ctx = GLASS_context_getBound();
     AttributeInfo* attrib = &ctx->attribs[index];
 
     // Calculate buffer size.
-    const size_t componentDataSize = size * GLASS_sizeForAttribType(type);
+    const size_t componentDataSize = size * sizeForAttribType(type);
     const size_t bufferSize = (stride ? stride : componentDataSize);
 
     // Get vertex buffer physical address.
@@ -270,23 +276,22 @@ void glVertexAttribPointer(GLuint index, GLint size, GLenum type, GLboolean norm
     size_t bufferOffset = 0;
     if (ctx->arrayBuffer != GLASS_INVALID_OBJECT) {
         const BufferInfo* binfo = (BufferInfo*)ctx->arrayBuffer;
-        physAddr = osConvertVirtToPhys((void*)binfo->address);
-        ASSERT(physAddr);
+        physAddr = kygxGetPhysicalAddress((void*)binfo->address);
+        KYGX_ASSERT(physAddr);
         bufferOffset = (size_t)pointer;
     } else {
-        physAddr = osConvertVirtToPhys(pointer);
+        physAddr = kygxGetPhysicalAddress(pointer);
         if (!physAddr) {
             GLASS_context_setError(GL_INVALID_OPERATION);
             return;
         }
 
-        if (!ctx->initParams.flushAllLinearMem) {
-            ASSERT(GLASS_utility_flushCache(pointer, bufferSize));
-        }
+        if (!ctx->initParams.flushAllLinearMem)
+            kygxSyncFlushSingleBuffer(pointer, bufferSize);
     }
 
     // Check alignment.
-    if (!GLASS_isAttribPhysAddrAligned(type, physAddr + bufferOffset)) {
+    if (!isAttribPhysAddrAligned(type, physAddr + bufferOffset)) {
         GLASS_context_setError(GL_INVALID_OPERATION);
         return;
     }
@@ -322,9 +327,9 @@ void glVertexAttribPointer(GLuint index, GLint size, GLenum type, GLboolean norm
 }
 
 void glGetActiveAttrib(GLuint program, GLuint index, GLsizei bufSize, GLsizei* length, GLint* size, GLenum* type, GLchar* name) {
-    ASSERT(size);
-    ASSERT(type);
-    ASSERT(name);
+    KYGX_ASSERT(size);
+    KYGX_ASSERT(type);
+    KYGX_ASSERT(name);
 
     if (!GLASS_OBJ_IS_PROGRAM(program)) {
         GLASS_context_setError(GL_INVALID_OPERATION);
@@ -349,7 +354,7 @@ void glGetActiveAttrib(GLuint program, GLuint index, GLsizei bufSize, GLsizei* l
 
     // Get shader.
     ShaderInfo* shad = (ShaderInfo*)prog->linkedVertex;
-    ASSERT(shad);
+    KYGX_ASSERT(shad);
 
     if (index > shad->numOfActiveUniforms) {
         index -= shad->numOfActiveUniforms;
@@ -363,7 +368,7 @@ void glGetActiveAttrib(GLuint program, GLuint index, GLsizei bufSize, GLsizei* l
 
     // Get attribute data.
     const ActiveAttribInfo* attrib = &shad->activeAttribs[index];
-    const size_t symLen = MIN(bufSize, strlen(attrib->symbol));
+    const size_t symLen = GLASS_MIN(bufSize, strlen(attrib->symbol));
 
     if (length)
         *length = symLen;
