@@ -1,7 +1,7 @@
 #ifndef _GLASS_DEFS_H
 #define _GLASS_DEFS_H
 
-#include <GX/GX.h>
+#include <KYGX/GX.h>
 #include <RIP/Tex3DS.h>
 
 typedef void GLvoid;

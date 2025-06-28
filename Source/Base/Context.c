@@ -1,5 +1,6 @@
 #include "Base/Context.h"
 #include "Platform/GPU.h"
+#include "Platform/GFX.h"
 
 #include <string.h> // memset
 
@@ -17,22 +18,21 @@ void GLASS_context_initCommon(CtxCommon* ctx, const GLASSInitParams* initParams,
     } else {
         ctx->settings.targetScreen = GLASS_SCREEN_TOP;
         ctx->settings.targetSide = GLASS_SIDE_LEFT;
-        ctx->settings.gpuCmdList.mainBuffer = NULL;
-        ctx->settings.gpuCmdList.secondBuffer = NULL;
-        ctx->settings.gpuCmdList.capacity = 0;
-        ctx->settings.gpuCmdList.offset = 0;
+        ctx->settings.GPUCmdList.mainBuffer = NULL;
+        ctx->settings.GPUCmdList.secondBuffer = NULL;
+        ctx->settings.GPUCmdList.capacity = 0;
+        ctx->settings.GPUCmdList.offset = 0;
         ctx->settings.vsync = true;
         ctx->settings.horizontalFlip = false;
         ctx->settings.downscale = GLASS_DOWNSCALE_NONE;
     }
 
-    // Platform.
     ctx->flags = 0;
     ctx->lastError = GL_NO_ERROR;
-    memset(&ctx->gxQueue, 0, sizeof(ctx->gxQueue));
 
-    GLASS_gpu_allocList(&ctx->settings.gpuCmdList);
-    KYGX_BREAK_UNLESS(kygxInit());
+    // Platform.
+    GLASS_gpu_allocList(&ctx->settings.GPUCmdList);
+    KYGX_BREAK_UNLESS(kygxCmdBufferAlloc(&ctx->GXCmdBuf, 32));
 
     // Buffers.
     ctx->arrayBuffer = GLASS_INVALID_OBJECT;
@@ -53,7 +53,7 @@ void GLASS_context_initCommon(CtxCommon* ctx, const GLASSInitParams* initParams,
     ctx->viewportH = 0;
 
     // Scissor.
-    ctx->scissorMode = GPU_SCISSOR_DISABLE;
+    ctx->scissorMode = SCISSORMODE_DISABLE;
     ctx->scissorX = 0;
     ctx->scissorY = 0;
     ctx->scissorW = 0;
@@ -180,17 +180,17 @@ void GLASS_context_initCommon(CtxCommon* ctx, const GLASSInitParams* initParams,
 }
 
 void GLASS_context_cleanupCommon(CtxCommon* ctx) {
-    ASSERT(ctx);
+    KYGX_ASSERT(ctx);
 
     if (ctx == g_Context)
         GLASS_context_bind(NULL);
 
-    GLASS_gx_cleanup(ctx);
-    GLASS_gpu_freeList(&ctx->settings.gpuCmdList);
+    kygxCmdBufferFree(&ctx->GXCmdBuf);
+    GLASS_gpu_freeList(&ctx->settings.GPUCmdList);
 }
 
-CtxCommon* GLASS_context_getCommon(void) {
-    ASSERT(g_Context);
+CtxCommon* GLASS_context_getBound(void) {
+    KYGX_ASSERT(g_Context);
     return g_Context;
 }
 
@@ -201,21 +201,21 @@ void GLASS_context_bind(CtxCommon* ctx) {
     const bool skipUpdate = (g_Context == NULL) && (ctx == g_OldCtx);
 
     if (g_Context)
-        GLASS_gx_unbind(g_Context);
+        kygxExchangeCmdBuffer(NULL, false);
 
     g_OldCtx = g_Context;
     g_Context = ctx;
 
     if (g_Context) {
-        GLASS_gx_bind(g_Context);
+        kygxExchangeCmdBuffer(&g_Context->GXCmdBuf, false);
 
         if (!skipUpdate)
             g_Context->flags = GLASS_CONTEXT_FLAG_ALL;
     }
 }
 
-static GLsizei GLASS_renderWidth(CtxCommon* ctx) {
-    ASSERT(ctx);
+static inline GLsizei renderWidth(CtxCommon* ctx) {
+    KYGX_ASSERT(ctx);
 
     if (ctx->framebuffer != GLASS_INVALID_OBJECT) {
         const FramebufferInfo* fb = (FramebufferInfo*)ctx->framebuffer;
@@ -225,12 +225,12 @@ static GLsizei GLASS_renderWidth(CtxCommon* ctx) {
     }
 
     u16 width;
-    gfxGetFramebuffer(ctx->settings.targetScreen, ctx->settings.targetSide, NULL, &width);
+    GLASS_gfx_getFramebuffer(ctx->settings.targetScreen, ctx->settings.targetSide, NULL, &width);
     return width;
 }
 
 void GLASS_context_flush(void) {
-    ASSERT(g_Context);
+    KYGX_ASSERT(g_Context);
 
     // Handle framebuffer.
     if (g_Context->flags & GLASS_CONTEXT_FLAG_FRAMEBUFFER) {
@@ -238,19 +238,19 @@ void GLASS_context_flush(void) {
 
         // Flush buffers if required.
         if (g_Context->flags & GLASS_CONTEXT_FLAG_DRAW) {
-            GLASS_gpu_flushFramebuffer(&g_Context->settings.gpuCmdList);
-            GLASS_gpu_clearEarlyDepthBuffer(&g_Context->settings.gpuCmdList);
+            GLASS_gpu_flushFramebuffer(&g_Context->settings.GPUCmdList);
+            GLASS_gpu_clearEarlyDepthBuffer(&g_Context->settings.GPUCmdList);
             g_Context->flags &= ~(GLASS_CONTEXT_FLAG_DRAW | GLASS_CONTEXT_FLAG_EARLY_DEPTH_CLEAR);
         }
 
-        GLASS_gpu_bindFramebuffer(&g_Context->settings.gpuCmdList, info, g_Context->block32);
+        GLASS_gpu_bindFramebuffer(&g_Context->settings.GPUCmdList, info, g_Context->block32);
         g_Context->flags &= ~GLASS_CONTEXT_FLAG_FRAMEBUFFER;
     }
 
     // Handle draw.
     if (g_Context->flags & GLASS_CONTEXT_FLAG_DRAW) {
-        GLASS_gpu_flushFramebuffer(&g_Context->settings.gpuCmdList);
-        GLASS_gpu_invalidateFramebuffer(&g_Context->settings.gpuCmdList);
+        GLASS_gpu_flushFramebuffer(&g_Context->settings.GPUCmdList);
+        GLASS_gpu_invalidateFramebuffer(&g_Context->settings.GPUCmdList);
         g_Context->flags &= ~GLASS_CONTEXT_FLAG_DRAW;
     }
 
@@ -258,7 +258,7 @@ void GLASS_context_flush(void) {
     if (g_Context->flags & GLASS_CONTEXT_FLAG_VIEWPORT) {
         // Account for rotated screens.
         const GLsizei x = (GLASS_renderWidth(g_Context) - (g_Context->viewportX + g_Context->viewportW));
-        GLASS_gpu_setViewport(&g_Context->settings.gpuCmdList, x, g_Context->viewportY, g_Context->viewportW, g_Context->viewportH);
+        GLASS_gpu_setViewport(&g_Context->settings.GPUCmdList, x, g_Context->viewportY, g_Context->viewportW, g_Context->viewportH);
         g_Context->flags &= ~GLASS_CONTEXT_FLAG_VIEWPORT;
     }
 
@@ -266,7 +266,7 @@ void GLASS_context_flush(void) {
     if (g_Context->flags & GLASS_CONTEXT_FLAG_SCISSOR) {
         // Account for rotated screens.
         const GLsizei x = (GLASS_renderWidth(g_Context) - (g_Context->scissorX + g_Context->scissorW));
-        GLASS_gpu_setScissorTest(&g_Context->settings.gpuCmdList, g_Context->scissorMode, x, g_Context->scissorY, g_Context->scissorW, g_Context->scissorH);
+        GLASS_gpu_setScissorTest(&g_Context->settings.GPUCmdList, g_Context->scissorMode, x, g_Context->scissorY, g_Context->scissorW, g_Context->scissorH);
         g_Context->flags &= ~GLASS_CONTEXT_FLAG_SCISSOR;
     }
 
@@ -288,13 +288,13 @@ void GLASS_context_flush(void) {
                 pinfo->flags &= ~GLASS_PROGRAM_FLAG_UPDATE_GEOMETRY;
             }
 
-            GLASS_gpu_bindShaders(&g_Context->settings.gpuCmdList, vs, gs);
+            GLASS_gpu_bindShaders(&g_Context->settings.GPUCmdList, vs, gs);
 
             if (vs)
-                GLASS_gpu_uploadConstUniforms(&g_Context->settings.gpuCmdList, vs);
+                GLASS_gpu_uploadConstUniforms(&g_Context->settings.GPUCmdList, vs);
 
             if (gs)
-                GLASS_gpu_uploadConstUniforms(&g_Context->settings.gpuCmdList, gs);
+                GLASS_gpu_uploadConstUniforms(&g_Context->settings.GPUCmdList, gs);
         }
 
         g_Context->flags &= ~GLASS_CONTEXT_FLAG_PROGRAM;
@@ -307,27 +307,27 @@ void GLASS_context_flush(void) {
         ShaderInfo* gs = (ShaderInfo*)pinfo->linkedGeometry;
 
         if (vs)
-            GLASS_gpu_uploadUniforms(&g_Context->settings.gpuCmdList, vs);
+            GLASS_gpu_uploadUniforms(&g_Context->settings.GPUCmdList, vs);
 
         if (gs)
-            GLASS_gpu_uploadUniforms(&g_Context->settings.gpuCmdList, gs);
+            GLASS_gpu_uploadUniforms(&g_Context->settings.GPUCmdList, gs);
     }
 
     // Handle attributes.
     if (g_Context->flags & GLASS_CONTEXT_FLAG_ATTRIBS) {
-        GLASS_gpu_uploadAttributes(&g_Context->settings.gpuCmdList, g_Context->attribs);
+        GLASS_gpu_uploadAttributes(&g_Context->settings.GPUCmdList, g_Context->attribs);
         g_Context->flags &= ~GLASS_CONTEXT_FLAG_ATTRIBS;
     }
 
     // Handle fragop.
     if (g_Context->flags & GLASS_CONTEXT_FLAG_FRAGOP) {
-        GLASS_gpu_setFragOp(&g_Context->settings.gpuCmdList, g_Context->fragMode, g_Context->blendMode);
+        GLASS_gpu_setFragOp(&g_Context->settings.GPUCmdList, g_Context->fragMode, g_Context->blendMode);
         g_Context->flags &= ~GLASS_CONTEXT_FLAG_FRAGOP;
     }
 
     // Handle color and depth masks.
     if (g_Context->flags & GLASS_CONTEXT_FLAG_COLOR_DEPTH) {
-        GLASS_gpu_setColorDepthMask(&g_Context->settings.gpuCmdList, g_Context->writeRed, g_Context->writeGreen, g_Context->writeBlue, g_Context->writeAlpha, g_Context->writeDepth, g_Context->depthTest, g_Context->depthFunc);
+        GLASS_gpu_setColorDepthMask(&g_Context->settings.GPUCmdList, g_Context->writeRed, g_Context->writeGreen, g_Context->writeBlue, g_Context->writeAlpha, g_Context->writeDepth, g_Context->depthTest, g_Context->depthFunc);
         // TODO: check gas!!!!
         g_Context->flags &= ~GLASS_CONTEXT_FLAG_COLOR_DEPTH;
     }
@@ -343,67 +343,67 @@ void GLASS_context_flush(void) {
             }
         }
 
-        GLASS_gpu_setDepthMap(&g_Context->settings.gpuCmdList, g_Context->polygonOffset, g_Context->depthNear, g_Context->depthFar, g_Context->polygonUnits, depthFormat);
+        GLASS_gpu_setDepthMap(&g_Context->settings.GPUCmdList, g_Context->polygonOffset, g_Context->depthNear, g_Context->depthFar, g_Context->polygonUnits, depthFormat);
         g_Context->flags &= ~GLASS_CONTEXT_FLAG_DEPTHMAP;
     }
 
     // Handle early depth.
     if (g_Context->flags & GLASS_CONTEXT_FLAG_EARLY_DEPTH) {
-        GLASS_gpu_setEarlyDepthTest(&g_Context->settings.gpuCmdList, g_Context->earlyDepthTest);
-        GLASS_gpu_setEarlyDepthFunc(&g_Context->settings.gpuCmdList, g_Context->earlyDepthFunc);
-        GLASS_gpu_setEarlyDepthClear(&g_Context->settings.gpuCmdList, g_Context->clearEarlyDepth);
+        GLASS_gpu_setEarlyDepthTest(&g_Context->settings.GPUCmdList, g_Context->earlyDepthTest);
+        GLASS_gpu_setEarlyDepthFunc(&g_Context->settings.GPUCmdList, g_Context->earlyDepthFunc);
+        GLASS_gpu_setEarlyDepthClear(&g_Context->settings.GPUCmdList, g_Context->clearEarlyDepth);
         g_Context->flags &= ~GLASS_CONTEXT_FLAG_EARLY_DEPTH;
     }
 
     // Handle early depth clear.
     if (g_Context->flags & GLASS_CONTEXT_FLAG_EARLY_DEPTH_CLEAR) {
-        GLASS_gpu_clearEarlyDepthBuffer(&g_Context->settings.gpuCmdList);
+        GLASS_gpu_clearEarlyDepthBuffer(&g_Context->settings.GPUCmdList);
         g_Context->flags &= ~GLASS_CONTEXT_FLAG_EARLY_DEPTH_CLEAR;
     }
 
     // Handle stencil.
     if (g_Context->flags & GLASS_CONTEXT_FLAG_STENCIL) {
-        GLASS_gpu_setStencilTest(&g_Context->settings.gpuCmdList, g_Context->stencilTest, g_Context->stencilFunc, g_Context->stencilRef, g_Context->stencilMask, g_Context->stencilWriteMask);
-        GLASS_gpu_setStencilOp(&g_Context->settings.gpuCmdList, g_Context->stencilFail, g_Context->stencilDepthFail, g_Context->stencilPass);
+        GLASS_gpu_setStencilTest(&g_Context->settings.GPUCmdList, g_Context->stencilTest, g_Context->stencilFunc, g_Context->stencilRef, g_Context->stencilMask, g_Context->stencilWriteMask);
+        GLASS_gpu_setStencilOp(&g_Context->settings.GPUCmdList, g_Context->stencilFail, g_Context->stencilDepthFail, g_Context->stencilPass);
         g_Context->flags &= ~GLASS_CONTEXT_FLAG_STENCIL;
     }
 
     // Handle cull face.
     if (g_Context->flags & GLASS_CONTEXT_FLAG_CULL_FACE) {
-        GLASS_gpu_setCullFace(&g_Context->settings.gpuCmdList, g_Context->cullFace, g_Context->cullFaceMode, g_Context->frontFaceMode);
+        GLASS_gpu_setCullFace(&g_Context->settings.GPUCmdList, g_Context->cullFace, g_Context->cullFaceMode, g_Context->frontFaceMode);
         g_Context->flags &= ~GLASS_CONTEXT_FLAG_CULL_FACE;
     }
 
     // Handle alpha.
     if (g_Context->flags & GLASS_CONTEXT_FLAG_ALPHA) {
-        GLASS_gpu_setAlphaTest(&g_Context->settings.gpuCmdList, g_Context->alphaTest, g_Context->alphaFunc, g_Context->alphaRef);
+        GLASS_gpu_setAlphaTest(&g_Context->settings.GPUCmdList, g_Context->alphaTest, g_Context->alphaFunc, g_Context->alphaRef);
         g_Context->flags &= ~GLASS_CONTEXT_FLAG_ALPHA;
     }
 
     // Handle blend & logic op.
     if (g_Context->flags & GLASS_CONTEXT_FLAG_BLEND) {
-        GLASS_gpu_setBlendFunc(&g_Context->settings.gpuCmdList, g_Context->blendEqRGB, g_Context->blendEqAlpha, g_Context->blendSrcRGB, g_Context->blendDstRGB, g_Context->blendSrcAlpha, g_Context->blendDstAlpha);
-        GLASS_gpu_setBlendColor(&g_Context->settings.gpuCmdList, g_Context->blendColor);
-        GLASS_gpu_setLogicOp(&g_Context->settings.gpuCmdList, g_Context->logicOp);
+        GLASS_gpu_setBlendFunc(&g_Context->settings.GPUCmdList, g_Context->blendEqRGB, g_Context->blendEqAlpha, g_Context->blendSrcRGB, g_Context->blendDstRGB, g_Context->blendSrcAlpha, g_Context->blendDstAlpha);
+        GLASS_gpu_setBlendColor(&g_Context->settings.GPUCmdList, g_Context->blendColor);
+        GLASS_gpu_setLogicOp(&g_Context->settings.GPUCmdList, g_Context->logicOp);
         g_Context->flags &= ~GLASS_CONTEXT_FLAG_BLEND;
     }
 
     // Handle textures.
     if (g_Context->flags & GLASS_CONTEXT_FLAG_TEXTURE) {
-        GLASS_gpu_setTextureUnits(&g_Context->settings.gpuCmdList, g_Context->textureUnits);
+        GLASS_gpu_setTextureUnits(&g_Context->settings.GPUCmdList, g_Context->textureUnits);
         g_Context->flags &= ~GLASS_CONTEXT_FLAG_TEXTURE;
     }
 
     // Handle combiners.
     if (g_Context->flags & GLASS_CONTEXT_FLAG_COMBINERS) {
-        GLASS_gpu_setCombiners(&g_Context->settings.gpuCmdList, g_Context->combiners);
+        GLASS_gpu_setCombiners(&g_Context->settings.GPUCmdList, g_Context->combiners);
         g_Context->flags &= ~GLASS_CONTEXT_FLAG_COMBINERS;
     }
 }
 
 #ifndef GLASS_NO_MERCY
 void GLASS_context_setError(GLenum error) {
-    ASSERT(g_Context);
+    KYGX_ASSERT(g_Context);
     if (g_Context->lastError == GL_NO_ERROR)
         g_Context->lastError = error;
 }

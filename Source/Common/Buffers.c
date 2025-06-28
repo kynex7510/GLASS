@@ -145,7 +145,7 @@ void glDeleteBuffers(GLsizei n, const GLuint* buffers) {
         if (info->address)
             glassLinearFree(info->address);
 
-        glassVirtualFree(info);
+        glassHeapFree(info);
     }
 }
 

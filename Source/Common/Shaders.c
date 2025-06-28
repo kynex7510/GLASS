@@ -16,6 +16,7 @@
  * This should be evenly distributed.
  */
 #include "Base/Context.h"
+#include "Base/Math.h"
 
 #include <string.h> // strlen, memset, memcpy
 
@@ -48,65 +49,78 @@ typedef struct {
     } data;
 } DVLEConstEntry;
 
+typedef struct{
+    u16 type;
+    u16 regID;
+    u8 mask;
+    u8 _unk[3];
+} DVLEOutEntry;
+
+typedef struct{
+    u32 symbolOffset;
+    u16 startReg;
+    u16 endReg;
+} DVLEUniformEntry;
+
 typedef struct {
-    bool isGeometry;                     // This DVLE is for a geometry shader.
-    bool mergeOutmaps;                   // Merge shader outmaps (geometry only).
-    u32 entrypoint;                      // Code entrypoint.
-    DVLE_geoShaderMode gsMode;           // Geometry shader mode.
-    DVLEConstEntry* constUniforms;       // Constant uniform table.
-    u32 numOfConstUniforms;              // Size of constant uniform table.
-    DVLE_outEntry_s* outRegs;            // Output register table.
-    u32 numOfOutRegs;                    // Size of output register table.
-    DVLE_uniformEntry_s* activeUniforms; // Uniform table.
-    u32 numOfActiveUniforms;             // Size of uniform table.
-    char* symbolTable;                   // Symbol table.
-    u32 sizeOfSymbolTable;               // Size of symbol table.
+    bool isGeometry;                  // This DVLE is for a geometry shader.
+    bool mergeOutmaps;                // Merge shader outmaps (geometry only).
+    u32 entrypoint;                   // Code entrypoint.
+    GPUGeoShaderMode gsMode;          // Geometry shader mode.
+    DVLEConstEntry* constUniforms;    // Constant uniform table.
+    u32 numOfConstUniforms;           // Size of constant uniform table.
+    DVLEOutEntry* outRegs;            // Output register table.
+    u32 numOfOutRegs;                 // Size of output register table.
+    DVLEUniformEntry* activeUniforms; // Uniform table.
+    u32 numOfActiveUniforms;          // Size of uniform table.
+    char* symbolTable;                // Symbol table.
+    u32 sizeOfSymbolTable;            // Size of symbol table.
 } DVLEInfo;
 
-static void GLASS_freeUniformData(ShaderInfo* shader) {
-    ASSERT(shader);
+static void freeUniformData(ShaderInfo* shader) {
+    KYGX_ASSERT(shader);
 
     for (size_t i = 0; i < shader->numOfActiveUniforms; ++i) {
         UniformInfo* uni = &shader->activeUniforms[i];
         if ((uni->type == GLASS_UNI_FLOAT) || ((uni->type == GLASS_UNI_INT) && (uni->count > 1)))
-            glassVirtualFree(uni->data.values);
+            glassHeapFree(uni->data.values);
     }
 
-    glassVirtualFree(shader->constFloatUniforms);
-    glassVirtualFree(shader->activeAttribs);
-    glassVirtualFree(shader->activeUniforms);
+    glassHeapFree(shader->constFloatUniforms);
+    glassHeapFree(shader->activeAttribs);
+    glassHeapFree(shader->activeUniforms);
 }
 
-static void GLASS_decSharedDataRefc(SharedShaderData* sharedData) {
-    ASSERT(sharedData);
+static inline void decSharedDataRefc(SharedShaderData* sharedData) {
+    KYGX_ASSERT(sharedData);
 
     if (sharedData->refc)
         --sharedData->refc;
 
     if (!sharedData->refc)
-        glassVirtualFree(sharedData);
+        glassHeapFree(sharedData);
 }
 
-static void GLASS_decShaderRefc(ShaderInfo* shader) {
-    ASSERT(shader);
+static inline void decShaderRefc(ShaderInfo* shader) {
+    KYGX_ASSERT(shader);
 
     if (shader->refc)
         --shader->refc;
 
     if (!shader->refc) {
-        ASSERT(shader->flags & GLASS_SHADER_FLAG_DELETE);
+        KYGX_ASSERT(shader->flags & GLASS_SHADER_FLAG_DELETE);
 
         if (shader->sharedData)
-            GLASS_decSharedDataRefc(shader->sharedData);
+            decSharedDataRefc(shader->sharedData);
 
-        GLASS_freeUniformData(shader);
-        glassVirtualFree(shader);
+        freeUniformData(shader);
+        glassHeapFree(shader);
     }
 }
 
-static void GLASS_detachFromProgram(ProgramInfo* pinfo, ShaderInfo* sinfo) {
-    ASSERT(pinfo);
-    ASSERT(sinfo);
+static void detachFromProgram(ProgramInfo* pinfo, ShaderInfo* sinfo) {
+    KYGX_ASSERT(pinfo);
+    KYGX_ASSERT(sinfo);
 
     const GLuint sobj = (GLuint)sinfo;
 
@@ -126,58 +140,58 @@ static void GLASS_detachFromProgram(ProgramInfo* pinfo, ShaderInfo* sinfo) {
         pinfo->attachedVertex = GLASS_INVALID_OBJECT;
     }
 
-    GLASS_decShaderRefc((ShaderInfo*)sinfo);
+    decShaderRefc((ShaderInfo*)sinfo);
 }
 
-static void GLASS_freeProgram(ProgramInfo* info) {
-    ASSERT(info);
-    ASSERT(info->flags & GLASS_PROGRAM_FLAG_DELETE);
+static void freeProgram(ProgramInfo* info) {
+    KYGX_ASSERT(info);
+    KYGX_ASSERT(info->flags & GLASS_PROGRAM_FLAG_DELETE);
 
     if (GLASS_OBJ_IS_SHADER(info->attachedVertex))
-        GLASS_decShaderRefc((ShaderInfo*)info->attachedVertex);
+        decShaderRefc((ShaderInfo*)info->attachedVertex);
 
     if (GLASS_OBJ_IS_SHADER(info->attachedGeometry))
-        GLASS_decShaderRefc((ShaderInfo*)info->attachedGeometry);
+        decShaderRefc((ShaderInfo*)info->attachedGeometry);
 
     if (GLASS_OBJ_IS_SHADER(info->linkedVertex))
-        GLASS_decShaderRefc((ShaderInfo*)info->linkedVertex);
+        decShaderRefc((ShaderInfo*)info->linkedVertex);
 
     if (GLASS_OBJ_IS_SHADER(info->linkedGeometry))
-        GLASS_decShaderRefc((ShaderInfo*)info->linkedGeometry);
+        decShaderRefc((ShaderInfo*)info->linkedGeometry);
 
-    glassVirtualFree(info);
+    glassHeapFree(info);
 }
 
-static size_t GLASS_numActiveUniforms(ProgramInfo* info) {
-    ASSERT(info);
+static inline size_t numActiveUniforms(const ProgramInfo* info) {
+    KYGX_ASSERT(info);
 
     size_t numOfActiveUniforms = 0;
 
     if (GLASS_OBJ_IS_SHADER(info->linkedVertex)) {
-        ShaderInfo* vshad = (ShaderInfo*)info->linkedVertex;
+        const ShaderInfo* vshad = (const ShaderInfo*)info->linkedVertex;
         numOfActiveUniforms = vshad->numOfActiveUniforms;
     }
 
     if (GLASS_OBJ_IS_SHADER(info->linkedGeometry)) {
-        ShaderInfo* gshad = (ShaderInfo*)info->linkedGeometry;
+        const ShaderInfo* gshad = (const ShaderInfo*)info->linkedGeometry;
         numOfActiveUniforms += gshad->numOfActiveUniforms;
     }
 
     return numOfActiveUniforms;
 }
 
-static size_t GLASS_lenActiveUniforms(ProgramInfo* info) {
-    ASSERT(info);
+static inline size_t lenActiveUniforms(const ProgramInfo* info) {
+    KYGX_ASSERT(info);
 
     size_t lenOfActiveUniforms = 0;
 
     if (GLASS_OBJ_IS_SHADER(info->linkedVertex)) {
-        ShaderInfo* vshad = (ShaderInfo*)info->linkedVertex;
+        const ShaderInfo* vshad = (const ShaderInfo*)info->linkedVertex;
         if (vshad->activeUniformsMaxLen > lenOfActiveUniforms)
             lenOfActiveUniforms = vshad->activeUniformsMaxLen;
 
         if (GLASS_OBJ_IS_SHADER(info->linkedGeometry)) {
-            ShaderInfo* gshad = (ShaderInfo*)info->linkedGeometry;
+            const ShaderInfo* gshad = (const ShaderInfo*)info->linkedGeometry;
             if (gshad->activeUniformsMaxLen > lenOfActiveUniforms)
                 lenOfActiveUniforms = gshad->activeUniformsMaxLen;
         }
@@ -187,36 +201,36 @@ static size_t GLASS_lenActiveUniforms(ProgramInfo* info) {
 }
 
 // TODO: verify the behaviour with geo shaders. Do we need to read from them?
-static size_t GLASS_numActiveAttribs(ProgramInfo* info) {
-    ASSERT(info);
+static inline size_t numActiveAttribs(const ProgramInfo* info) {
+    KYGX_ASSERT(info);
 
     size_t numOfActiveAttribs = 0;
 
     if (GLASS_OBJ_IS_SHADER(info->linkedVertex)) {
-        ShaderInfo* vshad = (ShaderInfo*)info->linkedVertex;
+        const ShaderInfo* vshad = (const ShaderInfo*)info->linkedVertex;
         numOfActiveAttribs = vshad->numOfActiveAttribs;
     }
 
     if (GLASS_OBJ_IS_SHADER(info->linkedGeometry)) {
-        ShaderInfo* gshad = (ShaderInfo*)info->linkedGeometry;
+        const ShaderInfo* gshad = (const ShaderInfo*)info->linkedGeometry;
         numOfActiveAttribs += gshad->numOfActiveAttribs;
     }
 
     return numOfActiveAttribs;
 }
 
-static size_t GLASS_lenActiveAttribs(ProgramInfo* info) {
-    ASSERT(info);
+static inline size_t lenActiveAttribs(const ProgramInfo* info) {
+    KYGX_ASSERT(info);
 
     size_t lenOfActiveAttribs = 0;
 
     if (GLASS_OBJ_IS_SHADER(info->linkedVertex)) {
-        ShaderInfo* vshad = (ShaderInfo*)info->linkedVertex;
+        const ShaderInfo* vshad = (const ShaderInfo*)info->linkedVertex;
         if (vshad->activeAttribsMaxLen > lenOfActiveAttribs)
             lenOfActiveAttribs = vshad->activeAttribsMaxLen;
 
         if (GLASS_OBJ_IS_SHADER(info->linkedGeometry)) {
-            ShaderInfo* gshad = (ShaderInfo*)info->linkedGeometry;
+            const ShaderInfo* gshad = (const ShaderInfo*)info->linkedGeometry;
             if (gshad->activeAttribsMaxLen > lenOfActiveAttribs)
                 lenOfActiveAttribs = gshad->activeAttribsMaxLen;
         }
@@ -225,8 +239,8 @@ static size_t GLASS_lenActiveAttribs(ProgramInfo* info) {
     return lenOfActiveAttribs;
 }
 
-static size_t GLASS_lookupShader(const GLuint* shaders, size_t maxShaders, size_t index, bool isGeometry) {
-    ASSERT(shaders);
+static size_t lookupShader(const GLuint* shaders, size_t maxShaders, size_t index, bool isGeometry) {
+    KYGX_ASSERT(shaders);
 
     for (size_t i = (index + 1); i < maxShaders; ++i) {
         GLuint name = shaders[i];
@@ -235,7 +249,7 @@ static size_t GLASS_lookupShader(const GLuint* shaders, size_t maxShaders, size_
         if (!GLASS_OBJ_IS_SHADER(name))
             break;
 
-        ShaderInfo* shader = (ShaderInfo*)name;
+        const ShaderInfo* shader = (const ShaderInfo*)name;
         if (((shader->flags & GLASS_SHADER_FLAG_GEOMETRY) == GLASS_SHADER_FLAG_GEOMETRY) == isGeometry)
             return i;
     }
@@ -243,18 +257,18 @@ static size_t GLASS_lookupShader(const GLuint* shaders, size_t maxShaders, size_
     return index;
 }
 
-static DVLB* GLASS_parseDVLB(const u8* data, size_t size) {
-    ASSERT(data);
-    ASSERT(size > DVLB_MIN_SIZE);
-    ASSERT(memcmp(data, DVLB_MAGIC, sizeof(DVLB_MAGIC) - 1) == 0);
+static DVLB* parseDVLB(const u8* data, size_t size) {
+    KYGX_ASSERT(data);
+    KYGX_ASSERT(size > DVLB_MIN_SIZE);
+    KYGX_ASSERT(memcmp(data, DVLB_MAGIC, sizeof(DVLB_MAGIC) - 1) == 0);
 
     // Read number of DVLEs.
     u32 numOfDVLEs = 0;
     memcpy(&numOfDVLEs, data + 0x04, sizeof(u32));
-    ASSERT((DVLB_MIN_SIZE + (numOfDVLEs * 4)) <= size);
+    KYGX_ASSERT((DVLB_MIN_SIZE + (numOfDVLEs * 4)) <= size);
 
     // Allocate DVLB.
-    DVLB* dvlb = (DVLB*)glassVirtualAlloc( sizeof(DVLB) + (numOfDVLEs * 4));
+    DVLB* dvlb = (DVLB*)glassHeapAlloc( sizeof(DVLB) + (numOfDVLEs * 4));
 
     if (dvlb) {
         dvlb->numOfDVLEs = numOfDVLEs;
@@ -262,7 +276,7 @@ static DVLB* GLASS_parseDVLB(const u8* data, size_t size) {
         // Fill table with offsets.
         for (size_t i = 0; i < numOfDVLEs; ++i) {
             dvlb->DVLETable[i] = *(u32*)(data + DVLB_MIN_SIZE + (4 * i));
-            ASSERT(dvlb->DVLETable[i] <= size);
+            KYGX_ASSERT(dvlb->DVLETable[i] <= size);
             // Relocation.
             dvlb->DVLETable[i] += (u32)data;
         }
@@ -271,18 +285,18 @@ static DVLB* GLASS_parseDVLB(const u8* data, size_t size) {
     return dvlb;
 }
 
-static SharedShaderData* GLASS_parseDVLP(const u8* data, size_t size) {
-    ASSERT(data);
-    ASSERT(size > DVLP_MIN_SIZE);
-    ASSERT(memcmp(data, DVLP_MAGIC, sizeof(DVLP_MAGIC) - 1) == 0);
+static SharedShaderData* parseDVLP(const u8* data, size_t size) {
+    KYGX_ASSERT(data);
+    KYGX_ASSERT(size > DVLP_MIN_SIZE);
+    KYGX_ASSERT(memcmp(data, DVLP_MAGIC, sizeof(DVLP_MAGIC) - 1) == 0);
 
     // Read offsets.
     u32 offsetToBlob = 0;
     u32 offsetToOpDescs = 0;
     memcpy(&offsetToBlob, data + 0x08, sizeof(u32));
     memcpy(&offsetToOpDescs, data + 0x10, sizeof(u32));
-    ASSERT(offsetToBlob < size);
-    ASSERT(offsetToOpDescs < size);
+    KYGX_ASSERT(offsetToBlob < size);
+    KYGX_ASSERT(offsetToOpDescs < size);
 
     // Read num params.
     u32 numOfCodeWords = 0;
@@ -290,13 +304,13 @@ static SharedShaderData* GLASS_parseDVLP(const u8* data, size_t size) {
     memcpy(&numOfCodeWords, data + 0x0C, sizeof(u32));
     memcpy(&numOfOpDescs, data + 0x14, sizeof(u32));
 
-    ASSERT(numOfCodeWords <= 512);
-    ASSERT(numOfOpDescs <= 128);
-    ASSERT((offsetToBlob + (numOfCodeWords * 4)) <= size);
-    ASSERT((offsetToOpDescs + (numOfOpDescs * 8)) <= size);
+    KYGX_ASSERT(numOfCodeWords <= 512);
+    KYGX_ASSERT(numOfOpDescs <= 128);
+    KYGX_ASSERT((offsetToBlob + (numOfCodeWords * 4)) <= size);
+    KYGX_ASSERT((offsetToOpDescs + (numOfOpDescs * 8)) <= size);
 
     // Allocate data.
-    SharedShaderData* sharedData = (SharedShaderData*)glassVirtualAlloc(sizeof(SharedShaderData) + (numOfCodeWords * sizeof(u32)) + (numOfOpDescs * sizeof(u32)));
+    SharedShaderData* sharedData = (SharedShaderData*)glassHeapAlloc(sizeof(SharedShaderData) + (numOfCodeWords * sizeof(u32)) + (numOfOpDescs * sizeof(u32)));
 
     if (sharedData) {
         sharedData->refc = 0;
@@ -316,11 +330,11 @@ static SharedShaderData* GLASS_parseDVLP(const u8* data, size_t size) {
     return sharedData;
 }
 
-static void GLASS_getDVLEInfo(const u8* data, size_t size, DVLEInfo* out) {
-    ASSERT(data);
-    ASSERT(out);
-    ASSERT(size > DVLE_MIN_SIZE);
-    ASSERT(memcmp(data, DVLE_MAGIC, sizeof(DVLE_MAGIC) - 1) == 0);
+static void getDVLEInfo(const u8* data, size_t size, DVLEInfo* out) {
+    KYGX_ASSERT(data);
+    KYGX_ASSERT(out);
+    KYGX_ASSERT(size > DVLE_MIN_SIZE);
+    KYGX_ASSERT(memcmp(data, DVLE_MAGIC, sizeof(DVLE_MAGIC) - 1) == 0);
 
     // Get info.
     u8 flags = 0;
@@ -342,14 +356,14 @@ static void GLASS_getDVLEInfo(const u8* data, size_t size, DVLEInfo* out) {
     memcpy(&out->numOfActiveUniforms, data + 0x34, sizeof(u32));
     memcpy(&offsetToSymbolTable, data + 0x38, sizeof(u32));
     memcpy(&out->sizeOfSymbolTable, data + 0x3C, sizeof(u32));
-    ASSERT(offsetToConstTable < size);
-    ASSERT(offsetToOutTable < size);
-    ASSERT(offsetToUniformTable < size);
-    ASSERT(offsetToSymbolTable < size);
-    ASSERT((offsetToConstTable + (out->numOfConstUniforms * 20)) <= size);
-    ASSERT((offsetToOutTable + (out->numOfOutRegs * 8)) <= size);
-    ASSERT((offsetToUniformTable + (out->numOfActiveUniforms * 8)) <= size);
-    ASSERT((offsetToSymbolTable + out->sizeOfSymbolTable) <= size);
+    KYGX_ASSERT(offsetToConstTable < size);
+    KYGX_ASSERT(offsetToOutTable < size);
+    KYGX_ASSERT(offsetToUniformTable < size);
+    KYGX_ASSERT(offsetToSymbolTable < size);
+    KYGX_ASSERT((offsetToConstTable + (out->numOfConstUniforms * 20)) <= size);
+    KYGX_ASSERT((offsetToOutTable + (out->numOfOutRegs * 8)) <= size);
+    KYGX_ASSERT((offsetToUniformTable + (out->numOfActiveUniforms * 8)) <= size);
+    KYGX_ASSERT((offsetToSymbolTable + out->sizeOfSymbolTable) <= size);
 
     // Handle geometry shader.
     switch (flags) {
@@ -360,12 +374,12 @@ static void GLASS_getDVLEInfo(const u8* data, size_t size, DVLEInfo* out) {
             out->isGeometry = true;
             break;
         default:
-            UNREACHABLE("Unknown DVLE flags value!");
+            KYGX_UNREACHABLE("Unknown DVLE flags value!");
     }
 
     // Handle merge outmaps.
     if (mergeOutmaps & 1) {
-        ASSERT(out->isGeometry);
+        KYGX_ASSERT(out->isGeometry);
         out->mergeOutmaps = true;
     } else {
         out->mergeOutmaps = false;
@@ -375,29 +389,29 @@ static void GLASS_getDVLEInfo(const u8* data, size_t size, DVLEInfo* out) {
     if (out->isGeometry) {
         switch (gsMode) {
             case 0x00:
-                out->gsMode = GSH_POINT;
+                out->gsMode = GEOSHADERMODE_POINT;
                 break;
             case 0x01:
-                out->gsMode = GSH_VARIABLE_PRIM;
+                out->gsMode = GEOSHADERMODE_VARIABLE;
                 break;
             case 0x02:
-                out->gsMode = GSH_FIXED_PRIM;
+                out->gsMode = GEOSHADERMODE_FIXED;
                 break;
             default:
-                UNREACHABLE("Unknown DVLE geometry shader mode!");
+                KYGX_UNREACHABLE("Unknown DVLE geometry shader mode!");
         }
     }
 
     // Set table pointers.
     out->constUniforms = (DVLEConstEntry*)(data + offsetToConstTable);
-    out->outRegs = (DVLE_outEntry_s*)(data + offsetToOutTable);
-    out->activeUniforms = (DVLE_uniformEntry_s*)(data + offsetToUniformTable);
+    out->outRegs = (DVLEOutEntry*)(data + offsetToOutTable);
+    out->activeUniforms = (DVLEUniformEntry*)(data + offsetToUniformTable);
     out->symbolTable = (char*)(data + offsetToSymbolTable);
 }
 
-static void GLASS_generateOutmaps(const DVLEInfo* info, ShaderInfo* out) {
-    ASSERT(info);
-    ASSERT(out);
+static void generateOutmaps(const DVLEInfo* info, ShaderInfo* out) {
+    KYGX_ASSERT(info);
+    KYGX_ASSERT(out);
 
     bool useTexcoords = false;
     out->outMask = 0;
@@ -406,7 +420,7 @@ static void GLASS_generateOutmaps(const DVLEInfo* info, ShaderInfo* out) {
     memset(out->outSems, 0x1F, sizeof(out->outSems));
 
     for (size_t i = 0; i < info->numOfOutRegs; ++i) {
-        const DVLE_outEntry_s* entry = &info->outRegs[i];
+        const DVLEOutEntry* entry = &info->outRegs[i];
         u8 sem = 0x1F;
         size_t maxSem = 0;
 
@@ -418,53 +432,53 @@ static void GLASS_generateOutmaps(const DVLEInfo* info, ShaderInfo* out) {
 
         // Get register semantics.
         switch (entry->type) {
-            case RESULT_POSITION:
+            case OUTPUTREGTYPE_POSITION:
                 sem = 0x00;
                 maxSem = 4;
                 break;
-            case RESULT_NORMALQUAT:
+            case OUTPUTREGTYPE_NORMALQUAT:
                 sem = 0x04;
                 maxSem = 4;
                 out->outClock |= (1u << 24);
                 break;
-            case RESULT_COLOR:
+            case OUTPUTREGTYPE_COLOR:
                 sem = 0x08;
                 maxSem = 4;
                 out->outClock |= (1u << 1);
                 break;
-            case RESULT_TEXCOORD0:
+            case OUTPUTREGTYPE_TEXCOORD0:
                 sem = 0x0C;
                 maxSem = 2;
                 out->outClock |= (1u << 8);
                 useTexcoords = true;
                 break;
-            case RESULT_TEXCOORD0W:
+            case OUTPUTREGTYPE_TEXCOORD0W:
                 sem = 0x10;
                 maxSem = 1;
                 out->outClock |= (1u << 16);
                 useTexcoords = true;
                 break;
-            case RESULT_TEXCOORD1:
+            case OUTPUTREGTYPE_TEXCOORD1:
                 sem = 0x0E;
                 maxSem = 2;
                 out->outClock |= (1u << 9);
                 useTexcoords = true;
                 break;
-            case RESULT_TEXCOORD2:
+            case OUTPUTREGTYPE_TEXCOORD2:
                 sem = 0x16;
                 maxSem = 2;
                 out->outClock |= (1u << 10);
                 useTexcoords = true;
                 break;
-            case RESULT_VIEW:
+            case OUTPUTREGTYPE_VIEW:
                 sem = 0x12;
                 maxSem = 3;
                 out->outClock |= (1u << 24);
                 break;
-            case RESULT_DUMMY:
+            case OUTPUTREGTYPE_DUMMY:
                 continue;
             default:
-                UNREACHABLE("Unknown output register type!");
+                KYGX_UNREACHABLE("Unknown output register type!");
         }
 
         // Set register semantics.
@@ -475,7 +489,7 @@ static void GLASS_generateOutmaps(const DVLEInfo* info, ShaderInfo* out) {
 
                 // Check for position.z clock.
                 ++curSem;
-                if ((entry->type == RESULT_POSITION) && (curSem == 3))
+                if ((entry->type == OUTPUTREGTYPE_POSITION) && (curSem == 3))
                     out->outClock |= (1u << 0);
             }
         }
@@ -488,12 +502,12 @@ static void GLASS_generateOutmaps(const DVLEInfo* info, ShaderInfo* out) {
     }
 }
 
-static bool GLASS_loadUniforms(const DVLEInfo* info, ShaderInfo* out) {
-    ASSERT(info);
-    ASSERT(out);
+static bool loadUniforms(const DVLEInfo* info, ShaderInfo* out) {
+    KYGX_ASSERT(info);
+    KYGX_ASSERT(out);
 
     // Cleanup.
-    GLASS_freeUniformData(out);
+    freeUniformData(out);
     out->constBoolMask = 0;
     memset(out->constIntData, 0, sizeof(out->constIntData));
     out->constIntMask = 0;
@@ -513,26 +527,26 @@ static bool GLASS_loadUniforms(const DVLEInfo* info, ShaderInfo* out) {
 
         switch (constEntry->type) {
             case GLASS_UNI_BOOL:
-            ASSERT(constEntry->ID < GLASS_NUM_BOOL_UNIFORMS);
+            KYGX_ASSERT(constEntry->ID < GLASS_NUM_BOOL_UNIFORMS);
             if (constEntry->data.boolUniform) {
                 out->constBoolMask |= (1u << constEntry->ID);
             }
             break;
         case GLASS_UNI_INT:
-            ASSERT(constEntry->ID < GLASS_NUM_INT_UNIFORMS);
+            KYGX_ASSERT(constEntry->ID < GLASS_NUM_INT_UNIFORMS);
             out->constIntData[constEntry->ID] = constEntry->data.intUniform;
             out->constIntMask |= (1u << constEntry->ID);
             break;
         case GLASS_UNI_FLOAT:
-            ASSERT(constEntry->ID < GLASS_NUM_FLOAT_UNIFORMS);
+            KYGX_ASSERT(constEntry->ID < GLASS_NUM_FLOAT_UNIFORMS);
             ++numOfConstFloatUniforms;
             break;
         default:
-            UNREACHABLE("Unknown const uniform type!");
+            KYGX_UNREACHABLE("Unknown const uniform type!");
         }
     }
 
-    out->constFloatUniforms = (ConstFloatInfo*)glassVirtualAlloc(sizeof(ConstFloatInfo) * numOfConstFloatUniforms);
+    out->constFloatUniforms = (ConstFloatInfo*)glassHeapAlloc(sizeof(ConstFloatInfo) * numOfConstFloatUniforms);
     if (!out->constFloatUniforms)
         return false;
 
@@ -545,23 +559,23 @@ static bool GLASS_loadUniforms(const DVLEInfo* info, ShaderInfo* out) {
             continue;
 
         const float components[] = {
-            GLASS_utility_f24tof32(constEntry->data.floatUniform.x),
-            GLASS_utility_f24tof32(constEntry->data.floatUniform.y),
-            GLASS_utility_f24tof32(constEntry->data.floatUniform.z),
-            GLASS_utility_f24tof32(constEntry->data.floatUniform.w)
+            GLASS_math_f24tof32(constEntry->data.floatUniform.x),
+            GLASS_math_f24tof32(constEntry->data.floatUniform.y),
+            GLASS_math_f24tof32(constEntry->data.floatUniform.z),
+            GLASS_math_f24tof32(constEntry->data.floatUniform.w)
         };
 
         ConstFloatInfo* uni = &out->constFloatUniforms[numOfConstFloatUniforms++];
         uni->ID = constEntry->ID;
-        GLASS_utility_packFloatVector(components, uni->data);
+        GLASS_math_packFloatVector(components, uni->data);
     }
 
-    ASSERT(numOfConstFloatUniforms == out->numOfConstFloatUniforms);
+    KYGX_ASSERT(numOfConstFloatUniforms == out->numOfConstFloatUniforms);
 
     // Find number of active attributes.
     // Shader binaries do not differentiate between active uniforms and active attributes.
     for (size_t i = 0; i < info->numOfActiveUniforms; ++i) {
-        const DVLE_uniformEntry_s* entry = &info->activeUniforms[i];
+        const DVLEUniformEntry* entry = &info->activeUniforms[i];
         if ((entry->startReg >= 0x00) && (entry->startReg <= 0x0F)) {
             ++out->numOfActiveAttribs;
 
@@ -573,33 +587,33 @@ static bool GLASS_loadUniforms(const DVLEInfo* info, ShaderInfo* out) {
     }
 
     // Setup active attributes.
-    out->activeAttribs = (ActiveAttribInfo*)glassVirtualAlloc(sizeof(ActiveAttribInfo) * out->numOfActiveAttribs);
+    out->activeAttribs = (ActiveAttribInfo*)glassHeapAlloc(sizeof(ActiveAttribInfo) * out->numOfActiveAttribs);
     if (!out->activeAttribs)
         return false;
 
     size_t index = 0;
     for (size_t i = 0; i < info->numOfActiveUniforms; ++i) {
-        const DVLE_uniformEntry_s* entry = &info->activeUniforms[i];
+        const DVLEUniformEntry* entry = &info->activeUniforms[i];
         if (entry->startReg >= 0x10)
             continue;
 
-        ASSERT(entry->startReg == entry->endReg);
+        KYGX_ASSERT(entry->startReg == entry->endReg);
         ActiveAttribInfo* attrib = &out->activeAttribs[index++];
         attrib->ID = entry->startReg;
         attrib->symbol = out->symbolTable + entry->symbolOffset;
     }
 
-    ASSERT(index == out->numOfActiveAttribs);
+    KYGX_ASSERT(index == out->numOfActiveAttribs);
 
     // Setup active uniforms.
     out->numOfActiveUniforms = info->numOfActiveUniforms - out->numOfActiveAttribs;
-    out->activeUniforms = (UniformInfo*)glassVirtualAlloc(sizeof(UniformInfo) * out->numOfActiveUniforms);
+    out->activeUniforms = (UniformInfo*)glassHeapAlloc(sizeof(UniformInfo) * out->numOfActiveUniforms);
     if (!out->activeUniforms)
         return false;
 
     index = 0;
     for (size_t i = 0; i < info->numOfActiveUniforms; ++i) {
-        const DVLE_uniformEntry_s* entry = &info->activeUniforms[i];
+        const DVLEUniformEntry* entry = &info->activeUniforms[i];
 
         // Skip attributes.
         if ((entry->startReg >= 0x00) && (entry->startReg <= 0x0F))
@@ -617,7 +631,7 @@ static bool GLASS_loadUniforms(const DVLEInfo* info, ShaderInfo* out) {
 
         // Handle bool.
         if ((entry->startReg >= 0x78) && (entry->startReg <= 0x87)) {
-            ASSERT(entry->endReg <= 0x87);
+            KYGX_ASSERT(entry->endReg <= 0x87);
             uni->ID -= 0x78;
             uni->type = GLASS_UNI_BOOL;
             uni->data.mask = 0;
@@ -626,12 +640,12 @@ static bool GLASS_loadUniforms(const DVLEInfo* info, ShaderInfo* out) {
 
         // Handle int.
         if ((entry->startReg >= 0x70) && (entry->startReg <= 0x73)) {
-            ASSERT(entry->endReg <= 0x73);
+            KYGX_ASSERT(entry->endReg <= 0x73);
             uni->ID -= 0x70;
             uni->type = GLASS_UNI_INT;
 
             if (uni->count > 1) {
-                uni->data.values = (u32*)glassVirtualAlloc(sizeof(u32) * uni->count);
+                uni->data.values = (u32*)glassHeapAlloc(sizeof(u32) * uni->count);
                 if (!uni->data.values)
                     return false;
             } else {
@@ -643,20 +657,20 @@ static bool GLASS_loadUniforms(const DVLEInfo* info, ShaderInfo* out) {
 
         // Handle float.
         if ((entry->startReg >= 0x10) && (entry->startReg <= 0x6F)) {
-            ASSERT(entry->endReg <= 0x6F);
+            KYGX_ASSERT(entry->endReg <= 0x6F);
             uni->ID -= 0x10;
             uni->type = GLASS_UNI_FLOAT;
-            uni->data.values = (u32*)glassVirtualAlloc((sizeof(u32) * 3) * uni->count);
+            uni->data.values = (u32*)glassHeapAlloc((sizeof(u32) * 3) * uni->count);
             if (!uni->data.values)
                 return false;
 
             continue;
         }
 
-        UNREACHABLE("Unknown uniform type!");
+        KYGX_UNREACHABLE("Unknown uniform type!");
     }
 
-    ASSERT(index == out->numOfActiveUniforms);
+    KYGX_ASSERT(index == out->numOfActiveUniforms);
     return true;
 }
 
@@ -743,14 +757,14 @@ void glDeleteProgram(GLuint program) {
         return;
     }
 
-    CtxCommon* ctx = GLASS_context_getCommon();
+    CtxCommon* ctx = GLASS_context_getBound();
     ProgramInfo* info = (ProgramInfo*)program;
 
     // Flag for deletion.
     if (!(info->flags & GLASS_PROGRAM_FLAG_DELETE)) {
         info->flags |= GLASS_PROGRAM_FLAG_DELETE;
         if (ctx->currentProgram != program)
-            GLASS_freeProgram(info);
+            freeProgram(info);
     }
 }
 
@@ -769,7 +783,7 @@ void glDeleteShader(GLuint shader) {
     // Flag for deletion.
     if (!(info->flags & GLASS_SHADER_FLAG_DELETE)) {
         info->flags |= GLASS_SHADER_FLAG_DELETE;
-        GLASS_decShaderRefc(info);
+        decShaderRefc(info);
     }
 }
 
@@ -781,11 +795,11 @@ void glDetachShader(GLuint program, GLuint shader) {
 
     ProgramInfo* pinfo = (ProgramInfo*)program;
     ShaderInfo* sinfo = (ShaderInfo*)shader;
-    GLASS_detachFromProgram(pinfo, sinfo);
+    detachFromProgram(pinfo, sinfo);
 }
 
 void glGetAttachedShaders(GLuint program, GLsizei maxCount, GLsizei* count, GLuint* shaders) {
-    ASSERT(shaders);
+    KYGX_ASSERT(shaders);
 
     GLsizei shaderCount = 0;
 
@@ -818,7 +832,7 @@ void glGetAttachedShaders(GLuint program, GLsizei maxCount, GLsizei* count, GLui
 }
 
 void glGetProgramiv(GLuint program, GLenum pname, GLint* params) {
-    ASSERT(params);
+    KYGX_ASSERT(params);
 
     if (!GLASS_OBJ_IS_PROGRAM(program)) {
         GLASS_context_setError(GL_INVALID_OPERATION);
@@ -851,16 +865,16 @@ void glGetProgramiv(GLuint program, GLenum pname, GLint* params) {
             }
             break;
         case GL_ACTIVE_UNIFORMS:
-            *params = GLASS_numActiveUniforms(info);
+            *params = numActiveUniforms(info);
             break;
         case GL_ACTIVE_UNIFORM_MAX_LENGTH:
-            *params = GLASS_lenActiveUniforms(info);
+            *params = lenActiveUniforms(info);
             break;
         case GL_ACTIVE_ATTRIBUTES:
-            *params = GLASS_numActiveAttribs(info);
+            *params = numActiveAttribs(info);
             break;
         case GL_ACTIVE_ATTRIBUTE_MAX_LENGTH:
-            *params = GLASS_lenActiveAttribs(info);
+            *params = lenActiveAttribs(info);
             break;
         default:
             GLASS_context_setError(GL_INVALID_ENUM);
@@ -868,7 +882,7 @@ void glGetProgramiv(GLuint program, GLenum pname, GLint* params) {
 }
 
 void glGetShaderiv(GLuint shader, GLenum pname, GLint* params) {
-    ASSERT(params);
+    KYGX_ASSERT(params);
 
     if (!GLASS_OBJ_IS_SHADER(shader)) {
         GLASS_context_setError(GL_INVALID_OPERATION);
@@ -924,7 +938,7 @@ void glLinkProgram(GLuint program) {
 
         // Unlink old vertex shader.
         if (GLASS_OBJ_IS_SHADER(pinfo->linkedVertex))
-            GLASS_decShaderRefc((ShaderInfo*)pinfo->linkedVertex);
+            decShaderRefc((ShaderInfo*)pinfo->linkedVertex);
 
         // Link new vertex shader.
         pinfo->flags |= GLASS_PROGRAM_FLAG_UPDATE_VERTEX;
@@ -944,7 +958,7 @@ void glLinkProgram(GLuint program) {
 
         // Unlink old geometry shader.
         if (GLASS_OBJ_IS_SHADER(pinfo->linkedGeometry))
-            GLASS_decShaderRefc((ShaderInfo*)pinfo->linkedGeometry);
+            decShaderRefc((ShaderInfo*)pinfo->linkedGeometry);
 
         // Link new geometry shader.
         pinfo->flags |= GLASS_PROGRAM_FLAG_UPDATE_GEOMETRY;
@@ -956,8 +970,8 @@ void glLinkProgram(GLuint program) {
 }
 
 void glShaderBinary(GLsizei n, const GLuint* shaders, GLenum binaryformat, const void* binary, GLsizei length) {
-    ASSERT(shaders);
-    ASSERT(binary);
+    KYGX_ASSERT(shaders);
+    KYGX_ASSERT(binary);
 
     const u8* data = (u8*)binary;
     const size_t size = length;
@@ -981,7 +995,7 @@ void glShaderBinary(GLsizei n, const GLuint* shaders, GLenum binaryformat, const
         goto glShaderBinary_skip;
 
   // Parse DVLB.
-    dvlb = GLASS_parseDVLB(data, size);
+    dvlb = parseDVLB(data, size);
     if (!dvlb) {
         GLASS_context_setError(GL_OUT_OF_MEMORY);
         goto glShaderBinary_skip;
@@ -989,7 +1003,7 @@ void glShaderBinary(GLsizei n, const GLuint* shaders, GLenum binaryformat, const
 
     // Parse DVLP.
     const size_t dvlbSize = DVLB_MIN_SIZE + (dvlb->numOfDVLEs * sizeof(u32));
-    sharedData = GLASS_parseDVLP(data + dvlbSize, size - dvlbSize);
+    sharedData = parseDVLP(data + dvlbSize, size - dvlbSize);
     if (!sharedData) {
         GLASS_context_setError(GL_OUT_OF_MEMORY);
         goto glShaderBinary_skip;
@@ -1002,8 +1016,8 @@ void glShaderBinary(GLsizei n, const GLuint* shaders, GLenum binaryformat, const
 
         // Lookup shader.
         DVLEInfo info;
-        GLASS_getDVLEInfo(pointerToDVLE, maxSize, &info);
-        const size_t index = GLASS_lookupShader(shaders, n, (info.isGeometry ? lastGeometryIdx : lastVertexIdx), info.isGeometry);
+        getDVLEInfo(pointerToDVLE, maxSize, &info);
+        const size_t index = lookupShader(shaders, n, (info.isGeometry ? lastGeometryIdx : lastVertexIdx), info.isGeometry);
 
         if (index == (info.isGeometry ? lastGeometryIdx : lastVertexIdx)) {
             GLASS_context_setError(GL_INVALID_OPERATION);
@@ -1023,14 +1037,14 @@ void glShaderBinary(GLsizei n, const GLuint* shaders, GLenum binaryformat, const
         if (info.isGeometry)
             shader->gsMode = info.gsMode;
 
-        GLASS_generateOutmaps(&info, shader);
+        generateOutmaps(&info, shader);
 
         // Make copy of symbol table.
-        glassVirtualFree(shader->symbolTable);
+        glassHeapFree(shader->symbolTable);
         shader->symbolTable = NULL;
         shader->sizeOfSymbolTable = 0;
 
-        shader->symbolTable = (char*)glassVirtualAlloc(info.sizeOfSymbolTable);
+        shader->symbolTable = (char*)glassHeapAlloc(info.sizeOfSymbolTable);
         if (!shader->symbolTable) {
             GLASS_context_setError(GL_OUT_OF_MEMORY);
             goto glShaderBinary_skip;
@@ -1040,14 +1054,14 @@ void glShaderBinary(GLsizei n, const GLuint* shaders, GLenum binaryformat, const
         shader->sizeOfSymbolTable = info.sizeOfSymbolTable;
 
         // Load uniforms, can only fail for memory issues.
-        if (!GLASS_loadUniforms(&info, shader)) {
+        if (!loadUniforms(&info, shader)) {
             GLASS_context_setError(GL_OUT_OF_MEMORY);
             goto glShaderBinary_skip;
         }
 
         // Set shared data.
         if (shader->sharedData)
-            GLASS_decSharedDataRefc(shader->sharedData);
+            decSharedDataRefc(shader->sharedData);
 
         shader->sharedData = sharedData;
         ++sharedData->refc;
@@ -1063,9 +1077,9 @@ void glShaderBinary(GLsizei n, const GLuint* shaders, GLenum binaryformat, const
 glShaderBinary_skip:
     // Free resources.
     if (sharedData && !sharedData->refc)
-        glassVirtualFree(sharedData);
+        glassHeapFree(sharedData);
 
-    glassVirtualFree(dvlb);
+    glassHeapFree(dvlb);
 }
 
 void glUseProgram(GLuint program) {
@@ -1074,7 +1088,7 @@ void glUseProgram(GLuint program) {
         return;
     }
 
-    CtxCommon* ctx = GLASS_context_getCommon();
+    CtxCommon* ctx = GLASS_context_getBound();
 
     // Check if already in use.
     if (ctx->currentProgram != program) {
@@ -1089,7 +1103,7 @@ void glUseProgram(GLuint program) {
 
         // Remove program.
         if (GLASS_OBJ_IS_PROGRAM(ctx->currentProgram))
-            GLASS_freeProgram((ProgramInfo*)ctx->currentProgram);
+            freeProgram((ProgramInfo*)ctx->currentProgram);
 
         // Set program.
         ctx->currentProgram = program;
@@ -1100,7 +1114,7 @@ void glUseProgram(GLuint program) {
 void glCompileShader(GLuint shader) { GLASS_context_setError(GL_INVALID_OPERATION); }
 
 void glGetProgramInfoLog(GLuint program, GLsizei maxLength, GLsizei* length, GLchar* infoLog) {
-    ASSERT(infoLog);
+    KYGX_ASSERT(infoLog);
 
     if (length)
         *length = 0;
@@ -1109,7 +1123,7 @@ void glGetProgramInfoLog(GLuint program, GLsizei maxLength, GLsizei* length, GLc
 }
 
 void glGetShaderInfoLog(GLuint shader, GLsizei maxLength, GLsizei* length, GLchar* infoLog) {
-    ASSERT(infoLog);
+    KYGX_ASSERT(infoLog);
 
     if (length)
         *length = 0;

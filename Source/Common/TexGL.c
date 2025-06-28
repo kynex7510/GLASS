@@ -71,7 +71,7 @@ void glDeleteTextures(GLsizei n, const GLuint* textures) {
             tex->vram ? glassVRAMFree(p) : glassLinearFree(p);
         }
 
-        glassVirtualFree(tex);
+        glassHeapFree(tex);
     }
 }
 

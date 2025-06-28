@@ -10,7 +10,7 @@ typedef struct {
     GLenum lastError;           // Actually first error.
 
     /* Platform */
-    GXCmdBuffer gxCmdBuffer; // GX command buffer.
+    KYGXCmdBuffer GXCmdBuf; // GX command buffer.
 
     /* Buffers */
     GLuint arrayBuffer;        // GL_ARRAY_BUFFER
@@ -110,7 +110,7 @@ typedef struct {
 
 void GLASS_context_initCommon(CtxCommon* ctx, const GLASSInitParams* initParams, const GLASSSettings* settings);
 void GLASS_context_cleanupCommon(CtxCommon* ctx);
-CtxCommon* GLASS_context_getCommon(void);
+CtxCommon* GLASS_context_getBound(void);
 
 void GLASS_context_bind(CtxCommon* ctx);
 void GLASS_context_flush(CtxCommon* ctx, bool send);

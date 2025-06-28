@@ -158,7 +158,7 @@ typedef struct {
     GLASS_OBJ(GLASS_SHADER_TYPE);
     SharedShaderData* sharedData;       // Shared shader data.
     size_t codeEntrypoint;              // Code entrypoint.
-    DVLE_geoShaderMode gsMode;          // Mode for geometry shader.
+    GPUGeoShaderMode gsMode;            // Mode for geometry shader.
     u16 outMask;                        // Used output registers mask.
     u16 outTotal;                       // Total number of output registers.
     u32 outSems[7];                     // Output register semantics.
@@ -183,7 +183,7 @@ typedef struct {
 typedef struct {
     GLASS_OBJ(GLASS_TEXTURE_TYPE);
     GLenum target;                  // Texture target.
-    GLenum pixelFormat;             // Texture pixel format.
+    GPUTexFormat format;            // Texture format.
     u16 width;                      // Texture width.
     u16 height;                     // Texture height.
     u8* faces[GLASS_NUM_TEX_FACES]; // Texture data.

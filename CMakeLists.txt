@@ -33,8 +33,8 @@ set(GLASS_SOURCES
     Common/Tex3DS.c
     Common/TexGL.c
     Common/Uniforms.c
+    Platform/GFX.c
     Platform/GPU.c
-    Platform/GX.c
 )
 
 add_library(glass STATIC ${GLASS_SOURCES})

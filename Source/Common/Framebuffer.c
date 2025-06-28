@@ -97,7 +97,7 @@ void glDeleteFramebuffers(GLsizei n, const GLuint* framebuffers) {
             ctx->framebuffer = GLASS_INVALID_OBJECT;
 
         // Delete framebuffer.
-        glassVirtualFree((FramebufferInfo*)name);
+        glassHeapFree((FramebufferInfo*)name);
     }
 }
 
@@ -138,7 +138,7 @@ void glDeleteRenderbuffers(GLsizei n, const GLuint* renderbuffers) {
         if (info->address)
             glassVRAMFree(info->address);
 
-        glassVirtualFree(info);
+        glassHeapFree(info);
     }
 }
 

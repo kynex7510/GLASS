@@ -1,5 +1,6 @@
+#include <KYGX/Utility.h>
+
 #include "Platform/GPU.h"
-#include "Platform/GPUDefs.h"
 #include "Base/Math.h"
 
 #include <string.h> // memcpy, memset
@@ -151,7 +152,7 @@ bool GLASS_gpu_swapListBuffers(GLASSGPUCommandList* list, void** outBuffer, size
     return false;
 }
 
-static inline unwrapRBPixelSize(GLenum format) {
+static inline size_t unwrapRBPixelSize(GLenum format) {
     switch (format) {
         case GL_RGBA8_OES:
             return 2;
@@ -161,9 +162,11 @@ static inline unwrapRBPixelSize(GLenum format) {
         case GL_RGB565:
         case GL_RGBA4:
             return 0;
+        default:
+            KYGX_UNREACHABLE("Invalid parameter!");
     }
 
-    KYGX_UNREACHABLE("Invalid parameter!");
+    return 0;
 }
 
 static inline GPURenderbufferFormat unwrapRBFormat(GLenum format) {
@@ -184,9 +187,11 @@ static inline GPURenderbufferFormat unwrapRBFormat(GLenum format) {
             return RBFMT_DEPTH24;
         case GL_DEPTH24_STENCIL8_OES:
             return RBFMT_DEPTH24_STENCIL8;
+        default:
+            KYGX_UNREACHABLE("Invalid parameter!");
     }
 
-    KYGX_UNREACHABLE("Invalid parameter!");
+    return 0;
 }
 
 void GLASS_gpu_bindFramebuffer(GLASSGPUCommandList* list, const FramebufferInfo* info, bool block32) {
@@ -459,9 +464,11 @@ static GPUAttribType unwrapAttribType(GLenum type) {
             return ATTRIBTYPE_SHORT;
         case GL_FLOAT:
             return ATTRIBTYPE_FLOAT;
+        default:
+            KYGX_UNREACHABLE("Invalid parameter!");
     }
 
-    KYGX_UNREACHABLE("Invalid parameter!");
+    return 0;
 }
 
 static size_t insertAttribPad(u32* permutation, size_t startIndex, size_t padSize) {
@@ -631,9 +638,11 @@ static inline GPUCombinerSource unwrapCombinerSrc(GLenum src) {
             return COMBINERSRC_CONSTANT;
         case GL_PREVIOUS:
             return COMBINERSRC_PREVIOUS;
+        default:
+            KYGX_UNREACHABLE("Invalid parameter!");
     }
 
-    KYGX_UNREACHABLE("Invalid parameter!");
+    return 0;
 }
 
 static inline GPUCombinerOpRGB unwrapCombinerOpRGB(GLenum op) {
@@ -658,9 +667,11 @@ static inline GPUCombinerOpRGB unwrapCombinerOpRGB(GLenum op) {
             return COMBINEROPRGB_SRC_B;
         case GL_ONE_MINUS_SRC_B_PICA:
             return COMBINEROPRGB_ONE_MINUS_SRC_B;
+        default:
+            KYGX_UNREACHABLE("Invalid parameter!");
     }
 
-    KYGX_UNREACHABLE("Invalid parameter!");
+    return 0;
 }
 
 static inline GPUCombinerOpAlpha unwrapCombinerOpAlpha(GLenum op) {
@@ -681,9 +692,11 @@ static inline GPUCombinerOpAlpha unwrapCombinerOpAlpha(GLenum op) {
             return COMBINEROPALPHA_SRC_B;
         case GL_ONE_MINUS_SRC_B_PICA:
             return COMBINEROPALPHA_ONE_MINUS_SRC_B;
+        default:
+            KYGX_UNREACHABLE("Invalid parameter!");
     }
 
-    KYGX_UNREACHABLE("Invalid parameter!");
+    return 0;
 }
 
 static inline GPUCombinerFunc unwrapCombinerFunc(GLenum func) {
@@ -708,9 +721,11 @@ static inline GPUCombinerFunc unwrapCombinerFunc(GLenum func) {
             return COMBINERFUNC_MULTIPLY_ADD;
         case GL_ADD_MULT_PICA:
             return COMBINERFUNC_ADD_MULTIPLY;
+        default:
+            KYGX_UNREACHABLE("Invalid parameter!");
     }
 
-    KYGX_UNREACHABLE("Invalid parameter!");
+    return 0;
 }
 
 static inline GPUCombinerScale unwrapCombinerScale(GLfloat scale) {
@@ -768,10 +783,11 @@ static inline GPUFragOpMode unwrapFragOpMode(GLenum mode) {
             return FRAGOPMODE_SHADOW;
         case GL_FRAGOP_MODE_GAS_PICA:
             return FRAGOPMODE_GAS;
-            break;
+        default:
+            KYGX_UNREACHABLE("Invalid parameter!");
     }
 
-    KYGX_UNREACHABLE("Invalid parameter!");
+    return 0;
 }
 
 void GLASS_gpu_setFragOp(GLASSGPUCommandList* list, GLenum mode, bool blendMode) {
@@ -796,9 +812,11 @@ static inline GPUTestFunc unwrapTestFunc(GLenum func) {
             return TESTFUNC_GEQUAL;
         case GL_ALWAYS:
             return TESTFUNC_ALWAYS;
+        default:
+            KYGX_UNREACHABLE("Invalid parameter!");
     }
 
-    KYGX_UNREACHABLE("Invalid parameter!");
+    return 0;
 }
 
 void GLASS_gpu_setColorDepthMask(GLASSGPUCommandList* list, bool writeRed, bool writeGreen, bool writeBlue, bool writeAlpha, bool writeDepth, bool depthTest, GLenum depthFunc) {
@@ -814,9 +832,11 @@ static inline float getDepthMapOffset(GLenum format, GLfloat units) {
         case GL_DEPTH_COMPONENT24_OES:
         case GL_DEPTH24_STENCIL8_OES:
             return units / 16777215.0f;
+        default:
+            KYGX_UNREACHABLE("Invalid parameter!");
     }
 
-    KYGX_UNREACHABLE("Invalid parameter!");
+    return 0.0f;
 }
 
 void GLASS_gpu_setDepthMap(GLASSGPUCommandList* list, bool enabled, GLclampf nearVal, GLclampf farVal, GLfloat units, GLenum format) {
@@ -866,9 +886,11 @@ static inline GPUStencilOp unwrapStencilOp(GLenum op) {
             return STENCILOP_DECR_WRAP;
         case GL_INVERT:
             return STENCILOP_INVERT;
+        default:
+            KYGX_UNREACHABLE("Invalid parameter!");
     }
 
-    KYGX_UNREACHABLE("Invalid parameter!");
+    return 0;
 }
 
 void GLASS_gpu_setStencilOp(GLASSGPUCommandList* list, GLenum sfail, GLenum dpfail, GLenum dppass) { addMaskedWrite(list, GPUREG_STENCIL_OP, 0x03, unwrapStencilOp(sfail) | (unwrapStencilOp(dpfail) << 4) | (unwrapStencilOp(dppass) << 8)); }
@@ -898,9 +920,11 @@ static inline GPUBlendEq unwrapBlendEq(GLenum eq) {
             return BLENDEQ_SUBTRACT;
         case GL_FUNC_REVERSE_SUBTRACT:
             return BLENDEQ_REVERSE_SUBTRACT;
+        default:
+            KYGX_UNREACHABLE("Invalid parameter!");
     }
 
-    KYGX_UNREACHABLE("Invalid parameter!");
+    return 0;
 }
 
 static inline GPUBlendFactor unwrapBlendFactor(GLenum func) {
@@ -935,9 +959,11 @@ static inline GPUBlendFactor unwrapBlendFactor(GLenum func) {
             return BLENDFACTOR_ONE_MINUS_CONSTANT_ALPHA;
         case GL_SRC_ALPHA_SATURATE:
             return BLENDFACTOR_SRC_ALPHA_SATURATE;
+        default:
+            KYGX_UNREACHABLE("Invalid parameter!");
     }
 
-    KYGX_UNREACHABLE("Invalid parameter!");
+    return 0;
 }
 
 void GLASS_gpu_setBlendFunc(GLASSGPUCommandList* list, GLenum rgbEq, GLenum alphaEq, GLenum srcColor, GLenum dstColor, GLenum srcAlpha, GLenum dstAlpha) {
@@ -986,9 +1012,11 @@ static inline GPULogicOp unwrapLogicOp(GLenum op) {
             return LOGICOP_NAND;
         case GL_SET:
             return LOGICOP_SET;
+        default:
+            KYGX_UNREACHABLE("Invalid parameter!");
     }
 
-    KYGX_UNREACHABLE("Invalid parameter!");
+    return 0;
 }
 
 void GLASS_gpu_setLogicOp(GLASSGPUCommandList* list, GLenum op) { addMaskedWrite(list, GPUREG_LOGIC_OP, 0x01, unwrapLogicOp(op)); }
@@ -1003,9 +1031,11 @@ static inline GPUPrimitive unwrapDrawPrimitive(GLenum mode) {
             return PRIMITIVE_TRIANGLE_FAN;
         case GL_GEOMETRY_PRIMITIVE_PICA:
             return PRIMITIVE_GEOMETRY;
+        default:
+            KYGX_UNREACHABLE("Invalid parameter!");
     }
 
-    KYGX_UNREACHABLE("Invalid parameter!");
+    return 0;
 }
 
 void GLASS_gpu_drawArrays(GLASSGPUCommandList* list, GLenum mode, GLint first, GLsizei count) {
@@ -1028,9 +1058,11 @@ static inline u32 unwrapDrawType(GLenum type) {
             return 0;
         case GL_UNSIGNED_SHORT:
             return 1;
+        default:
+            KYGX_UNREACHABLE("Invalid parameter!");
     }
 
-    KYGX_UNREACHABLE("Invalid parameter!");
+    return 0;
 }
 
 void GLASS_gpu_drawElements(GLASSGPUCommandList* list, GLenum mode, GLsizei count, GLenum type, u32 physIndices) {
@@ -1073,9 +1105,11 @@ static inline GPUTexFilter unwrapTexFilter(GLenum filter) {
         case GL_LINEAR_MIPMAP_NEAREST:
         case GL_LINEAR_MIPMAP_LINEAR:
             return TEXFILTER_LINEAR;
+        default:
+            KYGX_UNREACHABLE("Invalid parameter!");
     }
 
-    KYGX_UNREACHABLE("Invalid parameter!");
+    return 0;
 }
 
 static inline GPUTexFilter unwrapMipFilter(GLenum minFilter) {
@@ -1088,9 +1122,11 @@ static inline GPUTexFilter unwrapMipFilter(GLenum minFilter) {
         case GL_NEAREST_MIPMAP_LINEAR:
         case GL_LINEAR_MIPMAP_LINEAR:
             return TEXFILTER_LINEAR;
+        default:
+            KYGX_UNREACHABLE("Invalid parameter!");
     }
 
-    KYGX_UNREACHABLE("Invalid parameter!");
+    return 0;
 }
 
 static inline GPUTexWrap unwrapTexWrap(GLenum wrap) {
@@ -1103,9 +1139,11 @@ static inline GPUTexWrap unwrapTexWrap(GLenum wrap) {
             return TEXWRAP_MIRRORED_REPEAT;
         case GL_REPEAT:
             return TEXWRAP_REPEAT;
+        default:
+            KYGX_UNREACHABLE("Invalid parameter!");
     }
 
-    KYGX_UNREACHABLE("Invalid parameter!");
+    return 0;
 }
 
 void GLASS_gpu_setTextureUnits(GLASSGPUCommandList* list, const GLuint* units) {
@@ -1148,7 +1186,7 @@ void GLASS_gpu_setTextureUnits(GLASSGPUCommandList* list, const GLuint* units) {
 
         params[2] = (minFilter << 2) | (magFilter << 1) | (mipFilter << 24) | (wrapS << 12) | (wrapT << 8);
         
-        if (tex->pixelFormat == GL_ETC1_RGB8_OES)
+        if (tex->format == TEXFORMAT_ETC1)
             params[2] |= (1u << 5);
 
         if (i == 0) {
@@ -1174,9 +1212,7 @@ void GLASS_gpu_setTextureUnits(GLASSGPUCommandList* list, const GLuint* units) {
         }
 
         addIncrementalWrites(list, setupCmds[i], params, hasCubeMap ? 10 : 5);
-        const GPU_TEXCOLOR format = GLASS_pixels_tryUnwrapTexFormat(&tex->pixelFormat);
-        KYGX_ASSERT(format != GLASS_INVALID_TEX_FORMAT);
-        addWrite(list, typeCmds[i], format);
+        addWrite(list, typeCmds[i], tex->format);
     }
 
     addWrite(list, GPUREG_TEXUNIT_CONFIG, config);

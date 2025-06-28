@@ -1,9 +1,7 @@
 #ifndef _GLASS_BASE_MATH_H
 #define _GLASS_BASE_MATH_H
 
-#include <GX/Utility.h>
-
-#include "Types.h"
+#include "Base/Types.h"
 
 #define GLASS_MIN(a, b) ((a) < (b) ? (a) : (b))
 #define GLASS_MAX(a, b) ((a) > (b) ? (a) : (b))
