@@ -43,7 +43,7 @@ static void addMultiParamCmd(GLASSGPUCommandList* list, u32 id, u32 mask, const 
     KYGX_ASSERT(params);
     KYGX_ASSERT(numParams > 0);
     
-    if (list->offset + (numParams * sizeof(u32)) < list->capacity) {
+    if (list->offset + (numParams * sizeof(u32)) >= list->capacity) {
         KYGX_UNREACHABLE("GPU command list OOB!");
     }
 
@@ -95,23 +95,23 @@ void GLASS_gpu_allocList(GLASSGPUCommandList* list) {
         KYGX_ASSERT(!list->mainBuffer);
         KYGX_ASSERT(!list->secondBuffer);
         list->capacity = DEFAULT_CMDBUF_CAPACITY;
-    } else {
-        KYGX_ASSERT(kygxIsAligned(list->capacity, 16));
     }
+
+    KYGX_ASSERT(kygxIsAligned(list->capacity, 16));
 
     if (!list->mainBuffer) {
         list->mainBuffer = glassLinearAlloc(list->capacity);
         KYGX_ASSERT(list->mainBuffer);
-    } else {
-        KYGX_ASSERT(glassIsLinear(list->mainBuffer));
     }
+
+    KYGX_ASSERT(glassIsLinear(list->mainBuffer));
 
     if (!list->secondBuffer) {
         list->secondBuffer = glassLinearAlloc(list->capacity);
         KYGX_ASSERT(list->secondBuffer);
-    } else {
-        KYGX_ASSERT(glassIsLinear(list->secondBuffer));
     }
+
+    KYGX_ASSERT(glassIsLinear(list->secondBuffer));
 }
 
 void GLASS_gpu_freeList(GLASSGPUCommandList* list) {

@@ -197,6 +197,8 @@ CtxCommon* GLASS_context_getBound(void) {
     return g_Context;
 }
 
+bool GLASS_context_isBound(CtxCommon* ctx) { return g_Context == ctx; }
+
 void GLASS_context_bind(CtxCommon* ctx) {
     if (ctx == g_Context)
         return;
@@ -417,7 +419,7 @@ void GLASS_context_flush(CtxCommon* ctx, bool send) {
             // TODO
 #else
             extern void* __ctru_linear_heap;
-            extern uint32_t __ctru_linear_heap_size;
+            extern u32 __ctru_linear_heap_size;
             void* flushBase = __ctru_linear_heap;
             const size_t flushSize = __ctru_linear_heap_size;
 #endif // KYGX_BAREMETAL

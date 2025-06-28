@@ -42,6 +42,7 @@ void glassDestroyContext(GLASSCtx wrapped) {
 }
 
 void glassBindContext(GLASSCtx ctx) { GLASS_context_bind((CtxCommon*)ctx); }
+bool glassIsBoundContext(GLASSCtx ctx) { return GLASS_context_isBound((CtxCommon*)ctx); }
 
 void glassReadSettings(GLASSCtx wrapped, GLASSSettings* settings) {
     KYGX_ASSERT(wrapped);
@@ -99,7 +100,9 @@ static inline u8 unwrapDownscale(GLASSDownscale downscale) {
     return 0;
 }
 
-static void doSwapBuffers(CtxCommon* ctx) {
+static void transferScreenBuffers(CtxCommon* ctx) {
+    KYGX_ASSERT(ctx);
+
     // Flush GPU commands.
     GLASS_context_flush(ctx, true);
 
@@ -144,24 +147,15 @@ static void doSwapBuffers(CtxCommon* ctx) {
         screenHeight <<= 1;
     }
 
-    KYGXCmd cmd;
-    kygxMakeDisplayTransferChecked(&cmd, cb->address, screenFb, cb->height, cb->width, screenWidth, screenHeight, &transferFlags);
-
-    CtxCommon* boundCtx = GLASS_context_getBound();
-    if (ctx != boundCtx)
-        kygxExchangeCmdBuffer(&ctx->GXCmdBuf, true);
-
-    if (ctx->settings.vsync) {
-        kygxExecSync(&cmd);
-    } else {
+    const bool isBound = GLASS_context_isBound(ctx);
+    if (isBound)
         kygxLock();
-        kygxCmdBufferAdd(&ctx->GXCmdBuf, &cmd);
-        kygxCmdBufferFinalize(&ctx->GXCmdBuf, swapScreenBuffers, ctx);
-        kygxUnlock(true);
-    }
 
-    if (ctx != boundCtx)
-        kygxExchangeCmdBuffer(&boundCtx->GXCmdBuf, true);
+    kygxAddDisplayTransferChecked(&ctx->GXCmdBuf, cb->address, screenFb, cb->height, cb->width, screenWidth, screenHeight, &transferFlags);
+    kygxCmdBufferFinalize(&ctx->GXCmdBuf, swapScreenBuffers, ctx);
+
+    if (isBound)
+        kygxUnlock(true);
 }
 
 void glassSwapContextBuffers(GLASSCtx top, GLASSCtx bottom) {
@@ -171,11 +165,15 @@ void glassSwapContextBuffers(GLASSCtx top, GLASSCtx bottom) {
     if (!topCtx && !bottomCtx)
         return;
 
-    doSwapBuffers(topCtx);
-    doSwapBuffers(bottomCtx);
+    if (topCtx)
+        transferScreenBuffers(topCtx);
+    
+    if (bottomCtx)
+        transferScreenBuffers(bottomCtx);
 
-    const bool needToWait = (topCtx && topCtx->settings.vsync) || (bottomCtx && bottomCtx->settings.vsync);
-    if (needToWait) {
+    const bool anyVSync = (topCtx && topCtx->settings.vsync) || (bottomCtx && bottomCtx->settings.vsync);
+    if (anyVSync && (GLASS_context_isBound(topCtx) || GLASS_context_isBound(bottomCtx))) {
+        kygxWaitCompletion();
         kygxWaitVBlank();
     }
 }

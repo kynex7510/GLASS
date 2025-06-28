@@ -110,13 +110,15 @@ typedef struct {
 
 void GLASS_context_initCommon(CtxCommon* ctx, const GLASSInitParams* initParams, const GLASSSettings* settings);
 void GLASS_context_cleanupCommon(CtxCommon* ctx);
+
 CtxCommon* GLASS_context_getBound(void);
+bool GLASS_context_isBound(CtxCommon* ctx);
 
 void GLASS_context_bind(CtxCommon* ctx);
 void GLASS_context_flush(CtxCommon* ctx, bool send);
 
 #if defined(GLASS_NO_MERCY)
-#define GLASS_context_setError(err) UNREACHABLE(#err)
+#define GLASS_context_setError(err) KYGX_UNREACHABLE(#err)
 #else
 void GLASS_context_setError(GLenum error);
 #endif // GLASS_NO_MERCY

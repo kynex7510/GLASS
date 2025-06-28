@@ -60,7 +60,9 @@ extern "C" {
 GLASSCtx glassCreateContext(const GLASSInitParams* initParams, const GLASSSettings* settings);
 GLASSCtx glassCreateDefaultContext(GLASSVersion version);
 void glassDestroyContext(GLASSCtx ctx);
+
 void glassBindContext(GLASSCtx ctx);
+bool glassIsBoundContext(GLASSCtx ctx);
 
 void glassReadSettings(GLASSCtx ctx, GLASSSettings* settings);
 void glassWriteSettings(GLASSCtx ctx, const GLASSSettings* settings);

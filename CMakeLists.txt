@@ -38,6 +38,11 @@ set(GLASS_SOURCES
 )
 
 add_library(GLASSv2 STATIC ${GLASS_SOURCES})
+
+if (CMAKE_BUILD_TYPE STREQUAL "Debug")
+    target_compile_definitions(GLASSv2 PRIVATE GLASS_NO_MERCY)
+endif()
+
 target_include_directories(GLASSv2 PUBLIC Include PRIVATE Source)
 target_link_libraries(GLASSv2 PUBLIC kygx rip)
 target_compile_options(GLASSv2 PRIVATE -Wall -Werror)
