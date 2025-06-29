@@ -1,1 +1,5 @@
-add_subdirectory(SimpleTri)
+if (CTR_BAREMETAL)
+    add_subdirectory(BM)
+else()
+    add_subdirectory(HOS)
+endif()

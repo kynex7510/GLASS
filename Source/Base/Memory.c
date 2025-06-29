@@ -2,7 +2,14 @@
 
 #define WEAK  __attribute__((weak))
 
-WEAK void* glassHeapAlloc(size_t size) { return kygxAlloc(KYGX_MEM_HEAP, size); }
+WEAK void* glassHeapAlloc(size_t size) {
+    void* p = kygxAlloc(KYGX_MEM_HEAP, size);
+    if (p)
+        memset(p, 0, size);
+
+    return p;
+}
+
 WEAK void glassHeapFree(void* p) { kygxFree(p); }
 WEAK size_t glassHeapSize(const void* p) { return kygxGetAllocSize(p); }
 WEAK bool glassIsHeap(const void* p) { return kygxIsHeap(p); }

@@ -3,7 +3,9 @@ include(CMake/CPM.cmake)
 
 set(CMAKE_C_STANDARD 23)
 set(CMAKE_C_STANDARD_REQUIRED ON)
-project(GLASS C)
+
+# ASM is required for shaders.
+project(GLASS C ASM)
 
 # Setup baremetal.
 if (CTR_BAREMETAL)
