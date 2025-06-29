@@ -5,13 +5,18 @@ set(CMAKE_C_STANDARD 23)
 set(CMAKE_C_STANDARD_REQUIRED ON)
 project(GLASS C)
 
+# Setup baremetal.
+if (CTR_BAREMETAL)
+    include(BM/ARM11)
+endif()
+
 option(GLASS_COMPILE_EXAMPLES "Enable examples compilation" OFF)
 
 # Setup dependencies.
-CPMAddPackage("gh:kynex7510/KYGX#9531fa7")
+CPMAddPackage("gh:kynex7510/KYGX#3f257b9")
 
 CPMAddPackage(
-    URI "gh:kynex7510/RIP#8d21d11"
+    URI "gh:kynex7510/RIP#da2225a"
     OPTIONS "RIP_BACKEND kygx"
 )
 

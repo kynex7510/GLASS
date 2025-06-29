@@ -14,6 +14,14 @@ cmake --build BuildHOS --config Release
 cmake --install BuildHOS --prefix BuildHOS/Release
 ```
 
+### BM build
+
+```sh
+cmake -B BuildBM -G "Unix Makefiles" -DCMAKE_TOOLCHAIN_FILE="$CTR_BM_TOOLCHAIN_ROOT/Toolchain.cmake" -DCMAKE_BUILD_TYPE=Release -DGLASS_COMPILE_EXAMPLES=ON
+cmake --build BuildBM --config Release
+cmake --install BuildBM --prefix BuildBM/Release
+```
+
 ## Usage
 
 Read the [docs](DOCS.md). Additionally, the [examples](Examples) folder includes some examples.

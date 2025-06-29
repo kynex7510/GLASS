@@ -5,7 +5,14 @@
 
 #include <string.h> // memcpy, memset
 
-#define PHYSICAL_LINEAR_BASE 0x18000000
+#ifdef KYGX_BAREMETAL
+#include <mem_map.h> // VRAM_BASE
+#include <arm11/drivers/gpu_regs.h>
+#define PHYSICAL_BUFFER_BASE VRAM_BASE
+#else
+#define PHYSICAL_BUFFER_BASE OS_VRAM_PADDR
+#endif // KYGX_BAREMETAL
+
 #define DEFAULT_CMDBUF_CAPACITY 0x4000
 
 #define PAD_4 12
@@ -561,7 +568,7 @@ void GLASS_gpu_uploadAttributes(GLASSGPUCommandList* list, const AttributeInfo* 
     addIncrementalWrites(list, GPUREG_VSH_ATTRIBUTES_PERMUTATION_LOW, permutation, 2);
 
     // Set buffers base.
-    addWrite(list, GPUREG_ATTRIBBUFFERS_LOC, PHYSICAL_LINEAR_BASE >> 3);
+    addWrite(list, GPUREG_ATTRIBBUFFERS_LOC, PHYSICAL_BUFFER_BASE >> 3);
 
     // Step 2: setup fixed attributes.
     // This must be set after initial configuration.
@@ -604,7 +611,7 @@ void GLASS_gpu_uploadAttributes(GLASSGPUCommandList* list, const AttributeInfo* 
 
             const size_t numPerms = insertAttribPad(permutation, permIndex + 1, attrib->sizeOfPostPad);
 
-            params[0] = attrib->physAddr - PHYSICAL_LINEAR_BASE;
+            params[0] = attrib->physAddr - PHYSICAL_BUFFER_BASE;
             params[1] = permutation[0];
             params[2] = permutation[1] | ((attrib->bufferSize & 0xFF) << 16) | ((numPerms & 0xF) << 28);
         }
@@ -1071,7 +1078,7 @@ void GLASS_gpu_drawElements(GLASSGPUCommandList* list, GLenum mode, GLsizei coun
     addMaskedWrite(list, GPUREG_PRIMITIVE_CONFIG, 2, (primitive != PRIMITIVE_TRIANGLES ? primitive : PRIMITIVE_GEOMETRY) << 8);
 
     addWrite(list, GPUREG_RESTART_PRIMITIVE, 1);
-    addWrite(list, GPUREG_INDEXBUFFER_CONFIG, (physIndices - PHYSICAL_LINEAR_BASE) | (unwrapDrawType(type) << 31));
+    addWrite(list, GPUREG_INDEXBUFFER_CONFIG, (physIndices - PHYSICAL_BUFFER_BASE) | (unwrapDrawType(type) << 31));
 
     addWrite(list, GPUREG_NUMVERTICES, count);
     addWrite(list, GPUREG_VERTEX_OFFSET, 0);

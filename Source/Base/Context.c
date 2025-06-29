@@ -1,6 +1,10 @@
 #include <KYGX/Wrappers/FlushCacheRegions.h>
 #include <KYGX/Wrappers/ProcessCommandList.h>
 
+#ifdef KYGX_BAREMETAL
+#include <mem_map.h> // FCRAM_BASE, FCRAM_SIZE, FCRAM_EXT_SIZE
+#endif // KYGX_BAREMETAL
+
 #include "Base/Context.h"
 #include "Platform/GPU.h"
 #include "Platform/GFX.h"
@@ -416,7 +420,8 @@ void GLASS_context_flush(CtxCommon* ctx, bool send) {
         // Flush all linear memory if required.
         if (ctx->initParams.flushAllLinearMem) {
 #ifdef KYGX_BAREMETAL
-            // TODO
+            void* flushBase = (void*)FCRAM_BASE;
+            const size_t flushSize = FCRAM_SIZE + FCRAM_EXT_SIZE;
 #else
             extern void* __ctru_linear_heap;
             extern u32 __ctru_linear_heap_size;
