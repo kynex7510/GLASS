@@ -72,6 +72,8 @@ static inline u8 unwrapTransferFormat(GLenum format) {
     switch (format) {
         case GL_RGBA8_OES:
             return KYGX_DISPLAYTRANSFER_FMT_RGBA8;
+        case GL_RGB8_OES:
+            return KYGX_DISPLAYTRANSFER_FMT_RGB8;
         case GL_RGB5_A1:
             return KYGX_DISPLAYTRANSFER_FMT_RGB5A1;
         case GL_RGB565:
@@ -98,6 +100,21 @@ static inline u8 unwrapDownscale(GLASSDownscale downscale) {
     }
     
     return 0;
+}
+
+static bool checkTransferFormats(u8 src, u8 dst) {
+    // RGBA8 can convert into any other format.
+    if (src == KYGX_DISPLAYTRANSFER_FMT_RGBA8)
+        return true;
+
+    // RGB8 can only convert into itself.
+    if (src == KYGX_DISPLAYTRANSFER_FMT_RGB8)
+        return src == dst;
+
+    // other formats can only convert into other 16 bits formats.
+    return dst == KYGX_DISPLAYTRANSFER_FMT_RGB565 ||
+        dst == KYGX_DISPLAYTRANSFER_FMT_RGB5A1 ||
+        dst == KYGX_DISPLAYTRANSFER_FMT_RGBA4;
 }
 
 static void transferScreenBuffers(CtxCommon* ctx) {
@@ -135,10 +152,12 @@ static void transferScreenBuffers(CtxCommon* ctx) {
     KYGXDisplayTransferFlags transferFlags;
     transferFlags.mode = KYGX_DISPLAYTRANSFER_MODE_T2L;
     transferFlags.srcFmt = unwrapTransferFormat(cb->format);
-    transferFlags.dstFmt = unwrapTransferFormat(GLASS_gfx_framebufferFormat(ctx->settings.targetScreen));
+    transferFlags.dstFmt = unwrapTransferFormat(GLASS_gfx_getFramebufferFormat(ctx->settings.targetScreen));
     transferFlags.downscale = unwrapDownscale(ctx->settings.downscale);
     transferFlags.verticalFlip = ctx->settings.horizontalFlip;
     transferFlags.blockMode32 = false;
+
+    KYGX_BREAK_UNLESS(checkTransferFormats(transferFlags.srcFmt, transferFlags.dstFmt));
 
     if (transferFlags.downscale == KYGX_DISPLAYTRANSFER_DOWNSCALE_2X1) {
         screenWidth <<= 1;

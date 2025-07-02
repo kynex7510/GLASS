@@ -16,9 +16,8 @@ GLenum GLASS_gfx_getFramebufferFormat(GLASSScreen screen) {
     switch (format) {
         case GSP_RGBA8_OES:
             return GL_RGBA8_OES;
-        // TODO: GL extension.
-        //case GSP_BGR8_OES:
-        //    return GL_RGB8_OES;
+        case GSP_BGR8_OES:
+            return GL_RGB8_OES;
         case GSP_RGB565_OES:
             return GL_RGB565;
         case GSP_RGB5_A1_OES:

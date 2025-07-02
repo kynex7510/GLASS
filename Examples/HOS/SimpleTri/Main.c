@@ -43,7 +43,7 @@ static GLuint sceneInit() {
 
 int main() {
     // Initialize graphics.
-    gfxInit(GSP_RGBA8_OES, GSP_RGBA8_OES, false);
+    gfxInitDefault();
     kygxInit();
 
     GLASSCtx ctx = glassCreateDefaultContext(GLASS_VERSION_2_0);
