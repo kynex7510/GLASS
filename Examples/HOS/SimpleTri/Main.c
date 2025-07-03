@@ -1,6 +1,6 @@
 #include <GLES/gl2.h>
 
-#include "vshader_shbin.h"
+#include "SimpleTri_vshader_shbin.h"
 
 typedef struct {
     float x, y;
@@ -18,7 +18,7 @@ static GLuint sceneInit() {
     // Load the vertex shader, create a shader program and bind it.
     GLuint prog = glCreateProgram();
     GLuint shad = glCreateShader(GL_VERTEX_SHADER);
-    glShaderBinary(1, &shad, GL_SHADER_BINARY_PICA, vshader_shbin, vshader_shbin_size);
+    glShaderBinary(1, &shad, GL_SHADER_BINARY_PICA, SimpleTri_vshader_shbin, SimpleTri_vshader_shbin_size);
     glAttachShader(prog, shad);
     glDeleteShader(shad);
     glLinkProgram(prog);
