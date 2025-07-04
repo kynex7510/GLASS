@@ -112,6 +112,7 @@ void GLASS_context_initCommon(CtxCommon* ctx, const GLASSInitParams* initParams,
 void GLASS_context_cleanupCommon(CtxCommon* ctx);
 
 CtxCommon* GLASS_context_getBound(void);
+bool GLASS_context_hasBound(void);
 bool GLASS_context_isBound(CtxCommon* ctx);
 
 void GLASS_context_bind(CtxCommon* ctx);

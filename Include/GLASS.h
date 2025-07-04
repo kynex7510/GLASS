@@ -57,17 +57,37 @@ typedef struct {
 extern "C" {
 #endif // __cplusplus
 
+// Create context.
 GLASSCtx glassCreateContext(const GLASSInitParams* initParams, const GLASSSettings* settings);
+
+// Create context with default settings.
 GLASSCtx glassCreateDefaultContext(GLASSVersion version);
+
+// Destroy context. Unbind if bound.
 void glassDestroyContext(GLASSCtx ctx);
 
+// Bind context. Pass NULL to unbind.
 void glassBindContext(GLASSCtx ctx);
+
+// Get bound context. UB if no bound context.
+GLASSCtx glassGetBoundContext(void);
+
+// Whether there's a bound context.
+bool glassHasBoundContext(void);
+
+// Check if that's the bound context.
 bool glassIsBoundContext(GLASSCtx ctx);
 
+// Read settings from context.
 void glassReadSettings(GLASSCtx ctx, GLASSSettings* settings);
+
+// Write settings to context.
 void glassWriteSettings(GLASSCtx ctx, const GLASSSettings* settings);
 
+// Swap buffers of the bound context. UB if no bound context.
 void glassSwapBuffers(void);
+
+// Swap buffers of the contexts. Can bind any of the two if no bound context.
 void glassSwapContextBuffers(GLASSCtx top, GLASSCtx bottom);
 
 void* glassHeapAlloc(size_t size);

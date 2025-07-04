@@ -201,7 +201,14 @@ CtxCommon* GLASS_context_getBound(void) {
     return g_Context;
 }
 
-bool GLASS_context_isBound(CtxCommon* ctx) { return g_Context == ctx; }
+bool GLASS_context_hasBound(void) { return g_Context != NULL; }
+
+bool GLASS_context_isBound(CtxCommon* ctx) {
+    if (g_Context != NULL)
+        return g_Context == ctx;
+
+    return false;
+}
 
 void GLASS_context_bind(CtxCommon* ctx) {
     if (ctx == g_Context)
@@ -433,10 +440,15 @@ void GLASS_context_flush(CtxCommon* ctx, bool send) {
         }
 
         // Send GPU commands.
-        kygxLock();
+        const bool isBound = GLASS_context_isBound(ctx);
+        if (isBound)
+            kygxLock();
+
         kygxAddProcessCommandList(&ctx->GXCmdBuf, addr, size, false, !ctx->initParams.flushAllLinearMem);
         kygxCmdBufferFinalize(&ctx->GXCmdBuf, NULL, NULL);
-        kygxUnlock(true);
+
+        if (isBound)
+            kygxUnlock(true);
     }
 }
 
