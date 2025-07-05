@@ -47,37 +47,27 @@ static inline size_t getBytesPerPixel(GLenum format) {
 }
 
 static inline u32 makeClearColor(GLenum format, u32 color) {
-    u32 cvt = 0;
+    const u8 r = color >> 24;
+    const u8 g = (color >> 16) & 0xFF;
+    const u8 b = (color >> 8) & 0xFF;
+    const u8 a = color & 0xFF;
 
     switch (format) {
         case GL_RGBA8_OES:
-            cvt = color;
-            break;
+            return KYGX_MEMORYFILL_VALUE_RGBA8(r, g, b, a);
         case GL_RGB8_OES:
-            cvt = color >> 8;
-            break;
+            return KYGX_MEMORYFILL_VALUE_RGB8(r, g, b);
         case GL_RGBA4:
-            cvt = ((color >> 24) & 0x0F) << 12;
-            cvt |= ((color >> 16) & 0x0F) << 8;
-            cvt |= ((color >> 8) & 0x0F) << 4;
-            cvt |= color & 0x0F;
-            break;
+            return KYGX_MEMORYFILL_VALUE_RGBA4(r >> 4, g >> 4, b >> 4, a >> 4);
         case GL_RGB5_A1:
-            cvt = ((color >> 24) & 0x1F) << 11;
-            cvt |= ((color >> 16) & 0x1F) << 6;
-            cvt |= ((color >> 8) & 0x1F) << 1;
-            cvt |= (color & 0xFF) != 0;
-            break;
+            return KYGX_MEMORYFILL_VALUE_RGB5A1(r >> 3, g >> 3, b >> 3, a >> 7);
         case GL_RGB565:
-            cvt = ((color >> 24) & 0x1F) << 11;
-            cvt |= ((color >> 16) & 0x3F) << 5;
-            cvt |= (color >> 8) & 0x1F;
-            break;
+            return KYGX_MEMORYFILL_VALUE_RGB565(r >> 3, g >> 2, b >> 3);
         default:
             KYGX_UNREACHABLE("Invalid parameter!");
     }
 
-    return cvt;
+    return 0;
 }
 
 static u32 makeClearDepth(GLenum format, GLclampf factor, u8 stencil) {
