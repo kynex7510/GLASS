@@ -46,7 +46,8 @@ void GLASS_context_initCommon(CtxCommon* ctx, const GLASSInitParams* initParams,
     ctx->elementArrayBuffer = GLASS_INVALID_OBJECT;
 
     // Framebuffer.
-    ctx->framebuffer = GLASS_INVALID_OBJECT;
+    ctx->framebuffer[0] = GLASS_INVALID_OBJECT;
+    ctx->framebuffer[1] = GLASS_INVALID_OBJECT;
     ctx->renderbuffer = GLASS_INVALID_OBJECT;
     ctx->clearColor = 0;
     ctx->clearDepth = 1.0f;
@@ -233,8 +234,10 @@ void GLASS_context_bind(CtxCommon* ctx) {
 static inline GLsizei renderWidth(CtxCommon* ctx) {
     KYGX_ASSERT(ctx);
 
-    if (ctx->framebuffer != GLASS_INVALID_OBJECT) {
-        const FramebufferInfo* fb = (FramebufferInfo*)ctx->framebuffer;
+    const size_t fbIndex = GLASS_context_getFBIndex(ctx);
+
+    if (ctx->framebuffer[fbIndex] != GLASS_INVALID_OBJECT) {
+        const FramebufferInfo* fb = (FramebufferInfo*)ctx->framebuffer[fbIndex];
         const RenderbufferInfo* rb = (RenderbufferInfo*)fb->colorBuffer;
         if (rb)
             return rb->width;
@@ -250,7 +253,8 @@ void GLASS_context_flush(CtxCommon* ctx, bool send) {
 
     // Handle framebuffer.
     if (ctx->flags & GLASS_CONTEXT_FLAG_FRAMEBUFFER) {
-        FramebufferInfo* info = (FramebufferInfo*)ctx->framebuffer;
+        const size_t fbIndex = GLASS_context_getFBIndex(ctx);
+        FramebufferInfo* info = (FramebufferInfo*)ctx->framebuffer[fbIndex];
 
         // Flush buffers if required.
         if (ctx->flags & GLASS_CONTEXT_FLAG_DRAW) {
@@ -351,8 +355,10 @@ void GLASS_context_flush(CtxCommon* ctx, bool send) {
     // Handle depth map.
     if (ctx->flags & GLASS_CONTEXT_FLAG_DEPTHMAP) {
         GLenum depthFormat = GL_DEPTH_COMPONENT16;
-        if (ctx->framebuffer != GLASS_INVALID_OBJECT) {
-            const FramebufferInfo* fb = (FramebufferInfo*)ctx->framebuffer;
+        const size_t fbIndex = GLASS_context_getFBIndex(ctx);
+
+        if (ctx->framebuffer[fbIndex] != GLASS_INVALID_OBJECT) {
+            const FramebufferInfo* fb = (FramebufferInfo*)ctx->framebuffer[fbIndex];
             if (fb->depthBuffer != GLASS_INVALID_OBJECT) {
                 const RenderbufferInfo* db = (RenderbufferInfo*)fb->depthBuffer;
                 depthFormat = db->format;

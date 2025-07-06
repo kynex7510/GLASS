@@ -128,7 +128,8 @@ void glClear(GLbitfield mask) {
         ctx->flags |= GLASS_CONTEXT_FLAG_EARLY_DEPTH_CLEAR;
 
     // Clear framebuffers.
-    FramebufferInfo* fb = (FramebufferInfo*)ctx->framebuffer;
+    const size_t fbIndex = GLASS_context_getFBIndex(ctx);
+    FramebufferInfo* fb = (FramebufferInfo*)ctx->framebuffer[fbIndex];
 
     KYGXMemoryFillBuffer colorFill;
     memset(&colorFill, 0, sizeof(KYGXMemoryFillBuffer));

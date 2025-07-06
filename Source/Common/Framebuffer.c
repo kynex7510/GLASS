@@ -12,10 +12,11 @@ void glBindFramebuffer(GLenum target, GLuint framebuffer) {
 
     FramebufferInfo* info = (FramebufferInfo*)framebuffer;
     CtxCommon* ctx = GLASS_context_getBound();
+    const size_t fbIndex = GLASS_context_getFBIndex(ctx);
 
     // Bind framebuffer to context.
-    if (ctx->framebuffer != framebuffer) {
-        ctx->framebuffer = framebuffer;
+    if (ctx->framebuffer[fbIndex] != framebuffer) {
+        ctx->framebuffer[fbIndex] = framebuffer;
 
         if (info)
             info->bound = true;
@@ -51,12 +52,13 @@ GLenum glCheckFramebufferStatus(GLenum target) {
     }
 
     CtxCommon* ctx = GLASS_context_getBound();
+    const size_t fbIndex = GLASS_context_getFBIndex(ctx);
 
     // Make sure we have a framebuffer.
-    if (!GLASS_OBJ_IS_FRAMEBUFFER(ctx->framebuffer))
+    if (!GLASS_OBJ_IS_FRAMEBUFFER(ctx->framebuffer[fbIndex]))
         return GL_FRAMEBUFFER_UNSUPPORTED;
 
-    FramebufferInfo* info = (FramebufferInfo*)ctx->framebuffer;
+    FramebufferInfo* info = (FramebufferInfo*)ctx->framebuffer[fbIndex];
 
     // Check that we have at least one attachment.
     if ((info->colorBuffer == GLASS_INVALID_OBJECT) && (info->depthBuffer == GLASS_INVALID_OBJECT))
@@ -93,8 +95,10 @@ void glDeleteFramebuffers(GLsizei n, const GLuint* framebuffers) {
             continue;
 
         // Unbind if bound.
-        if (ctx->framebuffer == name)
-            ctx->framebuffer = GLASS_INVALID_OBJECT;
+        for (size_t i = 0; i < 2; ++i) {
+        if (ctx->framebuffer[i] == name)
+            ctx->framebuffer[i] = GLASS_INVALID_OBJECT;
+        }
 
         // Delete framebuffer.
         glassHeapFree((FramebufferInfo*)name);
@@ -110,11 +114,12 @@ void glDeleteRenderbuffers(GLsizei n, const GLuint* renderbuffers) {
     }
 
     CtxCommon* ctx = GLASS_context_getBound();
+    const size_t fbIndex = GLASS_context_getFBIndex(ctx);
 
     // Get framebuffer.
     FramebufferInfo* fbinfo = NULL;
-    if (GLASS_OBJ_IS_FRAMEBUFFER(ctx->framebuffer))
-        fbinfo = (FramebufferInfo*)ctx->framebuffer;
+    if (GLASS_OBJ_IS_FRAMEBUFFER(ctx->framebuffer[fbIndex]))
+        fbinfo = (FramebufferInfo*)ctx->framebuffer[fbIndex];
 
     for (size_t i = 0; i < n; ++i) {
         GLuint name = renderbuffers[i];
@@ -154,14 +159,15 @@ void glFramebufferRenderbuffer(GLenum target, GLenum attachment, GLenum renderbu
     }
 
     CtxCommon* ctx = GLASS_context_getBound();
+    const size_t fbIndex = GLASS_context_getFBIndex(ctx);
 
     // Get framebuffer.
-    if (!GLASS_OBJ_IS_FRAMEBUFFER(ctx->framebuffer)) {
+    if (!GLASS_OBJ_IS_FRAMEBUFFER(ctx->framebuffer[fbIndex])) {
         GLASS_context_setError(GL_INVALID_OPERATION);
         return;
     }
 
-    FramebufferInfo* fbinfo = (FramebufferInfo*)ctx->framebuffer;
+    FramebufferInfo* fbinfo = (FramebufferInfo*)ctx->framebuffer[fbIndex];
 
     // Set right buffer.
     switch (attachment) {

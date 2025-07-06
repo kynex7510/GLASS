@@ -17,12 +17,12 @@ typedef struct {
     GLuint elementArrayBuffer; // GL_ELEMENT_ARRAY_BUFFER  
 
     /* Framebuffer */
-    GLuint framebuffer;  // Bound framebuffer object.
-    GLuint renderbuffer; // Bound renderbuffer object.
-    u32 clearColor;      // Color buffer clear value.
-    GLclampf clearDepth; // Depth buffer clear value.
-    u8 clearStencil;     // Stencil buffer clear value.
-    bool block32;        // Block mode 32.
+    GLuint framebuffer[2]; // Bound framebuffer object.
+    GLuint renderbuffer;   // Bound renderbuffer object.
+    u32 clearColor;        // Color buffer clear value.
+    GLclampf clearDepth;   // Depth buffer clear value.
+    u8 clearStencil;       // Stencil buffer clear value.
+    bool block32;          // Block mode 32.
 
     /* Viewport */
     GLint viewportX;   // Viewport X.
@@ -123,5 +123,13 @@ void GLASS_context_flush(CtxCommon* ctx, bool send);
 #else
 void GLASS_context_setError(GLenum error);
 #endif // GLASS_NO_MERCY
+
+static inline size_t GLASS_context_getFBIndex(CtxCommon* ctx) {
+    size_t fbIndex = 0;
+    if (ctx->settings.targetScreen == GLASS_SCREEN_TOP)
+        fbIndex = (ctx->settings.targetSide == GLASS_SIDE_RIGHT) ? 1 : 0;
+
+    return fbIndex;
+}
 
 #endif /* _GLASS_BASE_CONTEXT_H */
