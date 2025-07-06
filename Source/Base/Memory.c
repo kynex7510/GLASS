@@ -19,7 +19,7 @@ WEAK void glassLinearFree(void* p) { kygxFree(p); }
 WEAK size_t glassLinearSize(const void* p) { return kygxGetAllocSize(p); }
 WEAK bool glassIsLinear(const void* p) { return kygxIsLinear(p); }
 
-WEAK void* glassVRAMAlloc(KYGXVRAMBank bank, size_t size) { return kygxAllocVRAM(bank, size); }
+WEAK void* glassVRAMAlloc(size_t size, KYGXVRAMBank bank) { return kygxAllocVRAM(bank, size); }
 WEAK void glassVRAMFree(void* p) { kygxFree(p); }
 WEAK size_t glassVRAMSize(const void* p) { return kygxGetAllocSize(p); }
 WEAK bool glassIsVRAM(const void* p) { return kygxIsVRAM(p); }

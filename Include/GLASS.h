@@ -100,7 +100,7 @@ void glassLinearFree(void* p);
 size_t glassLinearSize(const void* p);
 bool glassIsLinear(const void* p);
 
-void* glassVRAMAlloc(KYGXVRAMBank bank, size_t size);
+void* glassVRAMAlloc(size_t size, KYGXVRAMBank bank);
 void glassVRAMFree(void* p);
 size_t glassVRAMSize(const void* p);
 bool glassIsVRAM(const void* p);
