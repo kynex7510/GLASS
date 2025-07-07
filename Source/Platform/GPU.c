@@ -141,7 +141,7 @@ bool GLASS_gpu_swapListBuffers(GLASSGPUCommandList* list, void** outBuffer, size
         // Finalize list.
         addWrite(list, GPUREG_FINALIZE, 0x12345678);
         if (!kygxIsAligned(list->offset, 16))
-            addWrite(list, GPUREG_FINALIZE, 0x12345678);
+            addWrite(list, 0, 0x75107510);
 
         if (outBuffer)
             *outBuffer = list->mainBuffer;
