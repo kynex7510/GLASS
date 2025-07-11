@@ -1,4 +1,5 @@
 #include <GLES/gl2.h>
+#include <kazmath/kazmath.h>
 
 #include "MultipleBuf_vshader_shbin.h"
 
@@ -23,19 +24,7 @@ static const Color g_ColorList[3] = {
 };
 
 static GLint g_ProjLoc;
-static float g_ProjMtx[16];
-
-static void makeProjection(float* out, float width, float height) {
-    // PICA Z is in range [-1.0, 0.0].
-    const float mtx[16] = {
-        0,          2.0f/height, 0, -1,
-        2.0f/width, 0,           0, -1,
-        0,          0,           1, -1,
-        0,          0,           0,  1
-    };
-
-    memcpy(out, mtx, sizeof(mtx));
-}
+static kmMat4 g_ProjMtx;
 
 static void sceneInit(GLuint* vbos) {
     // Load the vertex shader, create a shader program and bind it.
@@ -67,12 +56,14 @@ static void sceneInit(GLuint* vbos) {
     glEnableVertexAttribArray(1);
 
     // Compute the projection matrix.
-    makeProjection(g_ProjMtx, 400, 240);
+    kmMat4 mtx;
+    kmMat4OrthoTilt(&mtx, 0.0f, 400.0f, 0.0f, 240.0f, 0.0f, 1.0f, true);
+    kmMat4Transpose(&g_ProjMtx, &mtx);
 }
 
 static void sceneRender(void) {
     // Update the uniforms.
-    glUniformMatrix4fv(g_ProjLoc, 1, GL_FALSE, g_ProjMtx);
+    glUniformMatrix4fv(g_ProjLoc, 1, GL_FALSE, g_ProjMtx.mat);
 
     // Draw the VBO.
     glDrawArrays(GL_TRIANGLES, 0, 3);
