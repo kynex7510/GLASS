@@ -33,7 +33,7 @@ GLenum GLASS_gfx_getFramebufferFormat(GLASSScreen screen) {
 
 void GLASS_gfx_swapScreenBuffers(GLASSScreen screen) {
     bool stereo = false;
-    if (screen == GLASS_SCREEN_TOP && gfxIs3D() && osGet3DSliderState() > 0.0f)
+    if (screen == GLASS_SCREEN_TOP && osGet3DSliderState() > 0.0f)
         stereo = true;
 
     const gfxScreen_t nativeScreen = screen == GLASS_SCREEN_TOP ? GFX_TOP : GFX_BOTTOM;

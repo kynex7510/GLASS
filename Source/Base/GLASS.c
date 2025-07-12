@@ -121,25 +121,25 @@ static bool checkTransferFormats(u8 src, u8 dst) {
         dst == KYGX_DISPLAYTRANSFER_FMT_RGBA4;
 }
 
-static bool prepareTransferParams(CtxCommon* ctx, TransferParams* outParams, GLASSSide side) {
-    if (!ctx)
-        return false;
+static void getTransferParams(CtxCommon* ctx, TransferParams* outParams, GLASSSide side) {
+    KYGX_ASSERT(ctx);
+    KYGX_ASSERT(outParams);
 
-    size_t fbIndex = 0;
-    if (ctx->settings.targetScreen == GLASS_SCREEN_TOP)
-        fbIndex = (side == GLASS_SIDE_RIGHT) ? 1 : 0;
+    // Bottom screen doesn't have a right framebuffer.
+    if (ctx->settings.targetScreen == GLASS_SCREEN_BOTTOM && side == GLASS_SIDE_RIGHT)
+        return;
 
-    // Flush GPU commands.
-    GLASS_context_flush(ctx, true);
+    // Get framebuffer index.
+    const size_t fbIndex = (side == GLASS_SIDE_RIGHT) ? 1 : 0;
 
     // Framebuffer might not be set.
     if (!GLASS_OBJ_IS_FRAMEBUFFER(ctx->framebuffer[fbIndex]))
-        return false;
+        return;
 
     // Get color buffer.
     FramebufferInfo* fb = (FramebufferInfo*)ctx->framebuffer[fbIndex];
     if (fb->colorBuffer == GLASS_INVALID_OBJECT)
-        return false;
+        return;
 
     const RenderbufferInfo* cb = (RenderbufferInfo*)fb->colorBuffer;
     outParams->src = cb->address;
@@ -165,101 +165,154 @@ static bool prepareTransferParams(CtxCommon* ctx, TransferParams* outParams, GLA
         outParams->dstWidth <<= 1;
         outParams->dstHeight <<= 1;
     }
+}
 
-    return true;
+static void prepareContextForTransfer(CtxCommon* ctx, TransferParams* leftParams, TransferParams* rightParams, bool* hasVSync) {
+    KYGX_ASSERT(leftParams);
+    KYGX_ASSERT(rightParams);
+    KYGX_ASSERT(hasVSync);
+
+    if (ctx) {
+        // Flush pending commands.
+        GLASS_context_flush(ctx, true);
+
+        // Get transfer params for each side.
+        getTransferParams(ctx, leftParams, GLASS_SIDE_LEFT);
+        getTransferParams(ctx, rightParams, GLASS_SIDE_RIGHT);
+
+        // Get VSync.
+        *hasVSync = ctx->settings.vsync;
+    }
 }
 
 static void swapBuffersCallback(void* screen) { GLASS_gfx_swapScreenBuffers((GLASSScreen)screen); }
 
-void glassSwapContextBuffers(GLASSCtx top, GLASSCtx bottom) {
-    CtxCommon* topCtx = (CtxCommon*)top;
-    CtxCommon* bottomCtx = (CtxCommon*)bottom;
-
-    if (!topCtx && !bottomCtx)
+void glassSwapContextBuffers(GLASSCtx wrapped0, GLASSCtx wrapped1) {
+    if (!wrapped0 && !wrapped1)
         return;
 
-    TransferParams topLeftParams;
-    TransferParams topRightParams;
-    const bool topLeftNeedsTransfer = prepareTransferParams(topCtx, &topLeftParams, GLASS_SIDE_LEFT);
-    const bool topRightNeedsTransfer = prepareTransferParams(topCtx, &topRightParams, GLASS_SIDE_RIGHT);
-    const bool topHasVSync = topCtx && topCtx->settings.vsync;
+    CtxCommon* ctx0 = (CtxCommon*)wrapped0;
+    CtxCommon* ctx1 = (CtxCommon*)wrapped1;
 
-    TransferParams bottomParams;
-    const bool bottomNeedsTransfer = prepareTransferParams(bottomCtx, &bottomParams, GLASS_SIDE_LEFT);
-    const bool bottomHasVSync = bottomCtx && bottomCtx->settings.vsync;
+    // Prepare the contexts for transfer.
+    TransferParams left0Params;
+    TransferParams right0Params;
+    bool ctx0HasVSync = false;
+
+    memset(&left0Params, 0, sizeof(TransferParams));
+    memset(&right0Params, 0, sizeof(TransferParams));
+    prepareContextForTransfer(ctx0, &left0Params, &right0Params, &ctx0HasVSync);
+
+    TransferParams left1Params;
+    TransferParams right1Params;
+    bool ctx1HasVSync = false;
+
+    memset(&left1Params, 0, sizeof(TransferParams));
+    memset(&right1Params, 0, sizeof(TransferParams));
+    prepareContextForTransfer(ctx1, &left1Params, &right1Params, &ctx1HasVSync);
 
     // Immediately swap buffers if no transfer is needed.
-    if (!topLeftNeedsTransfer && !topRightNeedsTransfer)
-        GLASS_gfx_swapScreenBuffers(GLASS_SCREEN_TOP);
+    bool ctx0NeedsSwap = true;
+    if (!left0Params.src && !right0Params.src) {
+        if (ctx0)
+            GLASS_gfx_swapScreenBuffers(ctx0->settings.targetScreen);
 
-    if (!bottomNeedsTransfer)
-        GLASS_gfx_swapScreenBuffers(GLASS_SCREEN_BOTTOM);
+        ctx0NeedsSwap = false;
+    }
 
-    if (topLeftNeedsTransfer || topRightNeedsTransfer || bottomNeedsTransfer) {
-        // Choose which command buffer to use.
+    bool ctx1NeedsSwap = true;
+    if (!left1Params.src && !right1Params.src) {
+        if (ctx1)
+            GLASS_gfx_swapScreenBuffers(ctx1->settings.targetScreen);
+
+        ctx1NeedsSwap = false;
+    }
+
+    // Handle swapping.
+    if (ctx0NeedsSwap || ctx1NeedsSwap) {
+        // Choose a command buffer to use.
         CtxCommon* transferCtx = NULL;
         bool useBoundCtx = false;
 
         if (GLASS_context_hasBound()) {
             transferCtx = GLASS_context_getBound();
             useBoundCtx = true;
-        } else if (topCtx) {
-            transferCtx = topCtx;
+        } else if (ctx0) {
+            transferCtx = (CtxCommon*)ctx0;
         } else {
-            transferCtx = bottomCtx;
+            KYGX_ASSERT(ctx1);
+            transferCtx = (CtxCommon*)ctx1;
         }
 
         // If this is the currently bound context, we have to lock.
         if (useBoundCtx)
             kygxLock();
 
-        // If bottom has vsync but top doesn't, execute bottom first.
-        if (bottomHasVSync && !topHasVSync) {
-            if (bottomNeedsTransfer) {
-                kygxAddDisplayTransferChecked(&transferCtx->GXCmdBuf, bottomParams.src, bottomParams.dst,
-                    bottomParams.srcWidth, bottomParams.srcHeight, bottomParams.dstWidth, bottomParams.dstHeight,
-                    &bottomParams.transferFlags);
-                kygxCmdBufferFinalize(&transferCtx->GXCmdBuf, swapBuffersCallback, (void*)GLASS_SCREEN_BOTTOM);
+        // If ctx1 has vsync but ctx0 doesn't, execute ctx1 first.
+        if (ctx1HasVSync && !ctx0HasVSync) {
+            if (ctx1NeedsSwap) {
+                if (left1Params.src) {
+                    kygxAddDisplayTransferChecked(&transferCtx->GXCmdBuf, left1Params.src, left1Params.dst,
+                        left1Params.srcWidth, left1Params.srcHeight, left1Params.dstWidth, left1Params.dstHeight,
+                        &left1Params.transferFlags);
+                }
+
+                if (right1Params.src) {
+                    kygxAddDisplayTransferChecked(&transferCtx->GXCmdBuf, right1Params.src, right1Params.dst,
+                        right1Params.srcWidth, right1Params.srcHeight, right1Params.dstWidth, right1Params.dstHeight,
+                        &right1Params.transferFlags);
+                }
+
+                kygxCmdBufferFinalize(&transferCtx->GXCmdBuf, swapBuffersCallback, (void*)ctx1->settings.targetScreen);
             }
 
-            if (topLeftNeedsTransfer || topRightNeedsTransfer) {
-                if (topLeftNeedsTransfer) {
-                    kygxAddDisplayTransferChecked(&transferCtx->GXCmdBuf, topLeftParams.src, topLeftParams.dst,
-                        topLeftParams.srcWidth, topLeftParams.srcHeight, topLeftParams.dstWidth, topLeftParams.dstHeight,
-                        &topLeftParams.transferFlags);
+            if (ctx0NeedsSwap) {
+                if (left0Params.src) {
+                    kygxAddDisplayTransferChecked(&transferCtx->GXCmdBuf, left0Params.src, left0Params.dst,
+                        left0Params.srcWidth, left0Params.srcHeight, left0Params.dstWidth, left0Params.dstHeight,
+                        &left0Params.transferFlags);
                 }
 
-                if (topRightNeedsTransfer) {
-                    kygxAddDisplayTransferChecked(&transferCtx->GXCmdBuf, topRightParams.src, topRightParams.dst,
-                        topRightParams.srcWidth, topRightParams.srcHeight, topRightParams.dstWidth, topRightParams.dstHeight,
-                        &topRightParams.transferFlags);
+                if (right0Params.src) {
+                    kygxAddDisplayTransferChecked(&transferCtx->GXCmdBuf, right0Params.src, right0Params.dst,
+                        right0Params.srcWidth, right0Params.srcHeight, right0Params.dstWidth, right0Params.dstHeight,
+                        &right0Params.transferFlags);
                 }
 
-                kygxCmdBufferFinalize(&transferCtx->GXCmdBuf, swapBuffersCallback, (void*)GLASS_SCREEN_TOP);
+                kygxCmdBufferFinalize(&transferCtx->GXCmdBuf, swapBuffersCallback, (void*)ctx0->settings.targetScreen);
             }
         } else {
-            // In any other case, we have to either wait for top, or none at all.
-            if (topLeftNeedsTransfer || topRightNeedsTransfer) {
-                if (topLeftNeedsTransfer) {
-                    kygxAddDisplayTransferChecked(&transferCtx->GXCmdBuf, topLeftParams.src, topLeftParams.dst,
-                        topLeftParams.srcWidth, topLeftParams.srcHeight, topLeftParams.dstWidth, topLeftParams.dstHeight,
-                        &topLeftParams.transferFlags);
+            // In any other case, we have to either wait for ctx0, or none at all.
+            if (ctx0NeedsSwap) {
+                if (left0Params.src) {
+                    kygxAddDisplayTransferChecked(&transferCtx->GXCmdBuf, left0Params.src, left0Params.dst,
+                        left0Params.srcWidth, left0Params.srcHeight, left0Params.dstWidth, left0Params.dstHeight,
+                        &left0Params.transferFlags);
                 }
 
-                if (topRightNeedsTransfer) {
-                    kygxAddDisplayTransferChecked(&transferCtx->GXCmdBuf, topRightParams.src, topRightParams.dst,
-                        topRightParams.srcWidth, topRightParams.srcHeight, topRightParams.dstWidth, topRightParams.dstHeight,
-                        &topRightParams.transferFlags);
+                if (right0Params.src) {
+                    kygxAddDisplayTransferChecked(&transferCtx->GXCmdBuf, right0Params.src, right0Params.dst,
+                        right0Params.srcWidth, right0Params.srcHeight, right0Params.dstWidth, right0Params.dstHeight,
+                        &right0Params.transferFlags);
                 }
 
-                kygxCmdBufferFinalize(&transferCtx->GXCmdBuf, swapBuffersCallback, (void*)GLASS_SCREEN_TOP);
+                kygxCmdBufferFinalize(&transferCtx->GXCmdBuf, swapBuffersCallback, (void*)ctx0->settings.targetScreen);
             }
 
-            if (bottomNeedsTransfer) {
-                kygxAddDisplayTransferChecked(&transferCtx->GXCmdBuf, bottomParams.src, bottomParams.dst,
-                    bottomParams.srcWidth, bottomParams.srcHeight, bottomParams.dstWidth, bottomParams.dstHeight,
-                    &bottomParams.transferFlags);
-                kygxCmdBufferFinalize(&transferCtx->GXCmdBuf, swapBuffersCallback, (void*)GLASS_SCREEN_BOTTOM);
+            if (ctx1NeedsSwap) {
+                if (left1Params.src) {
+                    kygxAddDisplayTransferChecked(&transferCtx->GXCmdBuf, left1Params.src, left1Params.dst,
+                        left1Params.srcWidth, left1Params.srcHeight, left1Params.dstWidth, left1Params.dstHeight,
+                        &left1Params.transferFlags);
+                }
+
+                if (right1Params.src) {
+                    kygxAddDisplayTransferChecked(&transferCtx->GXCmdBuf, right1Params.src, right1Params.dst,
+                        right1Params.srcWidth, right1Params.srcHeight, right1Params.dstWidth, right1Params.dstHeight,
+                        &right1Params.transferFlags);
+                }
+
+                kygxCmdBufferFinalize(&transferCtx->GXCmdBuf, swapBuffersCallback, (void*)ctx1->settings.targetScreen);
             }
         }
         
@@ -273,7 +326,7 @@ void glassSwapContextBuffers(GLASSCtx top, GLASSCtx bottom) {
 
         // If any of the contexts has vsync enabled, wait for vblank.
         // TODO: only wait for the contexts that have vsync enabled (requires a primitive in kygx).
-        if (topHasVSync || bottomHasVSync) {
+        if (ctx0HasVSync || ctx1HasVSync) {
             kygxWaitCompletion();
             kygxWaitVBlank();
         }
