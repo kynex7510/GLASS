@@ -1,3 +1,4 @@
 add_subdirectory(SimpleTri)
 add_subdirectory(MultipleBuf)
 add_subdirectory(Lenny)
+add_subdirectory(TexturedCubeRaw)
