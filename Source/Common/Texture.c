@@ -234,7 +234,7 @@ static inline void setTexParams(GLenum target, GLenum pname, const GLint* intPar
             // and the most negative integer maps to -1.0.
             if (pname == GL_TEXTURE_BORDER_COLOR) {
                 for (size_t i = 0; i < 4; ++i) {
-                    floatParams[i] = (GLfloat)(intParams[i]) / 0x7FFFFFFF;
+                    floatParams[i] = (GLfloat)(intParams[i]) / 2147483648.0f;
                 }
             } else {
                 // Only other choice is lod bias.

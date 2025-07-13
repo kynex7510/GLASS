@@ -88,8 +88,9 @@ int main() {
     glRenderbufferStorage(GL_RENDERBUFFER, GL_RGBA8_OES, 400, 240);
     glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_RENDERBUFFER, rb);
 
+    // Set default state.
     glViewport(0, 0, 400, 240);
-    glClearColor(104 / 256.0f, 176 / 256.0f, 216 / 256.0f, 1.0f);
+    glClearColor(0.4f, 0.68f, 0.84f, 1.0f);
 
     // Initialize the scene.
     GLuint vbos[2];

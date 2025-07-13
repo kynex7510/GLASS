@@ -128,7 +128,6 @@ int main() {
     float angleX = 0.0;
     float angleY = 0.0;
 
-    bool doneDraw = false;
     while ( aptMainLoop()) {
         hidScanInput();
 
