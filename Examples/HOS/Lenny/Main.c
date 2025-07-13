@@ -69,11 +69,11 @@ static void sceneRender(float iod, float angleX, float angleY) {
     kmMat4Transpose(&modelView, &tmp);
 
     // Update the uniforms.
-	glUniformMatrix4fv(g_ProjLoc, 1, GL_FALSE, projection.mat);
-	glUniformMatrix4fv(g_ModelViewLoc, 1, GL_FALSE, modelView.mat);
+    glUniformMatrix4fv(g_ProjLoc, 1, GL_FALSE, projection.mat);
+    glUniformMatrix4fv(g_ModelViewLoc, 1, GL_FALSE, modelView.mat);
 
     // Draw the VBO.
-	glDrawArrays(GL_TRIANGLES, 0, VERTEX_LIST_COUNT);
+    glDrawArrays(GL_TRIANGLES, 0, VERTEX_LIST_COUNT);
 }
 
 static void createFramebuffer(GLuint* fb, GLuint* rb) {
@@ -125,8 +125,8 @@ int main() {
     GLuint vbo = sceneInit();
 
     // Main loop.
-	float angleX = 0.0;
-	float angleY = 0.0;
+    float angleX = 0.0;
+    float angleY = 0.0;
 
     bool doneDraw = false;
     while ( aptMainLoop()) {
@@ -147,10 +147,10 @@ int main() {
             angleY += 1.0f/256;
         }
 
-		// Render left.
+        // Render left.
         glassSetTargetSide(ctx, GLASS_SIDE_LEFT);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-		sceneRender(-iod, angleX, angleY);
+        sceneRender(-iod, angleX, angleY);
 
         // Render right.
         if (iod > 0.0f) {
@@ -162,14 +162,14 @@ int main() {
         glassSwapBuffers();
     }
 
-	// Deinitialize graphics.
+    // Deinitialize graphics.
     glDeleteBuffers(1, &vbo);
 
     glDeleteRenderbuffers(2, rightRBs);
     glDeleteFramebuffers(1, &rightFB);
 
-	glDeleteRenderbuffers(2, leftRBs);
-	glDeleteFramebuffers(1, &rightFB);
+    glDeleteRenderbuffers(2, leftRBs);
+    glDeleteFramebuffers(1, &rightFB);
 
     glassDestroyContext(ctx);
 
