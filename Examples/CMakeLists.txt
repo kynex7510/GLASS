@@ -1,5 +1,5 @@
 CPMAddPackage(
-    URI "gh:kynex7510/kazmath_3ds#bb800ac"
+    URI "gh:kynex7510/kazmath_3ds#a0aa7b1"
     OPTIONS "KAZMATH_BUILD_GL_UTILS OFF"
 )
 

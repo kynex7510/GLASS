@@ -1,11 +1,12 @@
-#include "Base/Context.h"
-#include "Base/Texture.h"
-#include "Base/Pixels.h"
+#include <KYGX/Utility.h>
 
-#include <string.h>
+#include "Base/Context.h"
+#include "Base/TexManager.h"
+
+//#include <string.h>
 
 void glBindTexture(GLenum target, GLuint name) {
-    ASSERT(GLASS_OBJ_IS_TEXTURE(name) || name == GLASS_INVALID_OBJECT);
+    KYGX_ASSERT(GLASS_OBJ_IS_TEXTURE(name) || name == GLASS_INVALID_OBJECT);
 
     if ((target != GL_TEXTURE_2D) && (target != GL_TEXTURE_CUBE_MAP)) {
         GLASS_context_setError(GL_INVALID_ENUM);
@@ -20,7 +21,7 @@ void glBindTexture(GLenum target, GLuint name) {
     }
 
     // Only texture0 supports cube maps.
-    CtxCommon* ctx = GLASS_context_getCommon();
+    CtxCommon* ctx = GLASS_context_getBound();
     const bool hasCubeMap = (target == GL_TEXTURE_CUBE_MAP);
 
     if (hasCubeMap && ctx->activeTextureUnit) {
@@ -39,14 +40,14 @@ void glBindTexture(GLenum target, GLuint name) {
 }
 
 void glDeleteTextures(GLsizei n, const GLuint* textures) {
-    ASSERT(textures);
+    KYGX_ASSERT(textures);
 
     if (n < 0) {
         GLASS_context_setError(GL_INVALID_VALUE);
         return;
     }
 
-    CtxCommon* ctx = GLASS_context_getCommon();
+    CtxCommon* ctx = GLASS_context_getBound();
 
     for (size_t i = 0; i < n; ++i) {
         GLuint name = textures[i];
@@ -76,7 +77,7 @@ void glDeleteTextures(GLsizei n, const GLuint* textures) {
 }
 
 void glGenTextures(GLsizei n, GLuint* textures) {
-    ASSERT(textures);
+    KYGX_ASSERT(textures);
 
     if (n < 0) {
         GLASS_context_setError(GL_INVALID_VALUE);
@@ -92,8 +93,7 @@ void glGenTextures(GLsizei n, GLuint* textures) {
 
         TextureInfo* tex = (TextureInfo*)name;
         tex->target = GLASS_TEX_TARGET_UNBOUND;
-        tex->pixelFormat.format = GL_RGBA;
-        tex->pixelFormat.type = GL_UNSIGNED_BYTE;
+        tex->format = TEXFORMAT_RGBA8;
         tex->minFilter = GL_NEAREST_MIPMAP_LINEAR;
         tex->magFilter = GL_LINEAR;
         tex->wrapS = GL_REPEAT;
@@ -118,11 +118,11 @@ void glActiveTexture(GLenum texture) {
         return;
     }
 
-    CtxCommon* ctx = GLASS_context_getCommon();
+    CtxCommon* ctx = GLASS_context_getBound();
     ctx->activeTextureUnit = (texture - GL_TEXTURE0);
 }
 
-static bool GLASS_setTexInt(TextureInfo* tex, GLenum pname, GLint param) {
+static inline bool setTexInt(TextureInfo* tex, GLenum pname, GLint param) {
     switch (pname) {
         case GL_TEXTURE_MIN_FILTER:
             tex->minFilter = param;
@@ -147,8 +147,8 @@ static bool GLASS_setTexInt(TextureInfo* tex, GLenum pname, GLint param) {
     return false;
 }
 
-static bool GLASS_setTexFloats(TextureInfo* tex, GLenum pname, const GLfloat* params) {
-    ASSERT(params);
+static inline bool setTexFloats(TextureInfo* tex, GLenum pname, const GLfloat* params) {
+    KYGX_ASSERT(params);
 
     switch (pname) {
         case GL_TEXTURE_BORDER_COLOR:
@@ -162,7 +162,7 @@ static bool GLASS_setTexFloats(TextureInfo* tex, GLenum pname, const GLfloat* pa
     return false;
 }
 
-static bool GLASS_isMagFilter(GLenum filter) {
+static inline bool isMagFilter(GLenum filter) {
     switch (filter) {
         case GL_NEAREST:
         case GL_LINEAR:
@@ -172,8 +172,8 @@ static bool GLASS_isMagFilter(GLenum filter) {
     return false;
 }
 
-static bool GLASS_isMinFilter(GLenum filter) {
-    if (GLASS_isMagFilter(filter))
+static inline bool isMinFilter(GLenum filter) {
+    if (isMagFilter(filter))
         return true;
 
     switch (filter) {
@@ -187,7 +187,7 @@ static bool GLASS_isMinFilter(GLenum filter) {
     return false;
 }
 
-static bool GLASS_isTexWrap(GLenum wrap) {
+static inline bool isTexWrap(GLenum wrap) {
     switch (wrap) {
         case GL_CLAMP_TO_EDGE:
         case GL_CLAMP_TO_BORDER:
@@ -199,16 +199,16 @@ static bool GLASS_isTexWrap(GLenum wrap) {
     return false;
 }
 
-static bool GLASS_validateTexParam(GLenum pname, GLenum param) {
-    const bool invalidMinFilter = ((pname == GL_TEXTURE_MIN_FILTER) && !GLASS_isMinFilter(param));
-    const bool invalidMagFilter = ((pname == GL_TEXTURE_MAG_FILTER) && !GLASS_isMagFilter(param));
-    const bool invalidWrap = (((pname == GL_TEXTURE_WRAP_S) || (pname == GL_TEXTURE_WRAP_T)) && !GLASS_isTexWrap(param));
+static inline bool validateTexParam(GLenum pname, GLenum param) {
+    const bool invalidMinFilter = ((pname == GL_TEXTURE_MIN_FILTER) && !isMinFilter(param));
+    const bool invalidMagFilter = ((pname == GL_TEXTURE_MAG_FILTER) && !isMagFilter(param));
+    const bool invalidWrap = (((pname == GL_TEXTURE_WRAP_S) || (pname == GL_TEXTURE_WRAP_T)) && !isTexWrap(param));
     return (!invalidMinFilter && !invalidMagFilter && !invalidWrap);
 }
 
-static void GLASS_setTexParams(GLenum target, GLenum pname, const GLint* intParams, const GLfloat* floatParams) {
+static inline void setTexParams(GLenum target, GLenum pname, const GLint* intParams, const GLfloat* floatParams) {
     // Get texture.
-    CtxCommon* ctx = GLASS_context_getCommon();
+    CtxCommon* ctx = GLASS_context_getBound();
     TextureInfo* tex = (TextureInfo*)ctx->textureUnits[ctx->activeTextureUnit];
 
     // We don't support default textures, and only one target at time can be used.
@@ -219,15 +219,15 @@ static void GLASS_setTexParams(GLenum target, GLenum pname, const GLint* intPara
 
     // Set parameters.
     if (intParams) {
-        ASSERT(!floatParams);
+        KYGX_ASSERT(!floatParams);
 
         const GLenum param = intParams[0];
-        if (!GLASS_validateTexParam(pname, param)) {
+        if (!validateTexParam(pname, param)) {
             GLASS_context_setError(GL_INVALID_ENUM);
             return;
         }
 
-        if (!GLASS_setTexInt(tex, pname, param)) {
+        if (!setTexInt(tex, pname, param)) {
             GLfloat floatParams[4];
 
             // Integer color components are interpreted linearly such that the most positive integer maps to 1.0
@@ -241,31 +241,31 @@ static void GLASS_setTexParams(GLenum target, GLenum pname, const GLint* intPara
                 floatParams[0] = (GLfloat)intParams[0];
             }
 
-            if (!GLASS_setTexFloats(tex, pname, floatParams)) {
+            if (!setTexFloats(tex, pname, floatParams)) {
                 GLASS_context_setError(GL_INVALID_ENUM);
                 return;
             }
         }
     } else if (floatParams) {
-        if (!GLASS_setTexFloats(tex, pname, floatParams)) {
-            if (!GLASS_validateTexParam(pname, floatParams[0]) || !GLASS_setTexInt(tex, pname, floatParams[0])) {
+        if (!setTexFloats(tex, pname, floatParams)) {
+            if (!validateTexParam(pname, floatParams[0]) || !setTexInt(tex, pname, floatParams[0])) {
                 GLASS_context_setError(GL_INVALID_ENUM);
                 return;
             }
         }
     } else {
-        UNREACHABLE("Params expected!");
+        KYGX_UNREACHABLE("Params expected!");
     }
 
     ctx->flags |= GLASS_CONTEXT_FLAG_TEXTURE;
 }
 
-void glTexParameterfv(GLenum target, GLenum pname, const GLfloat* params) { GLASS_setTexParams(target, pname, NULL, params); }
-void glTexParameteriv(GLenum target, GLenum pname, const GLint* params) { GLASS_setTexParams(target, pname, params, NULL); }
+void glTexParameterfv(GLenum target, GLenum pname, const GLfloat* params) { setTexParams(target, pname, NULL, params); }
+void glTexParameteriv(GLenum target, GLenum pname, const GLint* params) { setTexParams(target, pname, params, NULL); }
 void glTexParameterf(GLenum target, GLenum pname, GLfloat param) { glTexParameterfv(target, pname, &param); }
 void glTexParameteri(GLenum target, GLenum pname, GLint param) { glTexParameteriv(target, pname, &param); }
 
-static bool GLASS_checkTexArgs(GLenum target, GLint level, GLsizei width, GLsizei height, GLint border) {
+static inline bool checkTexArgs(GLenum target, GLint level, GLsizei width, GLsizei height, GLint border) {
     if ((level < 0) || (level >= GLASS_NUM_TEX_LEVELS) || (border != 0))
         return false;
 
@@ -278,13 +278,13 @@ static bool GLASS_checkTexArgs(GLenum target, GLint level, GLsizei width, GLsize
     if ((width > GLASS_MAX_TEX_SIZE) || (height > GLASS_MAX_TEX_SIZE))
         return false;
 
-    if (!GLASS_utility_isPowerOf2(width) || !GLASS_utility_isPowerOf2(height))
+    if (!kygxIsPo2(width) || !kygxIsPo2(height))
         return false;
 
     return true;
 }
 
-static bool GLASS_isTexFormat(GLenum format) {
+static inline bool isTexFormat(GLenum format) {
     switch (format) {
         case GL_ALPHA:
         case GL_LUMINANCE:
@@ -297,7 +297,7 @@ static bool GLASS_isTexFormat(GLenum format) {
     return false;
 }
 
-static bool GLASS_isTexType(GLenum type) {
+static inline bool isTexType(GLenum type) {
     switch (type) {
         case GL_UNSIGNED_BYTE:
         case GL_UNSIGNED_SHORT_5_6_5:
@@ -311,7 +311,7 @@ static bool GLASS_isTexType(GLenum type) {
     return false;
 }
 
-static GLenum GLASS_texTargetForSubtarget(GLenum target) {
+static inline GLenum texTargetForSubtarget(GLenum target) {
     switch (target) {
         case GL_TEXTURE_2D:
             return GL_TEXTURE_2D;
@@ -324,30 +324,121 @@ static GLenum GLASS_texTargetForSubtarget(GLenum target) {
             return GL_TEXTURE_CUBE_MAP;
     }
 
-    UNREACHABLE("Invalid parameter!");
+    KYGX_UNREACHABLE("Invalid parameter!");
+}
+
+static bool tryUnwrapTexFormat(GLenum format, GLenum type, GPUTexFormat* out) {
+    if (format == GL_ALPHA) {
+        if (type == GL_UNSIGNED_BYTE) {
+            *out = TEXFORMAT_A8;
+            return true;
+        }
+
+        if (type == GL_UNSIGNED_NIBBLE_PICA) {
+            *out = TEXFORMAT_A4;
+            return true;
+        }
+
+        return false;
+    }
+
+    if (format == GL_LUMINANCE) {
+        if (type == GL_UNSIGNED_BYTE) {
+            *out = TEXFORMAT_L8;
+            return true;
+        }
+
+        if (type == GL_UNSIGNED_NIBBLE_PICA) {
+            *out = TEXFORMAT_L4;
+            return true;
+        }
+
+        return false;
+    }
+
+    if (format == GL_LUMINANCE_ALPHA) {
+        if (type == GL_UNSIGNED_BYTE) {
+            *out = TEXFORMAT_LA8;
+            return true;
+        }
+
+        if (type == GL_UNSIGNED_BYTE_4_4_PICA) {
+            *out = TEXFORMAT_LA4;
+            return true;
+        }
+
+        return false;
+    }
+
+    if (format == GL_RGB) {
+        if (type == GL_UNSIGNED_BYTE) {
+            *out = TEXFORMAT_RGB8;
+            return true;
+        }
+
+        if (type == GL_UNSIGNED_SHORT_5_6_5) {
+            *out = TEXFORMAT_RGB565;
+            return true;
+        }
+
+        return false;
+    }
+
+    if (format == GL_RGBA) {
+        if (type == GL_UNSIGNED_BYTE) {
+            *out = TEXFORMAT_RGBA8;
+            return true;
+        }
+
+        if (type == GL_UNSIGNED_SHORT_5_5_5_1) {
+            *out = TEXFORMAT_RGB5A1;
+            return true;
+        }
+
+        if (type == GL_UNSIGNED_SHORT_4_4_4_4) {
+            *out = TEXFORMAT_RGBA4;
+            return true;
+        }
+
+        return false;
+    }
+
+    if (format == GL_HILO8_PICA && type == GL_UNSIGNED_BYTE) {
+        *out = TEXFORMAT_HILO8;
+        return true;
+    }
+
+    if (format == GL_ETC1_RGB8_OES) {
+        *out = TEXFORMAT_ETC1;
+        return true;
+    }
+
+    if (format == GL_ETC1_ALPHA_RGB8_A4_PICA) {
+        *out = TEXFORMAT_ETC1A4;
+        return true;
+    }
+
+    return false;
 }
 
 void glTexImage2D(GLenum target, GLint level, GLint internalformat, GLsizei width, GLsizei height, GLint border, GLenum format, GLenum type, const GLvoid* data) {
-    if (!GLASS_checkTexArgs(target, level, width, height, border)) {
+    if (!checkTexArgs(target, level, width, height, border)) {
         GLASS_context_setError(GL_INVALID_VALUE);
         return;
     }
     
-    if (!GLASS_isTexFormat(format) || !GLASS_isTexType(type)) {
+    if (!isTexFormat(format) || !isTexType(type)) {
         GLASS_context_setError(GL_INVALID_ENUM);
         return;
     }
 
-    glassPixelFormat pixelFormat;
-    pixelFormat.format = format;
-    pixelFormat.type = type;
-
-    if ((format != internalformat) || (GLASS_pixels_tryUnwrapTexFormat(&pixelFormat) == GLASS_INVALID_TEX_FORMAT)) {
+    GPUTexFormat nativeFormat;
+    if (format != internalformat || !tryUnwrapTexFormat(format, type, &nativeFormat)) {
         GLASS_context_setError(GL_INVALID_OPERATION);
         return;
     }
 
-    CtxCommon* ctx = GLASS_context_getCommon();
+    CtxCommon* ctx = GLASS_context_getBound();
     TextureInfo* tex = (TextureInfo*)ctx->textureUnits[ctx->activeTextureUnit];
 
     // We don't support default textures.
@@ -357,7 +448,7 @@ void glTexImage2D(GLenum target, GLint level, GLint internalformat, GLsizei widt
     }
 
     // Target check.
-    if (tex->target != GLASS_texTargetForSubtarget(target)) {
+    if (tex->target != texTargetForSubtarget(target)) {
         GLASS_context_setError(GL_INVALID_OPERATION);
         return;
     }
@@ -396,22 +487,22 @@ void glTexImage2D(GLenum target, GLint level, GLint internalformat, GLsizei widt
     }
 
     // Prepare memory.
-    TexReallocStatus reallocStatus = GLASS_tex_realloc(tex, width << level, height << level, &pixelFormat, tex->vram);
-    if (reallocStatus == TexReallocStatus_Failed)
+    TexReallocStatus reallocStatus = GLASS_tex_realloc(tex, width << level, height << level, nativeFormat, tex->vram);
+    if (reallocStatus == TEXREALLOCSTATUS_FAILED)
         return;
 
     // Write data.
     if (data) {
-        GLASS_tex_writeRaw(tex, data, face, level);
-        reallocStatus = TexReallocStatus_Updated;
+        GLASS_tex_writeUntiled(tex, data, face, level);
+        reallocStatus = TEXREALLOCSTATUS_UPDATED;
     }
     
-    if (reallocStatus == TexReallocStatus_Updated)
+    if (reallocStatus == TEXREALLOCSTATUS_UPDATED)
         ctx->flags |= GLASS_CONTEXT_FLAG_TEXTURE;   
 }
 
 void glTexVRAMPICA(GLboolean enabled) {
-    CtxCommon* ctx = GLASS_context_getCommon();
+    CtxCommon* ctx = GLASS_context_getBound();
     TextureInfo* tex = (TextureInfo*)ctx->textureUnits[ctx->activeTextureUnit];
 
     if (!tex) {
@@ -419,8 +510,8 @@ void glTexVRAMPICA(GLboolean enabled) {
         return;
     }
 
-    const TexReallocStatus reallocStatus = GLASS_tex_realloc(tex, tex->width, tex->height, &tex->pixelFormat, enabled);
-    if (reallocStatus == TexReallocStatus_Updated) {
+    const TexReallocStatus reallocStatus = GLASS_tex_realloc(tex, tex->width, tex->height, tex->format, enabled);
+    if (reallocStatus == TEXREALLOCSTATUS_UPDATED) {
         tex->vram = enabled;
         ctx->flags |= GLASS_CONTEXT_FLAG_TEXTURE;
     }

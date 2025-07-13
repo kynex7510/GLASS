@@ -18,7 +18,7 @@ option(GLASS_COMPILE_EXAMPLES "Enable examples compilation" OFF)
 CPMAddPackage("gh:kynex7510/KYGX#3f257b9")
 
 CPMAddPackage(
-    URI "gh:kynex7510/RIP#5189722"
+    URI "gh:kynex7510/RIP#bd9af06"
     OPTIONS "RIP_BACKEND kygx"
 )
 
@@ -28,7 +28,7 @@ set(GLASS_SOURCES
     Source/Base/GLASS.c
     Source/Base/Math.c
     Source/Base/Memory.c
-    # Source/Base/Texture.c
+    Source/Base/TexManager.c
     Source/Base/Types.c
     Source/Common/Attribs.c
     Source/Common/Buffers.c
@@ -38,7 +38,7 @@ set(GLASS_SOURCES
     Source/Common/Rendering.c
     Source/Common/Shaders.c
     Source/Common/State.c
-    # Source/Common/TexGL.c
+    Source/Common/Texture.c
     Source/Common/Uniforms.c
     Source/Platform/GFX.c
     Source/Platform/GPU.c
