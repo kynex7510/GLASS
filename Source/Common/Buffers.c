@@ -82,7 +82,7 @@ void glBufferData(GLenum target, GLsizeiptr size, const void* data, GLenum usage
         memcpy(info->address, data, size);
 
         CtxCommon* ctx = GLASS_context_getBound();
-        if (!ctx->initParams.flushAllLinearMem)
+        if (!ctx->params.flushAllLinearMem)
             kygxSyncFlushSingleBuffer(info->address, size);
     }
 }
@@ -111,7 +111,7 @@ void glBufferSubData(GLenum target, GLintptr offset, GLsizeiptr size, const void
     memcpy(info->address + offset, data, size);
 
     CtxCommon* ctx = GLASS_context_getBound();
-    if (!ctx->initParams.flushAllLinearMem)
+    if (!ctx->params.flushAllLinearMem)
         kygxSyncFlushSingleBuffer(info->address + offset, size);
 }
 

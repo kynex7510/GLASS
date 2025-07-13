@@ -286,7 +286,7 @@ void glVertexAttribPointer(GLuint index, GLint size, GLenum type, GLboolean norm
             return;
         }
 
-        if (!ctx->initParams.flushAllLinearMem)
+        if (!ctx->params.flushAllLinearMem)
             kygxSyncFlushSingleBuffer(pointer, bufferSize);
     }
 

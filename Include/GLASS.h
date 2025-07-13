@@ -10,12 +10,6 @@ typedef enum {
     GLASS_VERSION_2_0, ///< OpenGL ES 2.0
 } GLASSVersion;
 
-/// @brief Context initialization parameters.
-typedef struct {
-    GLASSVersion version;   ///< Context version.
-    bool flushAllLinearMem; ///< Whether to flush all linear memory (default: true).
-} GLASSInitParams;
-
 /// @brief Target screen.
 typedef enum {
     GLASS_SCREEN_TOP,    ///< Top screen.
@@ -43,22 +37,24 @@ typedef enum {
     GLASS_DOWNSCALE_2X2,  ///< Halve width and height.
 } GLASSDownscale;
 
-/// @brief Context settings.
+/// @brief Context parameters.
 typedef struct {
+    GLASSVersion version;           ///< Context version.
     GLASSScreen targetScreen;       ///< Draw target screen (default: GLASS_SCREEN_TOP).
     GLASSSide targetSide;           ///< Draw target side (default: GLASS_SCREEN_LEFT).
     GLASSGPUCommandList GPUCmdList; ///< GPU command list (default: all NULL).
     bool vsync;                     ///< Enable VSync (default: true).
     bool horizontalFlip;            ///< Flip display buffer horizontally (default: false).
+    bool flushAllLinearMem;         ///< Whether to flush all linear memory (default: true).
     GLASSDownscale downscale;       ///< Set downscale for anti-aliasing (default: GLASS_DOWNSCALE_NONE).
-} GLASSSettings;
+} GLASSCtxParams;
 
 #ifdef __cplusplus
 extern "C" {
 #endif // __cplusplus
 
 // Create context.
-GLASSCtx glassCreateContext(const GLASSInitParams* initParams, const GLASSSettings* settings);
+GLASSCtx glassCreateContext(const GLASSCtxParams* ctxParams);
 
 // Create context with default settings.
 GLASSCtx glassCreateDefaultContext(GLASSVersion version);
@@ -78,11 +74,20 @@ bool glassHasBoundContext(void);
 // Check if that's the bound context.
 bool glassIsBoundContext(GLASSCtx ctx);
 
-// Read settings from context.
-void glassReadSettings(GLASSCtx ctx, GLASSSettings* settings);
+// Get context version.
+GLASSVersion glassGetVersion(GLASSCtx ctx);
 
-// Write settings to context.
-void glassWriteSettings(GLASSCtx ctx, const GLASSSettings* settings);
+// Get target screen.
+GLASSScreen glassGetTargetScreen(GLASSCtx ctx);
+
+// Set target screen.
+void glassSetTargetScreen(GLASSCtx ctx, GLASSScreen screen);
+
+// Get target side.
+GLASSSide glassGetTargetSide(GLASSCtx ctx);
+
+// Set target side, flushes pending GPU commands if different.
+void glassSetTargetSide(GLASSCtx ctx, GLASSSide side);
 
 // Swap buffers of the bound context. UB if no bound context.
 void glassSwapBuffers(void);

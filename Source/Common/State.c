@@ -122,11 +122,11 @@ const GLubyte* glGetString(GLenum name) {
             return (const GLubyte*)RENDERER " (DEBUG)";
 #endif
         case GL_VERSION:
-            return getVersionString(ctx->initParams.version);
+            return getVersionString(ctx->params.version);
         case GL_SHADING_LANGUAGE_VERSION:
             return (const GLubyte*)SHADING_LANGUAGE_VERSION;
         case GL_EXTENSIONS:
-            return getExtensionsString(ctx->initParams.version);
+            return getExtensionsString(ctx->params.version);
     }
 
     GLASS_context_setError(GL_INVALID_ENUM);

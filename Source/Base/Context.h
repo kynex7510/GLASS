@@ -4,10 +4,9 @@
 #include "Base/Types.h"
 
 typedef struct {
-    GLASSInitParams initParams; // Context parameters.
-    GLASSSettings settings;     // Context settings.
-    u32 flags;                  // State flags.
-    GLenum lastError;           // Actually first error.
+    GLASSCtxParams params; // Context parameters.
+    u32 flags;             // State flags.
+    GLenum lastError;      // Actually first error.
 
     /* Platform */
     KYGXCmdBuffer GXCmdBuf; // GX command buffer.
@@ -108,7 +107,7 @@ typedef struct {
     CombinerInfo combiners[GLASS_NUM_COMBINER_STAGES]; // Combiners.
 } CtxCommon;
 
-void GLASS_context_initCommon(CtxCommon* ctx, const GLASSInitParams* initParams, const GLASSSettings* settings);
+void GLASS_context_initCommon(CtxCommon* ctx, const GLASSCtxParams* ctxParams);
 void GLASS_context_cleanupCommon(CtxCommon* ctx);
 
 CtxCommon* GLASS_context_getBound(void);
@@ -126,7 +125,7 @@ void GLASS_context_setError(GLenum error);
 
 static inline size_t GLASS_context_getFBIndex(CtxCommon* ctx) {
     KYGX_ASSERT(ctx);
-    return (ctx->settings.targetSide == GLASS_SIDE_RIGHT) ? 1 : 0;
+    return (ctx->params.targetSide == GLASS_SIDE_RIGHT) ? 1 : 0;
 }
 
 #endif /* _GLASS_BASE_CONTEXT_H */

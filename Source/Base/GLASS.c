@@ -16,14 +16,14 @@ typedef struct {
     KYGXDisplayTransferFlags transferFlags;
 } TransferParams;
 
-GLASSCtx glassCreateContext(const GLASSInitParams* initParams, const GLASSSettings* settings) {
-    if (!initParams)
+GLASSCtx glassCreateContext(const GLASSCtxParams* ctxParams) {
+    if (!ctxParams)
         return NULL;
 
-    if (initParams->version == GLASS_VERSION_2_0) {
+    if (ctxParams->version == GLASS_VERSION_2_0) {
         CtxCommon* ctx = (CtxCommon*)glassHeapAlloc(sizeof(CtxCommon));
         if (ctx) {
-            GLASS_context_initCommon(ctx, initParams, settings);
+            GLASS_context_initCommon(ctx, ctxParams);
         }
         return (GLASSCtx)ctx;
     }
@@ -32,17 +32,27 @@ GLASSCtx glassCreateContext(const GLASSInitParams* initParams, const GLASSSettin
 }
 
 GLASSCtx glassCreateDefaultContext(GLASSVersion version) {
-    GLASSInitParams initParams;
-    initParams.version = version;
-    initParams.flushAllLinearMem = true;
-    return glassCreateContext(&initParams, NULL);
+    GLASSCtxParams defaultParams;
+    defaultParams.version = version;
+    defaultParams.targetScreen = GLASS_SCREEN_TOP;
+    defaultParams.targetSide = GLASS_SIDE_LEFT;
+    defaultParams.GPUCmdList.mainBuffer = NULL;
+    defaultParams.GPUCmdList.secondBuffer = NULL;
+    defaultParams.GPUCmdList.capacity = 0;
+    defaultParams.GPUCmdList.offset = 0;
+    defaultParams.vsync = true;
+    defaultParams.horizontalFlip = false;
+    defaultParams.flushAllLinearMem = true;
+    defaultParams.downscale = GLASS_DOWNSCALE_NONE;
+
+    return glassCreateContext(&defaultParams);
 }
 
 void glassDestroyContext(GLASSCtx wrapped) {
     KYGX_ASSERT(wrapped);
     CtxCommon* ctx = (CtxCommon*)wrapped;
 
-    if (ctx->initParams.version == GLASS_VERSION_2_0) {
+    if (ctx->params.version == GLASS_VERSION_2_0) {
         GLASS_context_cleanupCommon((CtxCommon*)ctx);
     } else {
         KYGX_UNREACHABLE("Invalid context version!");
@@ -56,20 +66,37 @@ GLASSCtx glassGetBoundContext(void) { return (GLASSCtx)GLASS_context_getBound();
 bool glassHasBoundContext(void) { return GLASS_context_hasBound(); }
 bool glassIsBoundContext(GLASSCtx ctx) { return GLASS_context_isBound((CtxCommon*)ctx); }
 
-void glassReadSettings(GLASSCtx wrapped, GLASSSettings* settings) {
-    KYGX_ASSERT(wrapped);
-    KYGX_ASSERT(settings);
-
-    const CtxCommon* ctx = (CtxCommon*)wrapped;
-    memcpy(settings, &ctx->settings, sizeof(ctx->settings));
+GLASSVersion glassGetVersion(GLASSCtx ctx) {
+    KYGX_ASSERT(ctx);
+    return ((CtxCommon*)ctx)->params.version;
 }
 
-void glassWriteSettings(GLASSCtx wrapped, const GLASSSettings* settings) {
+GLASSScreen glassGetTargetScreen(GLASSCtx ctx) {
+    KYGX_ASSERT(ctx);
+    return ((CtxCommon*)ctx)->params.targetScreen;
+}
+
+void glassSetTargetScreen(GLASSCtx ctx, GLASSScreen screen) {
+    KYGX_ASSERT(ctx);
+    ((CtxCommon*)ctx)->params.targetScreen = screen;
+}
+
+GLASSSide glassGetTargetSide(GLASSCtx ctx) {
+    KYGX_ASSERT(ctx);
+    return ((CtxCommon*)ctx)->params.targetSide;
+}
+
+void glassSetTargetSide(GLASSCtx wrapped, GLASSSide side) {
     KYGX_ASSERT(wrapped);
-    KYGX_ASSERT(settings);
 
     CtxCommon* ctx = (CtxCommon*)wrapped;
-    memcpy(&ctx->settings, settings, sizeof(ctx->settings));
+
+    // If we have changed side, we have to flush pending commands and request a framebuffer change.
+    if (ctx->params.targetSide != side) {
+        GLASS_context_flush(ctx, false);
+        ctx->params.targetSide = side;
+        ctx->flags |= GLASS_CONTEXT_FLAG_FRAMEBUFFER;
+    }
 }
 
 static inline u8 unwrapTransferFormat(GLenum format) {
@@ -126,7 +153,7 @@ static void getTransferParams(CtxCommon* ctx, TransferParams* outParams, GLASSSi
     KYGX_ASSERT(outParams);
 
     // Bottom screen doesn't have a right framebuffer.
-    if (ctx->settings.targetScreen == GLASS_SCREEN_BOTTOM && side == GLASS_SIDE_RIGHT)
+    if (ctx->params.targetScreen == GLASS_SCREEN_BOTTOM && side == GLASS_SIDE_RIGHT)
         return;
 
     // Get framebuffer index.
@@ -147,14 +174,14 @@ static void getTransferParams(CtxCommon* ctx, TransferParams* outParams, GLASSSi
     outParams->srcHeight = cb->width;
 
     // Get display buffer.
-    outParams->dst = GLASS_gfx_getFramebuffer(ctx->settings.targetScreen, side, &outParams->dstWidth, &outParams->dstHeight);
+    outParams->dst = GLASS_gfx_getFramebuffer(ctx->params.targetScreen, side, &outParams->dstWidth, &outParams->dstHeight);
 
     // Setup transfer flags.
     outParams->transferFlags.mode = KYGX_DISPLAYTRANSFER_MODE_T2L;
     outParams->transferFlags.srcFmt = unwrapTransferFormat(cb->format);
-    outParams->transferFlags.dstFmt = unwrapTransferFormat(GLASS_gfx_getFramebufferFormat(ctx->settings.targetScreen));
-    outParams->transferFlags.downscale = unwrapDownscale(ctx->settings.downscale);
-    outParams->transferFlags.verticalFlip = ctx->settings.horizontalFlip;
+    outParams->transferFlags.dstFmt = unwrapTransferFormat(GLASS_gfx_getFramebufferFormat(ctx->params.targetScreen));
+    outParams->transferFlags.downscale = unwrapDownscale(ctx->params.downscale);
+    outParams->transferFlags.verticalFlip = ctx->params.horizontalFlip;
     outParams->transferFlags.blockMode32 = false;
 
     KYGX_BREAK_UNLESS(checkTransferFormats(outParams->transferFlags.srcFmt, outParams->transferFlags.dstFmt));
@@ -181,7 +208,7 @@ static void prepareContextForTransfer(CtxCommon* ctx, TransferParams* leftParams
         getTransferParams(ctx, rightParams, GLASS_SIDE_RIGHT);
 
         // Get VSync.
-        *hasVSync = ctx->settings.vsync;
+        *hasVSync = ctx->params.vsync;
     }
 }
 
@@ -215,7 +242,7 @@ void glassSwapContextBuffers(GLASSCtx wrapped0, GLASSCtx wrapped1) {
     bool ctx0NeedsSwap = true;
     if (!left0Params.src && !right0Params.src) {
         if (ctx0)
-            GLASS_gfx_swapScreenBuffers(ctx0->settings.targetScreen);
+            GLASS_gfx_swapScreenBuffers(ctx0->params.targetScreen);
 
         ctx0NeedsSwap = false;
     }
@@ -223,7 +250,7 @@ void glassSwapContextBuffers(GLASSCtx wrapped0, GLASSCtx wrapped1) {
     bool ctx1NeedsSwap = true;
     if (!left1Params.src && !right1Params.src) {
         if (ctx1)
-            GLASS_gfx_swapScreenBuffers(ctx1->settings.targetScreen);
+            GLASS_gfx_swapScreenBuffers(ctx1->params.targetScreen);
 
         ctx1NeedsSwap = false;
     }
@@ -263,7 +290,7 @@ void glassSwapContextBuffers(GLASSCtx wrapped0, GLASSCtx wrapped1) {
                         &right1Params.transferFlags);
                 }
 
-                kygxCmdBufferFinalize(&transferCtx->GXCmdBuf, swapBuffersCallback, (void*)ctx1->settings.targetScreen);
+                kygxCmdBufferFinalize(&transferCtx->GXCmdBuf, swapBuffersCallback, (void*)ctx1->params.targetScreen);
             }
 
             if (ctx0NeedsSwap) {
@@ -279,7 +306,7 @@ void glassSwapContextBuffers(GLASSCtx wrapped0, GLASSCtx wrapped1) {
                         &right0Params.transferFlags);
                 }
 
-                kygxCmdBufferFinalize(&transferCtx->GXCmdBuf, swapBuffersCallback, (void*)ctx0->settings.targetScreen);
+                kygxCmdBufferFinalize(&transferCtx->GXCmdBuf, swapBuffersCallback, (void*)ctx0->params.targetScreen);
             }
         } else {
             // In any other case, we have to either wait for ctx0, or none at all.
@@ -296,7 +323,7 @@ void glassSwapContextBuffers(GLASSCtx wrapped0, GLASSCtx wrapped1) {
                         &right0Params.transferFlags);
                 }
 
-                kygxCmdBufferFinalize(&transferCtx->GXCmdBuf, swapBuffersCallback, (void*)ctx0->settings.targetScreen);
+                kygxCmdBufferFinalize(&transferCtx->GXCmdBuf, swapBuffersCallback, (void*)ctx0->params.targetScreen);
             }
 
             if (ctx1NeedsSwap) {
@@ -312,7 +339,7 @@ void glassSwapContextBuffers(GLASSCtx wrapped0, GLASSCtx wrapped1) {
                         &right1Params.transferFlags);
                 }
 
-                kygxCmdBufferFinalize(&transferCtx->GXCmdBuf, swapBuffersCallback, (void*)ctx1->settings.targetScreen);
+                kygxCmdBufferFinalize(&transferCtx->GXCmdBuf, swapBuffersCallback, (void*)ctx1->params.targetScreen);
             }
         }
         
