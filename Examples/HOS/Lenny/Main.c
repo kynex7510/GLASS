@@ -51,6 +51,8 @@ static GLuint sceneInit(void) {
     memcpy(&tmp, &g_BaseModelView, sizeof(kmMat4));
     kmMat4Scaling(&tmp2, 2.0f, 2.0f, 2.0f);
     kmMat4Multiply(&g_BaseModelView, &tmp, &tmp2);
+
+    // TODO: light.
 }
 
 static void sceneRender(float iod, float angleX, float angleY) {
@@ -139,7 +141,7 @@ int main() {
         const float slider = osGet3DSliderState();
         const float iod = slider / 3;
 
-        // Rotate the model
+        // Rotate the model.
         if (!(kHeld & KEY_A)) {
             angleX += 1.0f/64;
             angleY += 1.0f/256;
