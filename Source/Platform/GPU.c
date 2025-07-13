@@ -21,7 +21,7 @@
 #define PAD_16 15
 
 #define CMD_HEADER(id, mask, numParams, consecutive) \
-    ((id) & 0xFFFF) | (((mask) & 0xF) << 16) | ((((numParams) - 1) & 0xFF) << 20) | ((consecutive) ? (1 << 31) : 0)
+    (((id) & 0xFFFF) | (((mask) & 0xF) << 16) | ((((numParams) - 1) & 0xFF) << 20) | ((consecutive) ? (1 << 31) : 0))
 
 static inline size_t addCmdImplStep(u32* cmdBuffer, u32 header, const u32* params, size_t numParams) {
     KYGX_ASSERT(cmdBuffer);
@@ -248,7 +248,7 @@ void GLASS_gpu_bindFramebuffer(GLASSGPUCommandList* list, const FramebufferInfo*
 
     if (depthBuffer) {
         addWrite(list, GPUREG_DEPTHBUFFER_FORMAT, unwrapRBFormat(depthFormat));
-        params[2] = params[3] = 0x03;
+        params[2] = params[3] = depthFormat == GL_DEPTH24_STENCIL8_OES ? 0x03 : 0x02;
     } else {
         params[2] = params[3] = 0;
     }

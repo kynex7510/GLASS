@@ -1,7 +1,55 @@
 #include "Platform/GFX.h"
 
 #ifdef KYGX_BAREMETAL
-// TODO
+
+#include <drivers/gfx.h>
+
+u8* GLASS_gfx_getFramebuffer(GLASSScreen screen, GLASSSide side, u16* width, u16* height) {
+    const GfxLcd nativeScreen = screen == GLASS_SCREEN_TOP ? GFX_LCD_TOP : GFX_LCD_BOT;
+    const GfxSide nativeSide = side == GLASS_SIDE_LEFT ? GFX_SIDE_LEFT : GFX_SIDE_RIGHT;
+
+    u16 w;
+    u16 h;
+    if (nativeScreen == GFX_LCD_TOP) {
+        w = LCD_WIDTH_TOP;
+        h = GFX_getTopMode() == GFX_TOP_WIDE ? LCD_WIDE_HEIGHT_TOP : LCD_HEIGHT_TOP;
+    } else if (nativeScreen == GFX_LCD_BOT) {
+        w = LCD_WIDTH_BOT;
+        h = LCD_HEIGHT_BOT;
+    }
+
+    if (width)
+        *width = w;
+
+    if (height)
+        *height = h;
+
+    return GFX_getBuffer(nativeScreen, nativeSide);
+}
+
+GLenum GLASS_gfx_getFramebufferFormat(GLASSScreen screen) {
+    const GfxFmt format = GFX_getFormat(screen == GLASS_SCREEN_TOP ? GFX_LCD_TOP : GFX_LCD_BOT);
+    
+    switch (format) {
+        case GFX_ABGR8:
+            return GL_RGBA8_OES;
+        case GFX_BGR8:
+            return GL_RGB8_OES;
+        case GFX_BGR565:
+            return GL_RGB565;
+        case GFX_A1BGR5:
+            return GL_RGB5_A1;
+        case GFX_ABGR4:
+            return GL_RGBA4;
+        default:
+            KYGX_UNREACHABLE("Invalid parameter!");
+    }
+
+    return 0;
+}
+
+void GLASS_gfx_swapScreenBuffers(GLASSScreen screen) { GFX_swapBuffers(); }
+
 #else
 
 u8* GLASS_gfx_getFramebuffer(GLASSScreen screen, GLASSSide side, u16* width, u16* height) {
@@ -32,11 +80,8 @@ GLenum GLASS_gfx_getFramebufferFormat(GLASSScreen screen) {
 }
 
 void GLASS_gfx_swapScreenBuffers(GLASSScreen screen) {
-    bool stereo = false;
-    if (screen == GLASS_SCREEN_TOP && osGet3DSliderState() > 0.0f)
-        stereo = true;
-
     const gfxScreen_t nativeScreen = screen == GLASS_SCREEN_TOP ? GFX_TOP : GFX_BOTTOM;
+    const bool stereo = screen == GLASS_SCREEN_TOP && osGet3DSliderState() > 0.0f;
     gfxScreenSwapBuffers(nativeScreen, stereo);
 }
 

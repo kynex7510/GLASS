@@ -125,11 +125,8 @@ void GLASS_context_setError(GLenum error);
 #endif // GLASS_NO_MERCY
 
 static inline size_t GLASS_context_getFBIndex(CtxCommon* ctx) {
-    size_t fbIndex = 0;
-    if (ctx->settings.targetScreen == GLASS_SCREEN_TOP)
-        fbIndex = (ctx->settings.targetSide == GLASS_SIDE_RIGHT) ? 1 : 0;
-
-    return fbIndex;
+    KYGX_ASSERT(ctx);
+    return (ctx->settings.targetSide == GLASS_SIDE_RIGHT) ? 1 : 0;
 }
 
 #endif /* _GLASS_BASE_CONTEXT_H */
