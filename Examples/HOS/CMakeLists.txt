@@ -1,5 +1,6 @@
-add_subdirectory(SimpleTri)
-add_subdirectory(MultipleBuf)
+add_subdirectory(BothScreens)
 add_subdirectory(Lenny)
+add_subdirectory(MultipleBuf)
+add_subdirectory(SimpleTri)
 add_subdirectory(TexturedCubeRaw)
 add_subdirectory(WideMode3D)
