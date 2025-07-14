@@ -158,9 +158,6 @@ void glClear(GLbitfield mask) {
     }
 
     if (colorFill.addr || depthFill.addr) {
-        // Flush GPU commands to enforce draw order.
-        GLASS_context_flush(ctx, true);
-
         kygxLock();
         kygxAddMemoryFill(&ctx->GXCmdBuf, &colorFill, &depthFill);
         kygxCmdBufferFinalize(&ctx->GXCmdBuf, NULL, NULL);

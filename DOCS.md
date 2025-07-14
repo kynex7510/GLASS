@@ -9,7 +9,7 @@
 - `glPolygonOffset`: the `factor` argument has no effect.
 - `glDrawArrays`: the `mode` argument must be one of `GL_TRIANGLES`, `GL_TRIANGLE_STRIP`, `GL_TRIANGLE_FAN`, `GL_GEOMETRY_PRIMITIVE_PICA`.
 - If the number of components of the uniform variable as defined in the shader does not match the size specified in the name of the command used to load its value, and the uniform variable is not of type `bool`, no error will be generated; the other components of the specified uniform variable will remain unchanged.
-- `glClear`: scissor test and buffer writemasks are ignored.
+- `glClear`: this command doesn't respect the draw order; additionally, scissor test and buffer writemasks are ignored.
 - `glTexParameter`: `GL_TEXTURE_MIN_LOD`, `GL_TEXTURE_MAX_LOD`, `GL_TEXTURE_LOD_BIAS` are all valid parameters.
 - `glTexParameter`: `GL_CLAMP_TO_BORDER` is a valid wrapping value.
 
