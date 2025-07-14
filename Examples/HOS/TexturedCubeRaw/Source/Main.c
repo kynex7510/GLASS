@@ -151,10 +151,8 @@ static void sceneInit(GLuint* vbo, GLuint* tex) {
     char path[80];
     for (size_t level = 0; level <= 6; ++level) {
         sprintf(path, "romfs:/Boykisser%u.png", level);
-
-        // TODO: use GL_RGB.
-        stbi_uc* buffer = stbi_load(path, &width, &height, &channels, 4);
-        glTexImage2D(GL_TEXTURE_2D, level, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, buffer);
+        stbi_uc* buffer = stbi_load(path, &width, &height, &channels, 3);
+        glTexImage2D(GL_TEXTURE_2D, level, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, buffer);
         stbi_image_free(buffer);
     }
 
