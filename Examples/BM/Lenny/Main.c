@@ -91,9 +91,9 @@ static void createFramebuffer(GLuint* fb, GLuint* rb) {
     glRenderbufferStorage(GL_RENDERBUFFER, GL_RGBA8_OES, 400, 240);
     glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_RENDERBUFFER, rb[0]);
 
-    //glBindRenderbuffer(GL_RENDERBUFFER, rb[1]);
-    //glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8_OES, 400, 240);
-    //glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, rb[1]);
+    glBindRenderbuffer(GL_RENDERBUFFER, rb[1]);
+    glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8_OES, 400, 240);
+    glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, rb[1]);
 }
 
 int main() {
