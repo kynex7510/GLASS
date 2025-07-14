@@ -41,7 +41,7 @@ typedef enum {
 typedef struct {
     GLASSVersion version;           ///< Context version.
     GLASSScreen targetScreen;       ///< Draw target screen (default: GLASS_SCREEN_TOP).
-    GLASSSide targetSide;           ///< Draw target side (default: GLASS_SCREEN_LEFT).
+    GLASSSide targetSide;           ///< Draw target side (default: GLASS_SIDE_LEFT).
     GLASSGPUCommandList GPUCmdList; ///< GPU command list (default: all NULL).
     bool vsync;                     ///< Enable VSync (default: true).
     bool horizontalFlip;            ///< Flip display buffer horizontally (default: false).
@@ -53,11 +53,32 @@ typedef struct {
 extern "C" {
 #endif // __cplusplus
 
+// Get default context params.
+KYGX_INLINE void glassGetDefaultContextParams(GLASSCtxParams* ctxParams, GLASSVersion version) {
+    KYGX_ASSERT(ctxParams);
+
+    ctxParams->version = version;
+    ctxParams->targetScreen = GLASS_SCREEN_TOP;
+    ctxParams->targetSide = GLASS_SIDE_LEFT;
+    ctxParams->GPUCmdList.mainBuffer = NULL;
+    ctxParams->GPUCmdList.secondBuffer = NULL;
+    ctxParams->GPUCmdList.capacity = 0;
+    ctxParams->GPUCmdList.offset = 0;
+    ctxParams->vsync = true;
+    ctxParams->horizontalFlip = false;
+    ctxParams->flushAllLinearMem = true;
+    ctxParams->downscale = GLASS_DOWNSCALE_NONE;
+}
+
 // Create context.
 GLASSCtx glassCreateContext(const GLASSCtxParams* ctxParams);
 
-// Create context with default settings.
-GLASSCtx glassCreateDefaultContext(GLASSVersion version);
+// Create context with default params.
+KYGX_INLINE GLASSCtx glassCreateDefaultContext(GLASSVersion version) {
+    GLASSCtxParams defaultParams;
+    glassGetDefaultContextParams(&defaultParams, version);
+    return glassCreateContext(&defaultParams);
+}
 
 // Destroy context. Unbind if bound.
 void glassDestroyContext(GLASSCtx ctx);

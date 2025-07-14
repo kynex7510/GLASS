@@ -31,23 +31,6 @@ GLASSCtx glassCreateContext(const GLASSCtxParams* ctxParams) {
     return NULL;
 }
 
-GLASSCtx glassCreateDefaultContext(GLASSVersion version) {
-    GLASSCtxParams defaultParams;
-    defaultParams.version = version;
-    defaultParams.targetScreen = GLASS_SCREEN_TOP;
-    defaultParams.targetSide = GLASS_SIDE_LEFT;
-    defaultParams.GPUCmdList.mainBuffer = NULL;
-    defaultParams.GPUCmdList.secondBuffer = NULL;
-    defaultParams.GPUCmdList.capacity = 0;
-    defaultParams.GPUCmdList.offset = 0;
-    defaultParams.vsync = true;
-    defaultParams.horizontalFlip = false;
-    defaultParams.flushAllLinearMem = true;
-    defaultParams.downscale = GLASS_DOWNSCALE_NONE;
-
-    return glassCreateContext(&defaultParams);
-}
-
 void glassDestroyContext(GLASSCtx wrapped) {
     KYGX_ASSERT(wrapped);
     CtxCommon* ctx = (CtxCommon*)wrapped;
