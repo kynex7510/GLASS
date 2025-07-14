@@ -113,7 +113,7 @@ void glassSetTargetSide(GLASSCtx ctx, GLASSSide side);
 // Swap buffers of the bound context. UB if no bound context.
 void glassSwapBuffers(void);
 
-// Swap buffers of the contexts. Can bind any of the two if no bound context.
+// Swap buffers of the contexts. Can bind any of the two.
 void glassSwapContextBuffers(GLASSCtx top, GLASSCtx bottom);
 
 void* glassHeapAlloc(size_t size);

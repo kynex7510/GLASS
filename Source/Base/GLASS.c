@@ -183,8 +183,10 @@ static void prepareContextForTransfer(CtxCommon* ctx, TransferParams* leftParams
     KYGX_ASSERT(hasVSync);
 
     if (ctx) {
-        // Flush pending commands.
+        // Bind this context to flush and execute pending commands.
+        GLASS_context_bind(ctx);
         GLASS_context_flush(ctx, true);
+        kygxWaitCompletion();
 
         // Get transfer params for each side.
         getTransferParams(ctx, leftParams, GLASS_SIDE_LEFT);
@@ -242,21 +244,15 @@ void glassSwapContextBuffers(GLASSCtx wrapped0, GLASSCtx wrapped1) {
     if (ctx0NeedsSwap || ctx1NeedsSwap) {
         // Choose a command buffer to use.
         CtxCommon* transferCtx = NULL;
-        bool useBoundCtx = false;
 
-        if (GLASS_context_hasBound()) {
-            transferCtx = GLASS_context_getBound();
-            useBoundCtx = true;
-        } else if (ctx0) {
-            transferCtx = (CtxCommon*)ctx0;
+        if (GLASS_context_isBound(ctx0)) {
+            transferCtx = ctx0;
         } else {
-            KYGX_ASSERT(ctx1);
-            transferCtx = (CtxCommon*)ctx1;
+            KYGX_ASSERT(GLASS_context_isBound(ctx1));
+            transferCtx = ctx1;
         }
 
-        // If this is the currently bound context, we have to lock.
-        if (useBoundCtx)
-            kygxLock();
+        kygxLock();
 
         // If ctx1 has vsync but ctx0 doesn't, execute ctx1 first.
         if (ctx1HasVSync && !ctx0HasVSync) {
@@ -326,13 +322,7 @@ void glassSwapContextBuffers(GLASSCtx wrapped0, GLASSCtx wrapped1) {
             }
         }
         
-        if (useBoundCtx) {
-            kygxUnlock(true);
-        } else {
-            // If the transfer context is not bound, we have to bind it to execute commands.
-            GLASS_context_bind(transferCtx);
-            kygxFlushBufferedCommands();
-        }
+        kygxUnlock(true);
 
         // If any of the contexts has vsync enabled, wait for vblank.
         // TODO: only wait for the contexts that have vsync enabled (requires a primitive in kygx).
