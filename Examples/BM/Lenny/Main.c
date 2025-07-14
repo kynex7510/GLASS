@@ -1,6 +1,11 @@
 #include <GLES/gl2.h>
 #include <kazmath/kazmath.h>
 
+#include <drivers/gfx.h>
+#include <arm11/power.h>
+#include <arm11/drivers/hid.h>
+#include <arm11/drivers/mcu.h>
+
 #include "Lenny.h"
 #include "Lenny_vshader_shbin.h"
 
@@ -86,18 +91,16 @@ static void createFramebuffer(GLuint* fb, GLuint* rb) {
     glRenderbufferStorage(GL_RENDERBUFFER, GL_RGBA8_OES, 400, 240);
     glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_RENDERBUFFER, rb[0]);
 
-    glBindRenderbuffer(GL_RENDERBUFFER, rb[1]);
-    glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8_OES, 400, 240);
-    glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, rb[1]);
+    //glBindRenderbuffer(GL_RENDERBUFFER, rb[1]);
+    //glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8_OES, 400, 240);
+    //glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, rb[1]);
 }
 
 int main() {
-    // Initialize graphics.
-    gfxInitDefault();
+    // Initialize graphics with stereoscopic 3D.
+    GFX_init(GFX_BGR8, GFX_BGR8, GFX_TOP_3D);
+    GFX_setLcdLuminance(80);
     kygxInit();
-
-    // Enable stereoscopic 3D.
-    gfxSet3D(true);
 
     // Create context.
     GLASSCtx ctx = glassCreateDefaultContext(GLASS_VERSION_2_0);
@@ -128,7 +131,7 @@ int main() {
     float angleX = 0.0;
     float angleY = 0.0;
 
-    while ( aptMainLoop()) {
+    while (true) {
         hidScanInput();
 
         // Respond to user input.
@@ -137,7 +140,7 @@ int main() {
         if (kDown & KEY_START)
             break; // break in order to return to hbmenu.
 
-        const float slider = osGet3DSliderState();
+        const float slider = MCU_get3dSliderPosition() / 256.0f;
         const float iod = slider / 3;
 
         // Rotate the model.
@@ -163,7 +166,7 @@ int main() {
 
     // Deinitialize graphics.
     glDeleteBuffers(1, &vbo);
-
+    
     glDeleteRenderbuffers(2, rightRBs);
     glDeleteFramebuffers(1, &rightFB);
 
@@ -173,6 +176,7 @@ int main() {
     glassDestroyContext(ctx);
 
     kygxExit();
-    gfxExit();
+    GFX_deinit();
+    power_off();
     return 0;
 }

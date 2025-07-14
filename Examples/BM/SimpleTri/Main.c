@@ -47,9 +47,11 @@ static GLuint sceneInit() {
 
 int main() {
     // Initialize graphics.
-    GFX_init(GFX_ABGR8, GFX_ABGR8, GFX_TOP_2D);
+    GFX_init(GFX_BGR8, GFX_BGR8, GFX_TOP_2D);
+    GFX_setLcdLuminance(80);
     kygxInit();
 
+    // Create context.
     GLASSCtx ctx = glassCreateDefaultContext(GLASS_VERSION_2_0);
     glassBindContext(ctx);
 
