@@ -3,8 +3,11 @@
 
 #include <drivers/gfx.h>
 #include <arm11/power.h>
+#include <arm11/drivers/lcd.h>
 #include <arm11/drivers/hid.h>
 #include <arm11/drivers/mcu.h>
+#include <arm11/drivers/i2c.h>
+#include <arm11/drivers/gpio.h>
 
 #include "Lenny.h"
 #include "Lenny_vshader_shbin.h"
@@ -13,6 +16,70 @@ static GLint g_ProjLoc;
 static GLint g_ModelViewLoc;
 
 static kmMat4 g_BaseModelView;
+
+static const u16 g_ExpanderPresetsLow[] = {
+    0x3F0,
+    0x7E0,
+    0xFC0,
+    0xF81,
+    0xF03,
+    0xE07,
+    0xC0F,
+    0x81F,
+    0x3F,
+    0x7E,
+    0xFC,
+    0x1F8,
+    0,
+    0xE0F
+};
+
+static const u16 g_ExpanderPresetsHigh[] = {
+    0x1C0F,
+    0x181F,
+    0x103F,
+    0x107E,
+    0x10FC,
+    0x11F8,
+    0x13F0,
+    0x17E0,
+    0x1FC0,
+    0x1F81,
+    0x1F03,
+    0x1E07,
+    0x1FFF,
+    0x11F0,
+};
+
+static void expanderSetPreset(size_t index) {
+    I2C_writeArray(I2C_DEV_IO_EXP, 2, &g_ExpanderPresetsHigh[index], sizeof(u16));
+    I2C_writeArray(I2C_DEV_IO_EXP, 2, &g_ExpanderPresetsLow[index], sizeof(u16));
+}
+
+static void enable3DEffect(McuSysModel model) {
+    // Enable parallax.
+    getLcdRegs()->parallax_cnt = PARALLAX_CNT_PWM0_EN | PARALLAX_CNT_PWM1_EN;
+
+    // Additional setup for new models (many thanks to TuxSH).
+    if (model == SYS_MODEL_N3DS || model == SYS_MODEL_N3DS_XL) {
+        // Setup GPIO (TODO: how to do this with libn3ds functions?).
+        REG_GPIO3_H1 |= 0x8000000;
+        REG_GPIO3_H1 |= 0x800;
+
+        // Initialize the expander.
+        const u16 zero = 0;
+        I2C_writeArray(I2C_DEV_IO_EXP, 6, &zero, sizeof(u16));
+        I2C_writeArray(I2C_DEV_IO_EXP, 2, &zero, sizeof(u16));
+
+        // Set default preset (SS3D disabled).
+        expanderSetPreset(13);
+    }
+}
+
+static void disable3DEffect(McuSysModel model) {
+    // Disable parallax.
+    getLcdRegs()->parallax_cnt = 0;
+}
 
 static GLuint sceneInit(void) {
     // Load the vertex shader, create a shader program and bind it.
@@ -97,10 +164,21 @@ static void createFramebuffer(GLuint* fb, GLuint* rb) {
 }
 
 int main() {
+    // Check for 3DS.
+    const McuSysModel model = MCU_getSystemModel();
+    if (model == SYS_MODEL_2DS || model == SYS_MODEL_N2DS_XL) {
+        KYGX_BREAK("This example is for 3DS only!");
+        return 0;
+    }
+
     // Initialize graphics with stereoscopic 3D.
-    GFX_init(GFX_BGR8, GFX_BGR8, GFX_TOP_3D);
-    GFX_setLcdLuminance(80);
+    GFX_init(GFX_BGR8, GFX_BGR565, GFX_TOP_3D);
     kygxInit();
+
+    // Enable 3D effect.
+    enable3DEffect(model);
+
+    // TODO: set brightness.
 
     // Create context.
     GLASSCtx ctx = glassCreateDefaultContext(GLASS_VERSION_2_0);
@@ -163,6 +241,9 @@ int main() {
 
         glassSwapBuffers();
     }
+
+    // Disable 3D effect.
+    disable3DEffect(model);
 
     // Deinitialize graphics.
     glDeleteBuffers(1, &vbo);

@@ -64,15 +64,15 @@ static void sceneRender(float a) {
     const bool isTop = isTopScreen();
 
     // Compute color.
-	float b = (cosf(a * kmPI * 2) + 1.0f) / 2.0f;
-	if (!isTop)
+    float b = (cosf(a * kmPI * 2) + 1.0f) / 2.0f;
+    if (!isTop)
         b = 1.0f - b;
 
     // Update the uniforms.
     glUniformMatrix4fv(isTop ? g_TopProjLoc : g_BottomProjLoc, 1, GL_FALSE, isTop ? g_ProjectionTop.mat : g_ProjectionBottom.mat);
     glVertexAttrib3f(1, b, b, b);
 
-	// Draw the VBO.
+    // Draw the VBO.
     glDrawArrays(GL_TRIANGLES, 0, VERTEX_LIST_COUNT);
 }
 
