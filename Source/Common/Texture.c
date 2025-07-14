@@ -262,8 +262,17 @@ static inline void setTexParams(GLenum target, GLenum pname, const GLint* intPar
 
 void glTexParameterfv(GLenum target, GLenum pname, const GLfloat* params) { setTexParams(target, pname, NULL, params); }
 void glTexParameteriv(GLenum target, GLenum pname, const GLint* params) { setTexParams(target, pname, params, NULL); }
-void glTexParameterf(GLenum target, GLenum pname, GLfloat param) { glTexParameterfv(target, pname, &param); }
-void glTexParameteri(GLenum target, GLenum pname, GLint param) { glTexParameteriv(target, pname, &param); }
+
+void glTexParameterf(GLenum target, GLenum pname, GLfloat param) {
+    // Max number of params considered is 4, for BORDER_COLOR.
+    const GLfloat params[4] = { param, 0, 0, 0 };
+    glTexParameterfv(target, pname, params);
+}
+
+void glTexParameteri(GLenum target, GLenum pname, GLint param) {
+    const GLint params[4] = { param, 0, 0, 0 };
+    glTexParameteriv(target, pname, params);
+}
 
 static inline bool checkTexArgs(GLenum target, GLint level, GLsizei width, GLsizei height, GLint border) {
     if ((level < 0) || (level >= GLASS_NUM_TEX_LEVELS) || (border != 0))
