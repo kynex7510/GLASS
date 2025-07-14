@@ -1,4 +1,5 @@
 #include <KYGX/Wrappers/TextureCopy.h>
+#include <KYGX/Wrappers/FlushCacheRegions.h>
 #include <KYGX/Utility.h>
 #include <RIP/Texture.h>
 #include <RIP/Convert.h>
@@ -126,7 +127,21 @@ void GLASS_tex_write(TextureInfo* tex, const u8* data, size_t size, size_t face,
     KYGX_ASSERT(size);
 
     const size_t mipmapOffset = ripGetTextureDataOffset(tex->width, tex->height, getRIPPixelFormat(tex->format), level);
+
+    // Ensure the hardware can access data correctly.
+    KYGXFlushCacheRegionsBuffer flushSrc;
+    flushSrc.addr = data;
+    flushSrc.size = size;
+
+    KYGXFlushCacheRegionsBuffer flushDst;
+    flushDst.addr = tex->faces[face] + mipmapOffset;
+    flushDst.size = size;
+
+    kygxSyncFlushCacheRegions(&flushSrc, &flushDst, NULL);
     kygxSyncTextureCopy(data, tex->faces[face] + mipmapOffset, size, 0, 0, 0, 0);
+
+    // Avoid possible prefetches.
+    kygxInvalidateDataCache(flushDst.addr, flushDst.size);
 }
 
 void GLASS_tex_writeUntiled(TextureInfo* tex, const u8* data, size_t face, size_t level) {
