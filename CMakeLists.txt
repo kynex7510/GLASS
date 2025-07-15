@@ -15,10 +15,10 @@ endif()
 option(GLASS_COMPILE_EXAMPLES "Enable examples compilation" OFF)
 
 # Setup dependencies.
-CPMAddPackage("gh:kynex7510/KYGX#d51dc4d")
+CPMAddPackage("gh:kynex7510/KYGX#1e082b4")
 
 CPMAddPackage(
-    URI "gh:kynex7510/RIP#354e674"
+    URI "gh:kynex7510/RIP#c10cfc7"
     OPTIONS "RIP_BACKEND kygx"
 )
 
