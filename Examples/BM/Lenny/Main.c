@@ -3,6 +3,8 @@
 
 #include <drivers/gfx.h>
 #include <arm11/power.h>
+#include <arm11/console.h>
+#include <arm11/fmt.h>
 #include <arm11/drivers/lcd.h>
 #include <arm11/drivers/hid.h>
 #include <arm11/drivers/mcu.h>
@@ -17,68 +19,47 @@ static GLint g_ModelViewLoc;
 
 static kmMat4 g_BaseModelView;
 
-static const u16 g_ExpanderPresetsLow[] = {
-    0x3F0,
-    0x7E0,
-    0xFC0,
-    0xF81,
-    0xF03,
-    0xE07,
-    0xC0F,
-    0x81F,
-    0x3F,
-    0x7E,
-    0xFC,
-    0x1F8,
-    0,
-    0xE0F
-};
+// Many thanks to TuxSH.
+static inline void expanderInit(void) {
+    GPIO_config(GPIO_3_11, GPIO_OUTPUT);
+    GPIO_write(GPIO_3_11, 1);
 
-static const u16 g_ExpanderPresetsHigh[] = {
-    0x1C0F,
-    0x181F,
-    0x103F,
-    0x107E,
-    0x10FC,
-    0x11F8,
-    0x13F0,
-    0x17E0,
-    0x1FC0,
-    0x1F81,
-    0x1F03,
-    0x1E07,
-    0x1FFF,
-    0x11F0,
-};
+    const u16 zero = 0;
+    I2C_writeArray(I2C_DEV_IO_EXP, 6, &zero, sizeof(u16));
+    I2C_writeArray(I2C_DEV_IO_EXP, 2, &zero, sizeof(u16));
+}
 
-static void expanderSetPreset(size_t index) {
-    I2C_writeArray(I2C_DEV_IO_EXP, 2, &g_ExpanderPresetsHigh[index], sizeof(u16));
-    I2C_writeArray(I2C_DEV_IO_EXP, 2, &g_ExpanderPresetsLow[index], sizeof(u16));
+static inline void expanderExit(void) {
+    GPIO_config(GPIO_3_11, GPIO_OUTPUT);
+    GPIO_write(GPIO_3_11, 0);
+}
+
+static inline void setExpanderPresets(u16 polarityHigh, u16 polarityLow) {
+    I2C_writeArray(I2C_DEV_IO_EXP, 2, &polarityHigh, sizeof(u16));
+    I2C_writeArray(I2C_DEV_IO_EXP, 2, &polarityLow, sizeof(u16));
 }
 
 static void enable3DEffect(McuSysModel model) {
-    // Enable parallax.
-    getLcdRegs()->parallax_cnt = PARALLAX_CNT_PWM0_EN | PARALLAX_CNT_PWM1_EN;
-
-    // Additional setup for new models (many thanks to TuxSH).
-    if (model == SYS_MODEL_N3DS || model == SYS_MODEL_N3DS_XL) {
-        // Setup GPIO (TODO: how to do this with libn3ds functions?).
-        REG_GPIO3_H1 |= 0x8000000;
-        REG_GPIO3_H1 |= 0x800;
-
-        // Initialize the expander.
-        const u16 zero = 0;
-        I2C_writeArray(I2C_DEV_IO_EXP, 6, &zero, sizeof(u16));
-        I2C_writeArray(I2C_DEV_IO_EXP, 2, &zero, sizeof(u16));
-
-        // Set default preset (SS3D disabled).
-        expanderSetPreset(13);
+    if (model == SYS_MODEL_3DS || model == SYS_MODEL_3DS_XL) {
+        getLcdRegs()->parallax_cnt = (PARALLAX_CNT_PWM0_EN | PARALLAX_CNT_PWM1_EN);
+    } else if (model == SYS_MODEL_N3DS || model == SYS_MODEL_N3DS_XL) {
+        expanderInit();
+        setExpanderPresets(0x11F0, 0xE0F); // O3DS (SS3D disabled).
     }
+
+    GFX_setFormat(GFX_BGR8, GFX_BGR565, GFX_TOP_3D);
+    // TODO: luminance.
 }
 
 static void disable3DEffect(McuSysModel model) {
-    // Disable parallax.
-    getLcdRegs()->parallax_cnt = 0;
+    if (model == SYS_MODEL_3DS || model == SYS_MODEL_3DS_XL) {
+        getLcdRegs()->parallax_cnt = 0;
+    } else if (model == SYS_MODEL_N3DS || model == SYS_MODEL_N3DS_XL) {
+        expanderExit();
+    }
+
+    GFX_setFormat(GFX_BGR8, GFX_BGR565, GFX_TOP_2D);
+    GFX_setLcdLuminance(80);
 }
 
 static GLuint sceneInit(void) {
@@ -164,21 +145,11 @@ static void createFramebuffer(GLuint* fb, GLuint* rb) {
 }
 
 int main() {
-    // Check for 3DS.
-    const McuSysModel model = MCU_getSystemModel();
-    if (model == SYS_MODEL_2DS || model == SYS_MODEL_N2DS_XL) {
-        KYGX_BREAK("This example is for 3DS only!");
-        return 0;
-    }
-
-    // Initialize graphics with stereoscopic 3D.
-    GFX_init(GFX_BGR8, GFX_BGR565, GFX_TOP_3D);
+    // Initialize graphics.
+    GFX_init(GFX_BGR8, GFX_BGR565, GFX_TOP_2D);
+    GFX_setLcdLuminance(80);
+    consoleInit(GFX_LCD_BOT, NULL);
     kygxInit();
-
-    // Enable 3D effect.
-    enable3DEffect(model);
-
-    // TODO: set brightness.
 
     // Create context.
     GLASSCtx ctx = glassCreateDefaultContext(GLASS_VERSION_2_0);
@@ -206,10 +177,21 @@ int main() {
     GLuint vbo = sceneInit();
 
     // Main loop.
+    const McuSysModel model = MCU_getSystemModel();
+    bool has3D = false;
+
     float angleX = 0.0;
     float angleY = 0.0;
 
+    ee_printf("Press X to control 3D.\n");
+    ee_printf("3D state: DISABLED\n");
+
     while (true) {
+        // Control 3D effect.
+        const float slider = MCU_get3dSliderPosition() / 256.0f;
+        const float iod = slider / 3;
+        
+        // Scan for input.
         hidScanInput();
 
         // Respond to user input.
@@ -218,8 +200,20 @@ int main() {
         if (kDown & KEY_START)
             break; // break in order to return to hbmenu.
 
-        const float slider = MCU_get3dSliderPosition() / 256.0f;
-        const float iod = slider / 3;
+        if (kDown & KEY_X) {
+            consoleClear();
+            ee_printf("Press X to control 3D.\n");
+
+            if (!has3D) {
+                enable3DEffect(model);
+                ee_printf("3D state: ENABLED\n");
+                has3D = true;
+            } else {
+                disable3DEffect(model);
+                ee_printf("3D state: DISABLED\n");
+                has3D = false;
+            }
+        }
 
         // Rotate the model.
         if (!(kHeld & KEY_A)) {
