@@ -1,0 +1,126 @@
+#include <GLES/gl2.h>
+#include <kazmath/kazmath.h>
+
+#include "RenderTexture_vshader_shbin.h"
+
+typedef struct {
+    float x, y, z;
+} Position;
+
+typedef struct {
+    float r, g, b, a;
+} Color;
+
+static const Position g_VertexList[3] = {
+    { 200.0f, 200.0f, 0.5f }, // Top
+    { 100.0f, 40.0f, 0.5f },  // Left
+    { 300.0f, 40.0f, 0.5f },  // Right
+};
+
+static const Color g_ColorList[3] = {
+    { 1.0f, 0.0f, 0.0f, 1.0f },
+    { 0.0f, 1.0f, 0.0f, 1.0f },
+    { 0.0f, 0.0f, 1.0f, 1.0f },
+};
+
+static GLint g_ProjLoc;
+static kmMat4 g_ProjMtx;
+
+static void sceneInit(GLuint* vbos) {
+    // Load the vertex shader, create a shader program and bind it.
+    GLuint prog = glCreateProgram();
+    GLuint shad = glCreateShader(GL_VERTEX_SHADER);
+    glShaderBinary(1, &shad, GL_SHADER_BINARY_PICA, RenderTexture_vshader_shbin, RenderTexture_vshader_shbin_size);
+    glAttachShader(prog, shad);
+    glDeleteShader(shad);
+    glLinkProgram(prog);
+    glUseProgram(prog);
+    glDeleteProgram(prog);
+
+    // Get the location of the uniforms.
+    g_ProjLoc = glGetUniformLocation(prog, "projection");
+
+    // Create the VBOs (vertex buffer objects).
+    glGenBuffers(2, vbos);
+
+    // Configure position attribute.
+    glBindBuffer(GL_ARRAY_BUFFER, vbos[0]);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(g_VertexList), g_VertexList, GL_STATIC_DRAW);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Position), NULL); // v0 = position
+    glEnableVertexAttribArray(0);
+
+    // Configure color attribute.
+    glBindBuffer(GL_ARRAY_BUFFER, vbos[1]);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(g_ColorList), g_ColorList, GL_STATIC_DRAW);
+    glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, sizeof(Color), NULL); // v1 = color
+    glEnableVertexAttribArray(1);
+
+    // Compute the projection matrix.
+    kmMat4 mtx;
+    kmMat4OrthoTilt(&mtx, 0.0f, 400.0f, 0.0f, 240.0f, 0.0f, 1.0f, true);
+    kmMat4Transpose(&g_ProjMtx, &mtx);
+}
+
+static void sceneRender(void) {
+    // Update the uniforms.
+    glUniformMatrix4fv(g_ProjLoc, 1, GL_FALSE, g_ProjMtx.mat);
+
+    // Draw the VBO.
+    glDrawArrays(GL_TRIANGLES, 0, 3);
+}
+
+int main() {
+    // Initialize graphics.
+    gfxInitDefault();
+    kygxInit();
+
+    GLASSCtx ctx = glassCreateDefaultContext(GLASS_VERSION_2_0);
+    glassBindContext(ctx);
+
+    // Initialize the render target.
+    GLuint fb;
+    GLuint tex;
+
+    glGenFramebuffers(1, &fb);
+    glGenTextures(1, &tex);
+
+    glBindFramebuffer(GL_FRAMEBUFFER, fb);
+    glBindTexture(GL_TEXTURE_2D, tex);
+    glTexVRAMPICA(GL_TRUE); // Required for glClear.
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 512, 256, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, tex, 0);
+
+    // Set default state.
+    glViewport(0, 0, 400, 240);
+    glClearColor(0.4f, 0.68f, 0.84f, 1.0f);
+
+    // Initialize the scene.
+    GLuint vbos[2];
+    sceneInit(vbos);
+
+    // Main loop.
+    while (aptMainLoop()) {
+        hidScanInput();
+
+        // Respond to user input.
+        u32 kDown = hidKeysDown();
+        if (kDown & KEY_START)
+            break; // break in order to return to hbmenu.
+
+        // Render the scene.
+        glClear(GL_COLOR_BUFFER_BIT);
+        sceneRender();
+        glassSwapBuffers();
+    }
+
+    // Deinitialize graphics.
+    glDeleteBuffers(2, vbos);
+    glDeleteTextures(1, &tex);
+    glDeleteFramebuffers(1, &fb);
+
+    glassDestroyContext(ctx);
+
+    kygxExit();
+    gfxExit();
+    return 0;
+}
