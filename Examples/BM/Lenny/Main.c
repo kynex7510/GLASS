@@ -187,10 +187,6 @@ int main() {
     ee_printf("3D state: DISABLED\n");
 
     while (true) {
-        // Control 3D effect.
-        const float slider = MCU_get3dSliderPosition() / 256.0f;
-        const float iod = slider / 3;
-        
         // Scan for input.
         hidScanInput();
 
@@ -198,8 +194,9 @@ int main() {
         u32 kDown = hidKeysDown();
         u32 kHeld = hidKeysHeld();
         if (kDown & KEY_START)
-            break; // break in order to return to hbmenu.
+            break; // break in order to exit.
 
+        // Control 3D effect.
         if (kDown & KEY_X) {
             consoleClear();
             ee_printf("Press X to control 3D.\n");
@@ -220,6 +217,10 @@ int main() {
             angleX += 1.0f/64;
             angleY += 1.0f/256;
         }
+
+        // Compute the interocular distance.
+        const float slider = MCU_get3dSliderPosition() / 256.0f;
+        const float iod = slider / 3;
 
         // Render left.
         glassSetTargetSide(ctx, GLASS_SIDE_LEFT);
