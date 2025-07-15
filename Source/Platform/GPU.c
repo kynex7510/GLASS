@@ -2,6 +2,7 @@
 
 #include "Platform/GPU.h"
 #include "Base/Math.h"
+#include "Base/TexManager.h"
 
 #include <string.h> // memcpy, memset
 
@@ -211,21 +212,27 @@ void GLASS_gpu_bindFramebuffer(GLASSGPUCommandList* list, const FramebufferInfo*
     u32 params[4];
 
     if (info) {
-        const RenderbufferInfo* cb = (RenderbufferInfo*)info->colorBuffer;
         const RenderbufferInfo* db = (RenderbufferInfo*)info->depthBuffer;
-
-        if (cb) {
-            colorBuffer = cb->address;
-            width = cb->width;
-            height = cb->height;
-            colorFormat = cb->format;
-        }
-
         if (db) {
             depthBuffer = db->address;
             width = db->width;
             height = db->height;
             depthFormat = db->format;
+        }
+
+        if (GLASS_OBJ_IS_RENDERBUFFER(info->colorBuffer)) {
+            const RenderbufferInfo* cb = (RenderbufferInfo*)info->colorBuffer;
+            colorBuffer = cb->address;
+            width = cb->width;
+            height = cb->height;
+            colorFormat = cb->format;
+        } else if (GLASS_OBJ_IS_TEXTURE(info->colorBuffer)) {
+            RenderbufferInfo cb;
+            GLASS_tex_getAsRenderbuffer((const TextureInfo*)info->colorBuffer, info->texFace, &cb);
+            colorBuffer = cb.address;
+            width = cb.width;
+            height = cb.height;
+            colorFormat = cb.format;
         }
     }
 

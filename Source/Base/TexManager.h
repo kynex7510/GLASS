@@ -9,6 +9,8 @@ typedef enum {
     TEXREALLOCSTATUS_UPDATED,
 } TexReallocStatus;
 
+void GLASS_tex_getAsRenderbuffer(const TextureInfo* tex, size_t face, RenderbufferInfo* out);
+
 void GLASS_tex_setParams(TextureInfo* tex, size_t width, size_t height, GPUTexFormat format, bool vram, u8** faces);
 TexReallocStatus GLASS_tex_realloc(TextureInfo* tex, size_t width, size_t height, GPUTexFormat format, bool vram);
 

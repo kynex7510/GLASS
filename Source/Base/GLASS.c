@@ -1,6 +1,7 @@
 #include <KYGX/Wrappers/DisplayTransfer.h>
 
 #include "Base/Context.h"
+#include "Base/TexManager.h"
 #include "Platform/GPU.h"
 #include "Platform/GFX.h"
 
@@ -151,17 +152,29 @@ static void getTransferParams(CtxCommon* ctx, TransferParams* outParams, GLASSSi
     if (fb->colorBuffer == GLASS_INVALID_OBJECT)
         return;
 
-    const RenderbufferInfo* cb = (RenderbufferInfo*)fb->colorBuffer;
-    outParams->src = cb->address;
-    outParams->srcWidth = cb->height;
-    outParams->srcHeight = cb->width;
+    GLenum cbFormat;
+    if (GLASS_OBJ_IS_RENDERBUFFER(fb->colorBuffer)) {
+        const RenderbufferInfo* cb = (RenderbufferInfo*)fb->colorBuffer;
+        outParams->src = cb->address;
+        outParams->srcWidth = cb->height;
+        outParams->srcHeight = cb->width;
+        cbFormat = cb->format;
+    } else {
+        KYGX_ASSERT(GLASS_OBJ_IS_TEXTURE(fb->colorBuffer));
+        RenderbufferInfo cb;
+        GLASS_tex_getAsRenderbuffer((const TextureInfo*)fb->colorBuffer, fb->texFace, &cb);
+        outParams->src = cb.address;
+        outParams->srcWidth = cb.height;
+        outParams->srcHeight = cb.width;
+        cbFormat = cb.format;
+    }
 
     // Get display buffer.
     outParams->dst = GLASS_gfx_getFramebuffer(ctx->params.targetScreen, side, &outParams->dstWidth, &outParams->dstHeight);
 
     // Setup transfer flags.
     outParams->transferFlags.mode = KYGX_DISPLAYTRANSFER_MODE_T2L;
-    outParams->transferFlags.srcFmt = unwrapTransferFormat(cb->format);
+    outParams->transferFlags.srcFmt = unwrapTransferFormat(cbFormat);
     outParams->transferFlags.dstFmt = unwrapTransferFormat(GLASS_gfx_getFramebufferFormat(ctx->params.targetScreen));
     outParams->transferFlags.downscale = unwrapDownscale(ctx->params.downscale);
     outParams->transferFlags.verticalFlip = ctx->params.horizontalFlip;

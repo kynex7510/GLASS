@@ -3,8 +3,6 @@
 #include "Base/Context.h"
 #include "Base/TexManager.h"
 
-//#include <string.h>
-
 void glBindTexture(GLenum target, GLuint name) {
     KYGX_ASSERT(GLASS_OBJ_IS_TEXTURE(name) || name == GLASS_INVALID_OBJECT);
 
@@ -59,6 +57,13 @@ void glDeleteTextures(GLsizei n, const GLuint* textures) {
         TextureInfo* tex = (TextureInfo*)name;
 
         // Unbind if bound.
+        const size_t fbIndex = GLASS_context_getFBIndex(ctx);
+        if (GLASS_OBJ_IS_FRAMEBUFFER(ctx->framebuffer[fbIndex])) {
+            FramebufferInfo* fbInfo = (FramebufferInfo*)ctx->framebuffer[fbIndex];
+            if (fbInfo->colorBuffer == name)
+                fbInfo->colorBuffer = 0;
+        }
+
         for (size_t i = 0; i < GLASS_NUM_TEX_UNITS; ++i) {
             if (ctx->textureUnits[i] == name) {
                 ctx->textureUnits[i] = GLASS_INVALID_OBJECT;

@@ -1,6 +1,7 @@
 #include <KYGX/Utility.h>
 
 #include "Base/Context.h"
+#include "Base/TexManager.h"
 
 void glBindFramebuffer(GLenum target, GLuint framebuffer) {
     KYGX_ASSERT(GLASS_OBJ_IS_FRAMEBUFFER(framebuffer) || framebuffer == GLASS_INVALID_OBJECT);
@@ -65,13 +66,34 @@ GLenum glCheckFramebufferStatus(GLenum target) {
         return GL_FRAMEBUFFER_INCOMPLETE_MISSING_ATTACHMENT;
 
     // Check buffers.
-    const RenderbufferInfo* cb = (RenderbufferInfo*)info->colorBuffer;
+    u16 cbWidth = 0;
+    u16 cbHeight = 0;
+
+    if (GLASS_OBJ_IS_RENDERBUFFER(info->colorBuffer)) {
+        const RenderbufferInfo* cb = (RenderbufferInfo*)info->colorBuffer;
+
+        if (!cb->address)
+            return GL_FRAMEBUFFER_INCOMPLETE_ATTACHMENT;
+
+        cbWidth = cb->width;
+        cbHeight = cb->height;
+    } else if (GLASS_OBJ_IS_TEXTURE(info->colorBuffer)) {
+        RenderbufferInfo cb;
+        GLASS_tex_getAsRenderbuffer((const TextureInfo*)info->colorBuffer, info->texFace, &cb);
+
+        if (!cb.address)
+            return GL_FRAMEBUFFER_INCOMPLETE_ATTACHMENT;
+
+        cbWidth = cb.width;
+        cbHeight = cb.height;
+    }
+    
     const RenderbufferInfo* db = (RenderbufferInfo*)info->depthBuffer;
 
-    if ((cb && !cb->address) || (db && !db->address))
+    if (db && !db->address)
         return GL_FRAMEBUFFER_INCOMPLETE_ATTACHMENT;
 
-    if (cb && db && ((cb->width != db->width) || (cb->height != db->height)))
+    if (info->colorBuffer != GLASS_INVALID_OBJECT && db && ((cbWidth != db->width) || (cbHeight != db->height)))
         return GL_FRAMEBUFFER_INCOMPLETE_DIMENSIONS;
 
     return GL_FRAMEBUFFER_COMPLETE;
@@ -117,9 +139,9 @@ void glDeleteRenderbuffers(GLsizei n, const GLuint* renderbuffers) {
     const size_t fbIndex = GLASS_context_getFBIndex(ctx);
 
     // Get framebuffer.
-    FramebufferInfo* fbinfo = NULL;
+    FramebufferInfo* fbInfo = NULL;
     if (GLASS_OBJ_IS_FRAMEBUFFER(ctx->framebuffer[fbIndex]))
-        fbinfo = (FramebufferInfo*)ctx->framebuffer[fbIndex];
+        fbInfo = (FramebufferInfo*)ctx->framebuffer[fbIndex];
 
     for (size_t i = 0; i < n; ++i) {
         GLuint name = renderbuffers[i];
@@ -131,11 +153,11 @@ void glDeleteRenderbuffers(GLsizei n, const GLuint* renderbuffers) {
         RenderbufferInfo* info = (RenderbufferInfo*)name;
 
         // Unbind if bound.
-        if (fbinfo) {
-            if (fbinfo->colorBuffer == name) {
-                fbinfo->colorBuffer = GLASS_INVALID_OBJECT;
-            } else if (fbinfo->depthBuffer == name) {
-                fbinfo->depthBuffer = GLASS_INVALID_OBJECT;
+        if (fbInfo) {
+            if (fbInfo->colorBuffer == name) {
+                fbInfo->colorBuffer = GLASS_INVALID_OBJECT;
+            } else if (fbInfo->depthBuffer == name) {
+                fbInfo->depthBuffer = GLASS_INVALID_OBJECT;
             }
         }
 
@@ -167,16 +189,16 @@ void glFramebufferRenderbuffer(GLenum target, GLenum attachment, GLenum renderbu
         return;
     }
 
-    FramebufferInfo* fbinfo = (FramebufferInfo*)ctx->framebuffer[fbIndex];
+    FramebufferInfo* fbInfo = (FramebufferInfo*)ctx->framebuffer[fbIndex];
 
     // Set right buffer.
     switch (attachment) {
         case GL_COLOR_ATTACHMENT0:
-            fbinfo->colorBuffer = renderbuffer;
+            fbInfo->colorBuffer = renderbuffer;
             break;
         case GL_DEPTH_ATTACHMENT:
         case GL_STENCIL_ATTACHMENT:
-            fbinfo->depthBuffer = renderbuffer;
+            fbInfo->depthBuffer = renderbuffer;
             break;
         default:
             GLASS_context_setError(GL_INVALID_ENUM);
@@ -186,7 +208,93 @@ void glFramebufferRenderbuffer(GLenum target, GLenum attachment, GLenum renderbu
     ctx->flags |= GLASS_CONTEXT_FLAG_FRAMEBUFFER;
 }
 
-void glFramebufferTexture2D(GLenum target, GLenum attachment, GLenum textarget, GLuint texture, GLint level); // TODO
+void glFramebufferTexture2D(GLenum target, GLenum attachment, GLenum textarget, GLuint texture, GLint level) {
+    if (target != GL_FRAMEBUFFER) {
+        GLASS_context_setError(GL_INVALID_ENUM);
+        return;
+    }
+
+    if (attachment != GL_COLOR_ATTACHMENT0) {
+        GLASS_context_setError(GL_INVALID_ENUM);
+        return;
+    }
+
+    // Get the framebuffer.
+    CtxCommon* ctx = GLASS_context_getBound();
+    const size_t fbIndex = GLASS_context_getFBIndex(ctx);
+
+    if (ctx->framebuffer[fbIndex] == GLASS_INVALID_OBJECT) {
+        GLASS_context_setError(GL_INVALID_OPERATION);
+        return;
+    }
+
+    FramebufferInfo* fbInfo = (FramebufferInfo*)ctx->framebuffer[fbIndex];
+
+    // Handle the case where we need to remove the binding.
+    if (texture == GLASS_INVALID_OBJECT) {
+        fbInfo->colorBuffer = GLASS_INVALID_OBJECT;
+        return;
+    }
+
+    // Do additional checks.
+    if (!GLASS_OBJ_IS_TEXTURE(texture)) {
+        GLASS_context_setError(GL_INVALID_OPERATION);
+        return;
+    }
+
+    if (level != 0) {
+        GLASS_context_setError(GL_INVALID_VALUE);
+        return;
+    }
+
+    size_t face = -1;
+    bool cubemapTarget = true;
+
+    switch (textarget) {
+        case GL_TEXTURE_2D:
+            face = 0;
+            cubemapTarget = false;
+            break;
+        case GL_TEXTURE_CUBE_MAP_POSITIVE_X:
+            face = 0;
+            break;
+        case GL_TEXTURE_CUBE_MAP_NEGATIVE_X:
+            face = 1;
+            break;
+        case GL_TEXTURE_CUBE_MAP_POSITIVE_Y:
+            face = 2;
+            break;
+        case GL_TEXTURE_CUBE_MAP_NEGATIVE_Y:
+            face = 3;
+            break;
+        case GL_TEXTURE_CUBE_MAP_POSITIVE_Z:
+            face = 4;
+            break;
+        case GL_TEXTURE_CUBE_MAP_NEGATIVE_Z:
+            face = 5;
+            break;
+        default:
+            GLASS_context_setError(GL_INVALID_ENUM);
+            return;
+    }
+
+    TextureInfo* tex = (TextureInfo*)texture;
+    
+    if (cubemapTarget && tex->target != GL_TEXTURE_CUBE_MAP) {
+        GLASS_context_setError(GL_INVALID_OPERATION);
+        return;
+    }
+
+    if (!cubemapTarget && tex->target != GL_TEXTURE_2D) {
+        GLASS_context_setError(GL_INVALID_OPERATION);
+        return;
+    }
+
+    // Set texture object.
+    fbInfo->colorBuffer = texture;
+    fbInfo->texFace = face;
+    ctx->flags |= GLASS_CONTEXT_FLAG_FRAMEBUFFER;
+}
 
 void glGenFramebuffers(GLsizei n, GLuint* framebuffers) {
     KYGX_ASSERT(framebuffers);
@@ -307,6 +415,7 @@ void glGetRenderbufferParameteriv(GLenum target, GLenum pname, GLint* params) {
             break;
         default:
             GLASS_context_setError(GL_INVALID_ENUM);
+            return;
     }
 }
 

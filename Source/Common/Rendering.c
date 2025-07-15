@@ -2,6 +2,7 @@
 #include <KYGX/Utility.h>
 
 #include "Base/Context.h"
+#include "Base/TexManager.h"
 #include "Base/Math.h"
 #include "Platform/GPU.h"
 
@@ -135,12 +136,23 @@ void glClear(GLbitfield mask) {
     memset(&colorFill, 0, sizeof(KYGXMemoryFillBuffer));
 
     if (HAS_COLOR(mask)) {
-        const RenderbufferInfo* cb = (RenderbufferInfo*)fb->colorBuffer;
-        if (cb) {
+        if (GLASS_OBJ_IS_RENDERBUFFER(fb->colorBuffer)) {
+            const RenderbufferInfo* cb = (RenderbufferInfo*)fb->colorBuffer;
+            KYGX_ASSERT(glassIsVRAM(cb->address));
+
             colorFill.addr = cb->address;
             colorFill.size = cb->width * cb->height * getBytesPerPixel(cb->format);
             colorFill.value = makeClearColor(cb->format, ctx->clearColor);
             colorFill.width = fillWidth(cb->format);
+        } else if (GLASS_OBJ_IS_TEXTURE(fb->colorBuffer)) {
+            RenderbufferInfo cb;
+            GLASS_tex_getAsRenderbuffer((const TextureInfo*)fb->colorBuffer, fb->texFace, &cb);
+            KYGX_ASSERT(glassIsVRAM(cb.address));
+
+            colorFill.addr = cb.address;
+            colorFill.size = cb.width * cb.height * getBytesPerPixel(cb.format);
+            colorFill.value = makeClearColor(cb.format, ctx->clearColor);
+            colorFill.width = fillWidth(cb.format);
         }
     }
     
@@ -150,6 +162,7 @@ void glClear(GLbitfield mask) {
     if (HAS_DEPTH(mask)) {
         const RenderbufferInfo* db = (RenderbufferInfo*)fb->depthBuffer;
         if (db) {
+            KYGX_ASSERT(glassIsVRAM(db->address));
             depthFill.addr = db->address;
             depthFill.size = db->width * db->height * getBytesPerPixel(db->format);
             depthFill.value = makeClearDepth(db->format, ctx->clearDepth, ctx->clearStencil);

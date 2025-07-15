@@ -6,6 +6,7 @@
 #endif // KYGX_BAREMETAL
 
 #include "Base/Context.h"
+#include "Base/TexManager.h"
 #include "Platform/GPU.h"
 #include "Platform/GFX.h"
 
@@ -223,9 +224,17 @@ static inline GLsizei renderWidth(CtxCommon* ctx) {
 
     if (ctx->framebuffer[fbIndex] != GLASS_INVALID_OBJECT) {
         const FramebufferInfo* fb = (FramebufferInfo*)ctx->framebuffer[fbIndex];
-        const RenderbufferInfo* rb = (RenderbufferInfo*)fb->colorBuffer;
-        if (rb)
-            return rb->width;
+
+        if (GLASS_OBJ_IS_RENDERBUFFER(fb->colorBuffer)) {
+            const RenderbufferInfo* cb = (RenderbufferInfo*)fb->colorBuffer;
+            return cb->width;
+        }
+
+        if (GLASS_OBJ_IS_TEXTURE(fb->colorBuffer)) {
+            RenderbufferInfo cb;
+            GLASS_tex_getAsRenderbuffer((const TextureInfo*)fb->colorBuffer, fb->texFace, &cb);
+            return cb.width;
+        }
     }
 
     u16 width;

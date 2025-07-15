@@ -109,6 +109,7 @@ typedef struct {
     GLASS_OBJ(GLASS_FRAMEBUFFER_TYPE);
     GLuint colorBuffer; // Bound color buffer.
     GLuint depthBuffer; // Bound depth (+ stencil) buffer.
+    size_t texFace;     // Texture object face.
     bool bound;         // If this framebuffer has been bound.
 } FramebufferInfo;
 

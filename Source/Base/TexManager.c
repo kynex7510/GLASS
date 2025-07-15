@@ -59,6 +59,35 @@ static inline RIPPixelFormat getRIPPixelFormat(GPUTexFormat format) {
     return 0;
 }
 
+void GLASS_tex_getAsRenderbuffer(const TextureInfo* tex, size_t face, RenderbufferInfo* out) {
+    KYGX_ASSERT(tex);
+    KYGX_ASSERT(out);
+
+    out->address = tex->faces[face];
+    out->width = tex->width;
+    out->height = tex->height;
+
+    switch (tex->format) {
+        case TEXFORMAT_RGBA8:
+            out->format = GL_RGBA8_OES;
+            break;
+        case TEXFORMAT_RGB5A1:
+            out->format = GL_RGB5_A1;
+            break;
+        case TEXFORMAT_RGB565:
+            out->format = GL_RGB565;
+            break;
+        case TEXFORMAT_RGBA4:
+            out->format = GL_RGBA4;
+            break;
+        default:
+            KYGX_UNREACHABLE("Invalid format!");
+            return;
+    }
+
+    out->bound = false;
+}
+
 void GLASS_tex_setParams(TextureInfo* tex, size_t width, size_t height, GPUTexFormat format, bool vram, u8** faces) {
     KYGX_ASSERT(tex);
     KYGX_ASSERT(faces);
