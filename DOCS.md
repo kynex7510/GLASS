@@ -12,6 +12,7 @@
 - `glClear`: this command doesn't respect the draw order; additionally, scissor test and buffer writemasks are ignored.
 - `glTexParameter`: `GL_TEXTURE_MIN_LOD`, `GL_TEXTURE_MAX_LOD`, `GL_TEXTURE_LOD_BIAS` are all valid parameters.
 - `glTexParameter`: `GL_CLAMP_TO_BORDER` is a valid wrapping value.
+- `glBindAttribLocation`: always returns `GL_INVALID_OPERATION`.
 
 ## Attributes
 

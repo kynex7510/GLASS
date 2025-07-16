@@ -344,26 +344,39 @@ static void getDVLEInfo(const u8* data, size_t size, DVLEInfo* out) {
     u32 offsetToOutTable = 0;
     u32 offsetToUniformTable = 0;
     u32 offsetToSymbolTable = 0;
+
     memcpy(&flags, data + 0x06, sizeof(u8));
     memcpy(&mergeOutmaps, data + 0x07, sizeof(u8));
     memcpy(&out->entrypoint, data + 0x08, sizeof(u32));
     memcpy(&gsMode, data + 0x14, sizeof(u8));
-    memcpy(&offsetToConstTable, data + 0x18, sizeof(u32));
+
     memcpy(&out->numOfConstUniforms, data + 0x1C, sizeof(u32));
-    memcpy(&offsetToOutTable, data + 0x28, sizeof(u32));
+    if (out->numOfConstUniforms) {
+        memcpy(&offsetToConstTable, data + 0x18, sizeof(u32));
+        KYGX_ASSERT(offsetToConstTable < size);
+        KYGX_ASSERT((offsetToConstTable + (out->numOfConstUniforms * 0x14)) <= size);
+    }
+
     memcpy(&out->numOfOutRegs, data + 0x2C, sizeof(u32));
-    memcpy(&offsetToUniformTable, data + 0x30, sizeof(u32));
+    if (out->numOfOutRegs) {
+        memcpy(&offsetToOutTable, data + 0x28, sizeof(u32));
+        KYGX_ASSERT(offsetToOutTable < size);
+        KYGX_ASSERT((offsetToOutTable + (out->numOfOutRegs * 0x08)) <= size);
+    }
+    
     memcpy(&out->numOfActiveUniforms, data + 0x34, sizeof(u32));
-    memcpy(&offsetToSymbolTable, data + 0x38, sizeof(u32));
+    if (out->numOfActiveUniforms) {
+        memcpy(&offsetToUniformTable, data + 0x30, sizeof(u32));
+        KYGX_ASSERT(offsetToUniformTable < size);
+        KYGX_ASSERT((offsetToUniformTable + (out->numOfActiveUniforms * 0x08)) <= size);
+    }
+    
     memcpy(&out->sizeOfSymbolTable, data + 0x3C, sizeof(u32));
-    KYGX_ASSERT(offsetToConstTable < size);
-    KYGX_ASSERT(offsetToOutTable < size);
-    KYGX_ASSERT(offsetToUniformTable < size);
-    KYGX_ASSERT(offsetToSymbolTable < size);
-    KYGX_ASSERT((offsetToConstTable + (out->numOfConstUniforms * 20)) <= size);
-    KYGX_ASSERT((offsetToOutTable + (out->numOfOutRegs * 8)) <= size);
-    KYGX_ASSERT((offsetToUniformTable + (out->numOfActiveUniforms * 8)) <= size);
-    KYGX_ASSERT((offsetToSymbolTable + out->sizeOfSymbolTable) <= size);
+    if (out->sizeOfSymbolTable) {
+        memcpy(&offsetToSymbolTable, data + 0x38, sizeof(u32));
+        KYGX_ASSERT(offsetToSymbolTable < size);
+        KYGX_ASSERT((offsetToSymbolTable + out->sizeOfSymbolTable) <= size);
+    }
 
     // Handle geometry shader.
     switch (flags) {
@@ -403,10 +416,29 @@ static void getDVLEInfo(const u8* data, size_t size, DVLEInfo* out) {
     }
 
     // Set table pointers.
-    out->constUniforms = (DVLEConstEntry*)(data + offsetToConstTable);
-    out->outRegs = (DVLEOutEntry*)(data + offsetToOutTable);
-    out->activeUniforms = (DVLEUniformEntry*)(data + offsetToUniformTable);
-    out->symbolTable = (char*)(data + offsetToSymbolTable);
+    if (out->numOfConstUniforms) {
+        out->constUniforms = (DVLEConstEntry*)(data + offsetToConstTable);
+    } else {
+        out->constUniforms = NULL;
+    }
+
+    if (out->numOfOutRegs) {
+        out->outRegs = (DVLEOutEntry*)(data + offsetToOutTable);
+    } else {
+        out->outRegs = NULL;
+    }
+
+    if (out->numOfActiveUniforms) {
+        out->activeUniforms = (DVLEUniformEntry*)(data + offsetToUniformTable);
+    } else {
+        out->activeUniforms = NULL;
+    }
+
+    if (out->sizeOfSymbolTable) {
+        out->symbolTable = (char*)(data + offsetToSymbolTable);
+    } else {
+        out->symbolTable = NULL;
+    }
 }
 
 static void generateOutmaps(const DVLEInfo* info, ShaderInfo* out) {

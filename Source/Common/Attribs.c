@@ -36,7 +36,7 @@ GLint glGetAttribLocation(GLuint program, const GLchar* name) {
 
         for (size_t j = 0; j < shader->numOfActiveAttribs; ++j) {
             const ActiveAttribInfo* attrib = &shader->activeAttribs[j];
-            if (!strcmp(name, attrib->symbol))
+            if (strcmp(name, attrib->symbol) == 0)
                 return attrib->ID;
         }
     }
