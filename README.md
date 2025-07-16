@@ -1,6 +1,6 @@
 # GLASS
 
-(WIP) OpenGL ES implementation for the 3DS.
+(WIP) OpenGL ES 2 implementation for the 3DS.
 
 ## Setup
 
@@ -45,3 +45,10 @@ Additionally, many thanks to:
 - **[profi200](https://github.com/profi200)**
 
 for providing informations about the GPU, graphics, and generally being helpful.
+
+## License
+
+This library is doubly licensed:
+
+- MPL 2.0, for HOS (userland) usage (see [HOS_LICENSE.txt](HOS_LICENSE.txt)).
+- GPLv3, for baremetal usage (see [BM_LICENSE.txt](BM_LICENSE.txt)).

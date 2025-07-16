@@ -1,28 +1,13 @@
 # TODO
 
-## WIP
-
 - Finish textures
 - - Load subtextures (tex3ds)
 - - Load subtextures (GL)
 - - Copy textures
 - Combiner buffers
-
-## Short term
-
 - Add support for geometry shaders
-
-## Medium term
-
-- Define the context API
-- Support ES 1.1
-
-## Long term
-
-- Add support for extensions
+- Support OpenGL 1.1
+- Add support for extensions (shadow, gas, blockmode32, etc).
 - Optimize the whole library
 - Clean documentation
-
-## Final goal
-
 - Make sure "TODO" does not appear anywhere in the code
