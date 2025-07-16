@@ -46,14 +46,18 @@ static void sceneInit(GLuint* vbos) {
     // Configure position attribute.
     glBindBuffer(GL_ARRAY_BUFFER, vbos[0]);
     glBufferData(GL_ARRAY_BUFFER, sizeof(g_VertexList), g_VertexList, GL_STATIC_DRAW);
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Position), NULL); // v0 = position
-    glEnableVertexAttribArray(0);
+
+    const GLint inpos = glGetAttribLocation(prog, "inpos");
+    glVertexAttribPointer(inpos, 3, GL_FLOAT, GL_FALSE, sizeof(Position), NULL);
+    glEnableVertexAttribArray(inpos);
 
     // Configure color attribute.
     glBindBuffer(GL_ARRAY_BUFFER, vbos[1]);
     glBufferData(GL_ARRAY_BUFFER, sizeof(g_ColorList), g_ColorList, GL_STATIC_DRAW);
-    glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, sizeof(Color), NULL); // v1 = color
-    glEnableVertexAttribArray(1);
+
+    const GLint inclr = glGetAttribLocation(prog, "inclr");
+    glVertexAttribPointer(inclr, 4, GL_FLOAT, GL_FALSE, sizeof(Color), NULL);
+    glEnableVertexAttribArray(inclr);
 
     // Compute the projection matrix.
     kmMat4 mtx;
@@ -74,7 +78,8 @@ int main() {
     gfxInitDefault();
     kygxInit();
 
-    GLASSCtx ctx = glassCreateDefaultContext(GLASS_VERSION_2_0);
+    // Create context.
+    GLASSCtx ctx = glassCreateDefaultContext(GLASS_VERSION_ES_2);
     glassBindContext(ctx);
 
     // Initialize the render target.

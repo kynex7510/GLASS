@@ -15,7 +15,7 @@
 .out outview view
 .out outnq normalquat
 
-; Inputs (defined as aliases for convenience)
+; Inputs
 .in inpos v0
 .in innrm v1
 

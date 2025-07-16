@@ -3,8 +3,8 @@
 .out outpos position
 .out outclr color
 
-.in inpos v0
-.in inclr v1
+.alias inpos v0
+.alias inclr v1
 
 .proc main
 	mov r0.xy, inpos

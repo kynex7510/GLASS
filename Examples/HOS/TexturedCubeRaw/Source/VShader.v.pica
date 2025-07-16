@@ -18,10 +18,10 @@
 .out outtc0 texcoord0
 .out outclr color
 
-; Inputs (defined as aliases for convenience)
-.alias inpos v0
-.alias intex v1
-.alias innrm v2
+; Inputs
+.in inpos v0
+.in intex v1
+.in innrm v2
 
 .proc main
 	; Force the w component of inpos to be 1.0

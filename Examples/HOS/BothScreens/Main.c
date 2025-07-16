@@ -49,15 +49,17 @@ static void sceneInit(GLuint* vbo) {
 
     // Create the VBO (vertex buffer object).
     glGenBuffers(1, vbo);
-
-    // Configure vertex attribute.
     glBindBuffer(GL_ARRAY_BUFFER, *vbo);
     glBufferData(GL_ARRAY_BUFFER, sizeof(g_VertexList), g_VertexList, GL_STATIC_DRAW);
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), NULL); // v0 = position
-    glEnableVertexAttribArray(0);
 
-    glVertexAttrib3f(1, 1.0f, 1.0f, 1.0f); // v1 = color
-    glEnableVertexAttribArray(1);
+    // Configure attributes.
+    const GLint inpos = glGetAttribLocation(prog, "inpos");
+    glVertexAttribPointer(inpos, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), NULL);
+    glEnableVertexAttribArray(inpos);
+
+    const GLint inclr = glGetAttribLocation(prog, "inclr");
+    glVertexAttrib3f(inclr, 1.0f, 1.0f, 1.0f);
+    glEnableVertexAttribArray(inclr);
 }
 
 static void sceneRender(float a) {
@@ -95,7 +97,7 @@ int main() {
 
     // Create contexts.
     GLASSCtxParams ctxParams;
-    glassGetDefaultContextParams(&ctxParams, GLASS_VERSION_2_0);
+    glassGetDefaultContextParams(&ctxParams, GLASS_VERSION_ES_2);
 
     GLASSCtx topCtx = glassCreateContext(&ctxParams);
 

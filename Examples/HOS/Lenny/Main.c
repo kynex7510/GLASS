@@ -31,11 +31,13 @@ static GLuint sceneInit(void) {
     glBufferData(GL_ARRAY_BUFFER, sizeof(g_VertexList), g_VertexList, GL_STATIC_DRAW);
 
     // Configure attributes.
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, x)); // v0 = position
-    glEnableVertexAttribArray(0);
+    const GLint inpos = glGetAttribLocation(prog, "inpos");
+    glVertexAttribPointer(inpos, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, x));
+    glEnableVertexAttribArray(inpos);
 
-    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, nx)); // v1 = normal
-    glEnableVertexAttribArray(1);
+    const GLint innrm = glGetAttribLocation(prog, "innrm");
+    glVertexAttribPointer(innrm, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, nx));
+    glEnableVertexAttribArray(innrm);
 
     // Compute the base model view matrix (avoid computation in the rendering step).
     kmVec4 objPos;
@@ -100,7 +102,7 @@ int main() {
     gfxSet3D(true);
 
     // Create context.
-    GLASSCtx ctx = glassCreateDefaultContext(GLASS_VERSION_2_0);
+    GLASSCtx ctx = glassCreateDefaultContext(GLASS_VERSION_ES_2);
     glassBindContext(ctx);
 
     /// Initialize the render targets.

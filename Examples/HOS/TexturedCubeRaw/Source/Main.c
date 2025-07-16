@@ -115,14 +115,17 @@ static void sceneInit(GLuint* vbo, GLuint* tex) {
     glBufferData(GL_ARRAY_BUFFER, sizeof(g_VertexList), g_VertexList, GL_STATIC_DRAW);
 
     // Configure attributes for use with the vertex shader.
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)(offsetof(Vertex, position))); // // v0 = position
-    glEnableVertexAttribArray(0);
+    const GLint inpos = glGetAttribLocation(prog, "inpos");
+    glVertexAttribPointer(inpos, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)(offsetof(Vertex, position)));
+    glEnableVertexAttribArray(inpos);
 
-    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)(offsetof(Vertex, texcoord))); // v1 = texcoord
-    glEnableVertexAttribArray(1);
+    const GLint intex = glGetAttribLocation(prog, "intex");
+    glVertexAttribPointer(intex, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)(offsetof(Vertex, texcoord)));
+    glEnableVertexAttribArray(intex);
 
-    glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)(offsetof(Vertex, normal))); // v2 = normal
-    glEnableVertexAttribArray(2);
+    const GLint innrm = glGetAttribLocation(prog, "innrm");
+    glVertexAttribPointer(innrm, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)(offsetof(Vertex, normal)));
+    glEnableVertexAttribArray(innrm);
 
     // Compute the projection matrix.
     kmMat4 tmp;
@@ -203,7 +206,7 @@ int main() {
     gfxInitDefault();
     kygxInit();
 
-    GLASSCtx ctx = glassCreateDefaultContext(GLASS_VERSION_2_0);
+    GLASSCtx ctx = glassCreateDefaultContext(GLASS_VERSION_ES_2);
     glassBindContext(ctx);
 
     // Initialize the render target.

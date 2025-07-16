@@ -46,7 +46,8 @@ int main() {
     gfxInitDefault();
     kygxInit();
 
-    GLASSCtx ctx = glassCreateDefaultContext(GLASS_VERSION_2_0);
+    // Create context.
+    GLASSCtx ctx = glassCreateDefaultContext(GLASS_VERSION_ES_2);
     glassBindContext(ctx);
 
     // Initialize the render target.
