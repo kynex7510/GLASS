@@ -89,7 +89,7 @@ GLenum glGetError(void) {
 
 static inline const GLubyte* getVersionString(u8 version) {
     switch (version) {
-        case GLASS_VERSION_2_0:
+        case GLASS_VERSION_ES_2:
             return (const GLubyte*)VERSION_2_0;
         default:
             KYGX_UNREACHABLE("Invalid parameter!");
@@ -100,7 +100,7 @@ static inline const GLubyte* getVersionString(u8 version) {
 
 static inline const GLubyte* getExtensionsString(u8 version) {
     switch (version) {
-        case GLASS_VERSION_2_0:
+        case GLASS_VERSION_ES_2:
             return (const GLubyte*)EXTENSIONS_2_0;
         default:
             KYGX_UNREACHABLE("Invalid parameter!");

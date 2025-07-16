@@ -4,10 +4,45 @@
 #include "Base/Context.h"
 #include "Base/Math.h"
 
-#include <string.h> // strncpy
+#include <string.h> // strncpy, strcmp
 
-void glBindAttribLocation(GLuint program, GLuint index, const GLchar* name); // TODO
-GLint glGetAttribLocation(GLuint program, const GLchar* name); // TODO
+void glBindAttribLocation(GLuint program, GLuint index, const GLchar* name) {
+    GLASS_context_setError(GL_INVALID_OPERATION);
+    return;
+}
+
+GLint glGetAttribLocation(GLuint program, const GLchar* name) {
+    if (!GLASS_OBJ_IS_PROGRAM(program)) {
+        GLASS_context_setError(GL_INVALID_OPERATION);
+        return -1;
+    }
+
+    const ProgramInfo* prog = (const ProgramInfo*)program;
+
+    if (prog->flags & GLASS_PROGRAM_FLAG_LINK_FAILED) {
+        GLASS_context_setError(GL_INVALID_OPERATION);
+        return -1;
+    }
+
+    const ShaderInfo* shaders[] = {
+        (ShaderInfo*)prog->linkedVertex,
+        (ShaderInfo*)prog->linkedGeometry
+    };
+
+    for (size_t i = 0; i < 2; ++i) {
+        const ShaderInfo* shader = shaders[i];
+        if (!shader)
+            continue;
+
+        for (size_t j = 0; j < shader->numOfActiveAttribs; ++j) {
+            const ActiveAttribInfo* attrib = &shader->activeAttribs[j];
+            if (!strcmp(name, attrib->symbol))
+                return attrib->ID;
+        }
+    }
+
+    return -1;
+}
 
 void glDisableVertexAttribArray(GLuint index) {
     if (index >= GLASS_NUM_ATTRIB_REGS) {
@@ -326,6 +361,7 @@ void glVertexAttribPointer(GLuint index, GLint size, GLenum type, GLboolean norm
     ctx->flags |= GLASS_CONTEXT_FLAG_ATTRIBS;
 }
 
+// TODO: this function looks fishy.
 void glGetActiveAttrib(GLuint program, GLuint index, GLsizei bufSize, GLsizei* length, GLint* size, GLenum* type, GLchar* name) {
     KYGX_ASSERT(size);
     KYGX_ASSERT(type);

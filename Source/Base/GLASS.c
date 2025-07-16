@@ -21,7 +21,7 @@ GLASSCtx glassCreateContext(const GLASSCtxParams* ctxParams) {
     if (!ctxParams)
         return NULL;
 
-    if (ctxParams->version == GLASS_VERSION_2_0) {
+    if (ctxParams->version == GLASS_VERSION_ES_2) {
         CtxCommon* ctx = (CtxCommon*)glassHeapAlloc(sizeof(CtxCommon));
         if (ctx) {
             GLASS_context_initCommon(ctx, ctxParams);
@@ -36,7 +36,7 @@ void glassDestroyContext(GLASSCtx wrapped) {
     KYGX_ASSERT(wrapped);
     CtxCommon* ctx = (CtxCommon*)wrapped;
 
-    if (ctx->params.version == GLASS_VERSION_2_0) {
+    if (ctx->params.version == GLASS_VERSION_ES_2) {
         GLASS_context_cleanupCommon((CtxCommon*)ctx);
     } else {
         KYGX_UNREACHABLE("Invalid context version!");
