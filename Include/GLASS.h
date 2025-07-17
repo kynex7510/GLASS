@@ -53,7 +53,7 @@ typedef struct {
     GLASSScreen targetScreen;       ///< Draw target screen (default: GLASS_SCREEN_TOP).
     GLASSSide targetSide;           ///< Draw target side (default: GLASS_SIDE_LEFT).
     GLASSGPUCommandList GPUCmdList; ///< GPU command list (default: all NULL).
-    bool vsync;                     ///< Enable VSync (default: true).
+    bool vsync;                     ///< Enable VSync (default: true). TODO: toggling currently unimplemented, always set.
     bool horizontalFlip;            ///< Flip display buffer horizontally (default: false).
     bool flushAllLinearMem;         ///< Whether to flush all linear memory (default: true).
     GLASSDownscale downscale;       ///< Set downscale for anti-aliasing (default: GLASS_DOWNSCALE_NONE).
@@ -93,7 +93,7 @@ KYGX_INLINE GLASSCtx glassCreateDefaultContext(GLASSVersion version) {
 // Destroy context. Unbind if bound.
 void glassDestroyContext(GLASSCtx ctx);
 
-// Bind context. Pass NULL to unbind.
+// Bind context and flag the state as dirty. Pass NULL to unbind.
 void glassBindContext(GLASSCtx ctx);
 
 // Get bound context. UB if no bound context.
@@ -104,6 +104,15 @@ bool glassHasBoundContext(void);
 
 // Check if that's the bound context.
 bool glassIsBoundContext(GLASSCtx ctx);
+
+// Flush pending GPU commands to the GPU command list and clean the dirty state. Use carefully.
+void glassFlushPendingGPUCommands(GLASSCtx ctx);
+
+// Swap buffers of the bound context. UB if no bound context.
+void glassSwapBuffers(void);
+
+// Swap buffers of the contexts. Can bind any of the two.
+void glassSwapContextBuffers(GLASSCtx top, GLASSCtx bottom);
 
 // Get context version.
 GLASSVersion glassGetVersion(GLASSCtx ctx);
@@ -120,11 +129,35 @@ GLASSSide glassGetTargetSide(GLASSCtx ctx);
 // Set target side, flushes pending GPU commands if different.
 void glassSetTargetSide(GLASSCtx ctx, GLASSSide side);
 
-// Swap buffers of the bound context. UB if no bound context.
-void glassSwapBuffers(void);
+// Get GPU command list. Should only be called after GPU commands are flushed.
+void glassGetGPUCommandList(GLASSCtx ctx, GLASSGPUCommandList* list);
 
-// Swap buffers of the contexts. Can bind any of the two.
-void glassSwapContextBuffers(GLASSCtx top, GLASSCtx bottom);
+// Set GPU command list.
+void glassSetGPUCommandList(GLASSCtx ctx, const GLASSGPUCommandList* list);
+
+// Get VSync.
+bool glassHasVSync(GLASSCtx ctx);
+
+// Set VSync.
+void glassSetVSync(GLASSCtx ctx, bool enabled);
+
+// Get horizontal flip.
+bool glassHasHorizontalFlip(GLASSCtx ctx);
+
+// Set horizontal flip.
+void glassSetHorizontalFlip(GLASSCtx ctx, bool enabled);
+
+// Get flush all linear mem.
+bool glassFlushesAllLinearMem(GLASSCtx ctx);
+
+// Set flush all linear mem.
+void glassSetFlushAllLinearMem(GLASSCtx ctx, bool enabled);
+
+// Get downscale.
+GLASSDownscale glassGetDownscale(GLASSCtx ctx);
+
+// Set downscale.
+void glassSetDownscale(GLASSCtx ctx, GLASSDownscale downscale);
 
 void* glassHeapAlloc(size_t size);
 void glassHeapFree(void* p);

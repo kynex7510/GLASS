@@ -56,6 +56,11 @@ GLASSCtx glassGetBoundContext(void) { return (GLASSCtx)GLASS_context_getBound();
 bool glassHasBoundContext(void) { return GLASS_context_hasBound(); }
 bool glassIsBoundContext(GLASSCtx ctx) { return GLASS_context_isBound((CtxCommon*)ctx); }
 
+void glassFlushPendingGPUCommands(GLASSCtx ctx) {
+    KYGX_ASSERT(ctx);
+    GLASS_context_flush((CtxCommon*)ctx, false);
+}
+
 GLASSVersion glassGetVersion(GLASSCtx ctx) {
     KYGX_ASSERT(ctx);
     return ((CtxCommon*)ctx)->params.version;
@@ -87,6 +92,60 @@ void glassSetTargetSide(GLASSCtx wrapped, GLASSSide side) {
         ctx->params.targetSide = side;
         ctx->flags |= GLASS_CONTEXT_FLAG_FRAMEBUFFER;
     }
+}
+
+void glassGetGPUCommandList(GLASSCtx ctx, GLASSGPUCommandList* list) {
+    KYGX_ASSERT(ctx);
+    KYGX_ASSERT(list);
+
+    memcpy(list, &((CtxCommon*)ctx)->params.GPUCmdList, sizeof(GLASSGPUCommandList));
+}
+
+void glassSetGPUCommandList(GLASSCtx ctx, const GLASSGPUCommandList* list) {
+    KYGX_ASSERT(ctx);
+    KYGX_ASSERT(list);
+
+    memcpy(&((CtxCommon*)ctx)->params.GPUCmdList, list, sizeof(GLASSGPUCommandList));
+}
+
+bool glassHasVSync(GLASSCtx ctx) {
+    KYGX_ASSERT(ctx);
+    return ((CtxCommon*)ctx)->params.vsync;
+}
+
+void glassSetVSync(GLASSCtx ctx, bool enabled) {
+    KYGX_ASSERT(ctx);
+    ((CtxCommon*)ctx)->params.vsync = enabled;
+}
+
+bool glassHasHorizontalFlip(GLASSCtx ctx) {
+    KYGX_ASSERT(ctx);
+    return ((CtxCommon*)ctx)->params.horizontalFlip;
+}
+
+void glassSetHorizontalFlip(GLASSCtx ctx, bool enabled) {
+    KYGX_ASSERT(ctx);
+    ((CtxCommon*)ctx)->params.horizontalFlip = enabled;
+}
+
+bool glassFlushesAllLinearMem(GLASSCtx ctx) {
+    KYGX_ASSERT(ctx);
+    return ((CtxCommon*)ctx)->params.flushAllLinearMem;
+}
+
+void glassSetFlushAllLinearMem(GLASSCtx ctx, bool enabled) {
+    KYGX_ASSERT(ctx);
+    ((CtxCommon*)ctx)->params.flushAllLinearMem = enabled;
+}
+
+GLASSDownscale glassGetDownscale(GLASSCtx ctx) {
+    KYGX_ASSERT(ctx);
+    return ((CtxCommon*)ctx)->params.downscale;
+}
+
+void glassSetDownscale(GLASSCtx ctx, GLASSDownscale downscale) {
+    KYGX_ASSERT(ctx);
+    ((CtxCommon*)ctx)->params.downscale = downscale;
 }
 
 static inline u8 unwrapTransferFormat(GLenum format) {
