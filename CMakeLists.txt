@@ -27,6 +27,7 @@ set(GLASS_SOURCES
     Source/Base/Context.c
     Source/Base/GLASS.c
     Source/Base/Math.c
+    Source/Base/MathCTRU.c
     Source/Base/Memory.c
     Source/Base/TexManager.c
     Source/Base/Types.c
