@@ -282,3 +282,82 @@ void glFinish(void) {
     GLASS_context_flush(GLASS_context_getBound(), true);
     kygxWaitCompletion();
 }
+
+static inline bool isReadFormat(GLenum format) {
+    switch (format) {
+        case GL_ALPHA:
+        case GL_RGB:
+        case GL_RGBA:
+            return true;
+        default:
+            return false;
+    }
+}
+
+static inline bool isReadType(GLenum type) {
+    switch (type) {
+        case GL_UNSIGNED_BYTE:
+        case GL_UNSIGNED_SHORT_5_6_5:
+        case GL_UNSIGNED_SHORT_4_4_4_4:
+        case GL_UNSIGNED_SHORT_5_5_5_1:
+            return true;
+        default:
+            return false;
+    }
+}
+
+static size_t pixelSize(GLenum format) {
+    switch (format) {
+        case 
+    }
+}
+
+void glReadPixels(GLint x, GLint y, GLsizei width, GLsizei height, GLenum format, GLenum type, GLvoid* data) {
+    if (!isReadFormat(format) || !isReadType(type)) {
+        GLASS_context_setError(GL_INVALID_ENUM);
+        return;
+    }
+
+    if (x < 0 || y < 0 || width < 0 || height < 0) {
+        GLASS_context_setError(GL_INVALID_VALUE);
+        return;
+    }
+
+    if (type == GL_UNSIGNED_SHORT_5_6_5 && format != GL_RGB) {
+        GLASS_context_setError(GL_INVALID_OPERATION);
+        return;
+    }
+
+    if ((type == GL_UNSIGNED_SHORT_4_4_4_4 || type == GL_UNSIGNED_SHORT_5_5_5_1) && format != GL_RGBA) {
+        GLASS_context_setError(GL_INVALID_OPERATION);
+        return;
+    }
+
+    // We could support one more pair.
+    if (type != GL_RGBA || format != GL_UNSIGNED_BYTE) {
+        GLASS_context_setError(GL_INVALID_OPERATION);
+        return;
+    }
+
+    if (!checkFB())
+        return;
+
+    // Get color buffer.
+    CtxCommon* ctx = GLASS_context_getBound();
+
+    // Align dimensions to block size.
+    const u16 alignedX = kygxAlignDown(x, 8);
+    const u16 alignedY = kygxAlignDown(y, 8);
+    const u16 alignedW = kygxAlignUp(width, 8);
+    const u16 alignedH = kygxAlignUp(height, 8);
+
+    // Setup surfaces.
+    KYGXTextureCopySurface cbSurface;
+    cbSurface.addr = cbAddr;
+    cbSurface.width = 
+
+    // Read rectangle (RectCopy).
+    // Convert rectangle in place (ripConvertFromNativeInPlace).
+    // Convert to RGBA8.
+    // Copy to source.
+}

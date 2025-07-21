@@ -13,6 +13,7 @@
 - `glTexParameter`: `GL_TEXTURE_MIN_LOD`, `GL_TEXTURE_MAX_LOD`, `GL_TEXTURE_LOD_BIAS` are all valid parameters.
 - `glTexParameter`: `GL_CLAMP_TO_BORDER` is a valid wrapping value.
 - `glBindAttribLocation`: always returns `GL_INVALID_OPERATION`.
+- `glReadPixels`: negative `x` or `y` return `GL_INVALID_VALUE`.
 
 ## Attributes
 
