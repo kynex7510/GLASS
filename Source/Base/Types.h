@@ -240,7 +240,7 @@ static inline bool GLASS_checkObjectType(GLuint obj, uint32_t type) {
     return false;
 }
 
-static inline GLASS_vsyncBarrier_init(VSyncBarrier* b) {
+static inline void GLASS_vsyncBarrier_init(VSyncBarrier* b) {
     KYGX_ASSERT(b);
 
     kygxMtxInit(&b->mtx);
@@ -248,14 +248,14 @@ static inline GLASS_vsyncBarrier_init(VSyncBarrier* b) {
     b->triggered = false;
 }
 
-static inline GLASS_vsyncBarrier_destroy(VSyncBarrier* b) {
+static inline void GLASS_vsyncBarrier_destroy(VSyncBarrier* b) {
     KYGX_ASSERT(b);
 
     kygxCVDestroy(&b->cv);
     kygxMtxDestroy(&b->mtx);
 }
 
-static inline GLASS_vsyncBarrier_wait(VSyncBarrier* b) {
+static inline void GLASS_vsyncBarrier_wait(VSyncBarrier* b) {
     KYGX_ASSERT(b);
 
     kygxMtxAcquire(&b->mtx);
@@ -267,7 +267,7 @@ static inline GLASS_vsyncBarrier_wait(VSyncBarrier* b) {
     kygxMtxRelease(&b->mtx);
 }
 
-static inline GLASS_vsyncBarrier_signal(VSyncBarrier* b) {
+static inline void GLASS_vsyncBarrier_signal(VSyncBarrier* b) {
     KYGX_ASSERT(b);
 
     kygxMtxAcquire(&b->mtx);
@@ -277,7 +277,7 @@ static inline GLASS_vsyncBarrier_signal(VSyncBarrier* b) {
     kygxCVBroadcast(&b->cv);
 }
 
-static inline GLASS_vsyncBarrier_clear(VSyncBarrier* b) {
+static inline void GLASS_vsyncBarrier_clear(VSyncBarrier* b) {
     KYGX_ASSERT(b);
 
     kygxMtxAcquire(&b->mtx);

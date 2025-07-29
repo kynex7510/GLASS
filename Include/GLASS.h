@@ -53,7 +53,7 @@ typedef struct {
     GLASSScreen targetScreen;       ///< Draw target screen (default: GLASS_SCREEN_TOP).
     GLASSSide targetSide;           ///< Draw target side (default: GLASS_SIDE_LEFT).
     GLASSGPUCommandList GPUCmdList; ///< GPU command list (default: all NULL).
-    bool vsync;                     ///< Enable VSync (default: true). TODO: toggling currently unimplemented, always set.
+    bool vsync;                     ///< Enable VSync (default: true).
     bool horizontalFlip;            ///< Flip display buffer horizontally (default: false).
     bool flushAllLinearMem;         ///< Whether to flush all linear memory (default: true).
     GLASSDownscale downscale;       ///< Set downscale for anti-aliasing (default: GLASS_DOWNSCALE_NONE).

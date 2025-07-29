@@ -278,7 +278,7 @@ static void prepareContextForTransfer(CtxCommon* ctx, TransferParams* leftParams
 static void swapBuffersCallback(void* screen) { GLASS_gfx_swapScreenBuffers((GLASSScreen)screen); }
 
 static void swapBuffersVSyncCallback(void* wrapped) {
-    const CtxCommon* ctx = (const CtxCommon*)wrapped;
+    CtxCommon* ctx = (CtxCommon*)wrapped;
     KYGX_ASSERT(ctx);
 
     GLASS_gfx_swapScreenBuffers(ctx->params.targetScreen);
