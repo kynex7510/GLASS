@@ -161,13 +161,13 @@ int main() {
     // Deinitialize graphics.
     glassBindContext(topCtx);
     glDeleteBuffers(1, &topVBO);
-    glDeleteBuffers(1, &topRB);
-    glDeleteBuffers(1, &topFB);
+    glDeleteRenderbuffers(1, &topRB);
+    glDeleteFramebuffers(1, &topFB);
 
     glassBindContext(bottomCtx);
     glDeleteBuffers(1, &bottomVBO);
-    glDeleteBuffers(1, &bottomRB);
-    glDeleteBuffers(1, &bottomFB);
+    glDeleteRenderbuffers(1, &bottomRB);
+    glDeleteFramebuffers(1, &bottomFB);
 
     glassDestroyContext(topCtx);
     glassDestroyContext(bottomCtx);
