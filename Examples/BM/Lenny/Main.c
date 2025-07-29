@@ -19,6 +19,14 @@ static GLint g_ModelViewLoc;
 
 static kmMat4 g_BaseModelView;
 
+static bool isN3DModel(McuSysModel model) {
+    return model == SYS_MODEL_N3DS || model == SYS_MODEL_N3DS_XL;
+}
+
+static bool is3DModel(McuSysModel model) {
+    return model == SYS_MODEL_3DS || model == SYS_MODEL_3DS_XL || isN3DModel(model);
+}
+
 // Many thanks to TuxSH.
 static inline void expanderInit(void) {
     GPIO_config(GPIO_3_11, GPIO_OUTPUT);
@@ -40,9 +48,10 @@ static inline void setExpanderPresets(u16 polarityHigh, u16 polarityLow) {
 }
 
 static void enable3DEffect(McuSysModel model) {
-    if (model == SYS_MODEL_3DS || model == SYS_MODEL_3DS_XL) {
+    if (is3DModel(model))
         getLcdRegs()->parallax_cnt = (PARALLAX_CNT_PWM0_EN | PARALLAX_CNT_PWM1_EN);
-    } else if (model == SYS_MODEL_N3DS || model == SYS_MODEL_N3DS_XL) {
+
+    if (isN3DModel(model)) {
         expanderInit();
         setExpanderPresets(0x11F0, 0xE0F); // O3DS (SS3D disabled).
     }
@@ -52,11 +61,11 @@ static void enable3DEffect(McuSysModel model) {
 }
 
 static void disable3DEffect(McuSysModel model) {
-    if (model == SYS_MODEL_3DS || model == SYS_MODEL_3DS_XL) {
-        getLcdRegs()->parallax_cnt = 0;
-    } else if (model == SYS_MODEL_N3DS || model == SYS_MODEL_N3DS_XL) {
+    if (isN3DModel(model))
         expanderExit();
-    }
+
+    if (is3DModel(model))
+        getLcdRegs()->prallax_cnt = 0;
 
     GFX_setFormat(GFX_BGR8, GFX_BGR565, GFX_TOP_2D);
     GFX_setLcdLuminance(80);
