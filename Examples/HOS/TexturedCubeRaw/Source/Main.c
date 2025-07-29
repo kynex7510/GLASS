@@ -91,6 +91,11 @@ static const Vertex g_VertexList[] = {
 #define NUM_VERTICES (sizeof(g_VertexList)/sizeof(Vertex))
 
 static void sceneInit(GLuint* vbo, GLuint* tex) {
+    // Set default state.
+    glViewport(0, 0, 400, 240);
+    glClearColor(0.4f, 0.68f, 0.84f, 1.0f);
+    glEnable(GL_CULL_FACE);
+    
     // Load the vertex shader, create a shader program and bind it.
     GLuint prog = glCreateProgram();
     GLuint shad = glCreateShader(GL_VERTEX_SHADER);
@@ -219,11 +224,6 @@ int main() {
     glBindRenderbuffer(GL_RENDERBUFFER, rb);
     glRenderbufferStorage(GL_RENDERBUFFER, GL_RGBA8_OES, 400, 240);
     glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_RENDERBUFFER, rb);
-
-    // Set default state.
-    glViewport(0, 0, 400, 240);
-    glClearColor(0.4f, 0.68f, 0.84f, 1.0f);
-    glEnable(GL_CULL_FACE);
 
     // Initialize the scene.
     GLuint vbo;

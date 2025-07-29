@@ -19,6 +19,10 @@ static const Vertex g_VertexList[3] = {
 };
 
 static GLuint sceneInit() {
+    // Set default state.
+    glViewport(0, 0, 400, 240);
+    glClearColor(0.4f, 0.68f, 0.84f, 1.0f);
+
     // Load the vertex shader, create a shader program and bind it.
     GLuint prog = glCreateProgram();
     GLuint shad = glCreateShader(GL_VERTEX_SHADER);
@@ -65,9 +69,6 @@ int main() {
     glBindRenderbuffer(GL_RENDERBUFFER, rb);
     glRenderbufferStorage(GL_RENDERBUFFER, GL_RGBA8_OES, 400, 240);
     glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_RENDERBUFFER, rb);
-
-    glViewport(0, 0, 400, 240);
-    glClearColor(0.4f, 0.68f, 0.84f, 1.0f);
 
     // Initialize the scene.
     GLuint vbo = sceneInit();

@@ -58,6 +58,11 @@ static GLuint sceneInit(void) {
 }
 
 static void sceneRender(float iod, float angleX, float angleY) {
+    // Set default state.
+    glViewport(0, 0, 400, 240);
+    glClearColor(0.4f, 0.68f, 0.84f, 1.0f);
+    glClearDepthf(0.0f);
+
     // Compute the projection matrix.
     kmMat4 tmp;
     kmMat4 projection;
@@ -117,11 +122,6 @@ int main() {
 
     glassSetTargetSide(ctx, GLASS_SIDE_RIGHT);
     createFramebuffer(&rightFB, rightRBs);
-
-    // Set default state.
-    glViewport(0, 0, 400, 240);
-    glClearColor(0.4f, 0.68f, 0.84f, 1.0f);
-    glClearDepthf(0.0f);
 
     // Initialize the scene.
     GLuint vbo = sceneInit();

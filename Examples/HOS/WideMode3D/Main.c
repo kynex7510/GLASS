@@ -62,6 +62,11 @@ static GLuint sceneInit(void) {
 }
 
 static void sceneRender(float angleX, float angleY) {
+    // Set default state.
+    glViewport(0, 0, 800, 240);
+    glClearColor(0.4f, 0.68f, 0.84f, 1.0f);
+    glClearDepthf(0.0f);
+    
     // Compute the model matrix.
     kmMat4 tmp;
     kmMat4 modelView;
@@ -104,11 +109,6 @@ int main() {
     glBindRenderbuffer(GL_RENDERBUFFER, rb[1]);
     glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8_OES, 800, 240);
     glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, rb[1]);
-
-    // Set default state.
-    glViewport(0, 0, 800, 240);
-    glClearColor(0.4f, 0.68f, 0.84f, 1.0f);
-    glClearDepthf(0.0f);
 
     // Initialize the scene.
     GLuint vbo = sceneInit();

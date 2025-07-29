@@ -27,6 +27,10 @@ static GLint g_ProjLoc;
 static kmMat4 g_ProjMtx;
 
 static void sceneInit(GLuint* vbos) {
+    // Set default state.
+    glViewport(0, 0, 400, 240);
+    glClearColor(0.4f, 0.68f, 0.84f, 1.0f);
+
     // Load the vertex shader, create a shader program and bind it.
     GLuint prog = glCreateProgram();
     GLuint shad = glCreateShader(GL_VERTEX_SHADER);
@@ -94,10 +98,6 @@ int main() {
     glTexVRAMPICA(GL_TRUE); // Required for glClear.
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 512, 256, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, tex, 0);
-
-    // Set default state.
-    glViewport(0, 0, 400, 240);
-    glClearColor(0.4f, 0.68f, 0.84f, 1.0f);
 
     // Initialize the scene.
     GLuint vbos[2];

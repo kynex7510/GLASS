@@ -63,6 +63,11 @@ static void disable3DEffect(McuSysModel model) {
 }
 
 static GLuint sceneInit(void) {
+    // Set default state.
+    glViewport(0, 0, 400, 240);
+    glClearColor(0.4f, 0.68f, 0.84f, 1.0f);
+    glClearDepthf(0.0f);
+
     // Load the vertex shader, create a shader program and bind it.
     GLuint prog = glCreateProgram();
     GLuint shad = glCreateShader(GL_VERTEX_SHADER);
@@ -169,11 +174,6 @@ int main() {
 
     glassSetTargetSide(ctx, GLASS_SIDE_RIGHT);
     createFramebuffer(&rightFB, rightRBs);
-
-    // Set default state.
-    glViewport(0, 0, 400, 240);
-    glClearColor(0.4f, 0.68f, 0.84f, 1.0f);
-    glClearDepthf(0.0f);
 
     // Initialize the scene.
     GLuint vbo = sceneInit();
