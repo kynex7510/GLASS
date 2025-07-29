@@ -94,11 +94,14 @@ void glassSetTargetSide(GLASSCtx wrapped, GLASSSide side) {
     }
 }
 
-void glassGetGPUCommandList(GLASSCtx ctx, GLASSGPUCommandList* list) {
-    KYGX_ASSERT(ctx);
+void glassGetGPUCommandList(GLASSCtx wrapped, GLASSGPUCommandList* list) {
+    KYGX_ASSERT(wrapped);
     KYGX_ASSERT(list);
 
-    memcpy(list, &((CtxCommon*)ctx)->params.GPUCmdList, sizeof(GLASSGPUCommandList));
+    const CtxCommon* ctx = (const CtxCommon*)wrapped;
+    KYGX_ASSERT(ctx->flags == 0);
+
+    memcpy(list, &ctx->params.GPUCmdList, sizeof(GLASSGPUCommandList));
 }
 
 void glassSetGPUCommandList(GLASSCtx ctx, const GLASSGPUCommandList* list) {
