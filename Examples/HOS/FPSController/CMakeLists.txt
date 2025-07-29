@@ -5,3 +5,4 @@ add_executable(FPSController Main.c)
 target_link_libraries(FPSController PRIVATE GLASSv2 kazmath FPSController-shaders)
 
 ctr_create_3dsx(FPSController)
+install(FILES ${CMAKE_CURRENT_BINARY_DIR}/FPSController.3dsx TYPE BIN)

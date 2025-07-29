@@ -65,7 +65,7 @@ static void disable3DEffect(McuSysModel model) {
         expanderExit();
 
     if (is3DModel(model))
-        getLcdRegs()->prallax_cnt = 0;
+        getLcdRegs()->parallax_cnt = 0;
 
     GFX_setFormat(GFX_BGR8, GFX_BGR565, GFX_TOP_2D);
     GFX_setLcdLuminance(80);

@@ -7,4 +7,4 @@ add_executable(Lenny Main.c Lenny.c)
 target_link_libraries(Lenny PRIVATE GLASSv2 kazmath m Lenny-shaders)
 bm_target_linker_file(Lenny ${CTR_BM_TOOLCHAIN_ROOT}/Linker/Default11.ld)
 
-add_firm_binary(Lenny Lenny_bin)
+add_firm_binary(Lenny_bin Lenny)
