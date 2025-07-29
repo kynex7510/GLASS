@@ -7,6 +7,7 @@
 #ifndef _GLASS_BASE_TYPES_H
 #define _GLASS_BASE_TYPES_H
 
+#include <KYGX/Sync.h>
 #include <GLASS.h>
 
 #include "Platform/GPUDefs.h"
@@ -84,12 +85,11 @@
 
 #define GLASS_OBJ(name) u32 _glObjectType
 
-KYGX_INLINE bool GLASS_checkObjectType(GLuint obj, uint32_t type) {
-    if (obj != GLASS_INVALID_OBJECT)
-        return *(uint32_t*)obj == type;
-
-    return false;
-}
+typedef struct {
+    KYGXMtx mtx;
+    KYGXCV cv;
+    bool triggered;
+} VSyncBarrier;
 
 typedef struct {
     u32 glObjectType; // GL object type.
@@ -232,5 +232,57 @@ typedef struct {
 } CombinerInfo;
 
 GLuint GLASS_createObject(u32 type);
+
+static inline bool GLASS_checkObjectType(GLuint obj, uint32_t type) {
+    if (obj != GLASS_INVALID_OBJECT)
+        return *(uint32_t*)obj == type;
+
+    return false;
+}
+
+static inline GLASS_vsyncBarrier_init(VSyncBarrier* b) {
+    KYGX_ASSERT(b);
+
+    kygxMtxInit(&b->mtx);
+    kygxCVInit(&b->cv);
+    b->triggered = false;
+}
+
+static inline GLASS_vsyncBarrier_destroy(VSyncBarrier* b) {
+    KYGX_ASSERT(b);
+
+    kygxCVDestroy(&b->cv);
+    kygxMtxDestroy(&b->mtx);
+}
+
+static inline GLASS_vsyncBarrier_wait(VSyncBarrier* b) {
+    KYGX_ASSERT(b);
+
+    kygxMtxAcquire(&b->mtx);
+
+    while (!b->triggered)
+        kygxCVWait(&b->cv, &b->mtx);
+
+    b->triggered = false;
+    kygxMtxRelease(&b->mtx);
+}
+
+static inline GLASS_vsyncBarrier_signal(VSyncBarrier* b) {
+    KYGX_ASSERT(b);
+
+    kygxMtxAcquire(&b->mtx);
+    b->triggered = true;
+    kygxMtxRelease(&b->mtx);
+
+    kygxCVBroadcast(&b->cv);
+}
+
+static inline GLASS_vsyncBarrier_clear(VSyncBarrier* b) {
+    KYGX_ASSERT(b);
+
+    kygxMtxAcquire(&b->mtx);
+    b->triggered = false;
+    kygxMtxRelease(&b->mtx);
+}
 
 #endif /* _GLASS_BASE_TYPES_H */

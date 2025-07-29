@@ -16,7 +16,8 @@ typedef struct {
     GLenum lastError;      // Actually first error.
 
     // Platform
-    KYGXCmdBuffer GXCmdBuf; // GX command buffer.
+    KYGXCmdBuffer GXCmdBuf;    // GX command buffer.
+    VSyncBarrier vsyncBarrier; // VSync barrier.
 
     // Buffers
     GLuint arrayBuffer;        // GL_ARRAY_BUFFER
@@ -113,7 +114,7 @@ typedef struct {
     GLint combinerStage;                               // Current combiner stage.
     CombinerInfo combiners[GLASS_NUM_COMBINER_STAGES]; // Combiners.
 } CtxCommon;
- */
+*/
 
 typedef struct {
     u32 flags;
@@ -158,6 +159,7 @@ typedef struct {
     GLuint framebuffer[2];
     GLuint textureUnits[GLASS_NUM_TEX_UNITS];
     KYGXCmdBuffer GXCmdBuf;
+    VSyncBarrier vsyncBarrier;
     GLASSCtxParams params;
     CombinerInfo combiners[GLASS_NUM_COMBINER_STAGES];
     AttributeInfo attribs[GLASS_NUM_ATTRIB_REGS];

@@ -277,9 +277,19 @@ static void prepareContextForTransfer(CtxCommon* ctx, TransferParams* leftParams
 
 static void swapBuffersCallback(void* screen) { GLASS_gfx_swapScreenBuffers((GLASSScreen)screen); }
 
+static void swapBuffersVSyncCallback(void* wrapped) {
+    const CtxCommon* ctx = (const CtxCommon*)wrapped;
+    KYGX_ASSERT(ctx);
+
+    GLASS_gfx_swapScreenBuffers(ctx->params.targetScreen);
+    GLASS_vsyncBarrier_signal(&ctx->vsyncBarrier);
+}
+
 void glassSwapContextBuffers(GLASSCtx wrapped0, GLASSCtx wrapped1) {
     if (!wrapped0 && !wrapped1)
         return;
+
+    KYGX_ASSERT(wrapped0 != wrapped1);
 
     CtxCommon* ctx0 = (CtxCommon*)wrapped0;
     CtxCommon* ctx1 = (CtxCommon*)wrapped1;
@@ -302,24 +312,24 @@ void glassSwapContextBuffers(GLASSCtx wrapped0, GLASSCtx wrapped1) {
     prepareContextForTransfer(ctx1, &left1Params, &right1Params, &ctx1HasVSync);
 
     // Immediately swap buffers if no transfer is needed.
-    bool ctx0NeedsSwap = true;
+    bool ctx0HasTransfer = true;
     if (!left0Params.src && !right0Params.src) {
         if (ctx0)
             GLASS_gfx_swapScreenBuffers(ctx0->params.targetScreen);
 
-        ctx0NeedsSwap = false;
+        ctx0HasTransfer = false;
     }
 
-    bool ctx1NeedsSwap = true;
+    bool ctx1HasTransfer = true;
     if (!left1Params.src && !right1Params.src) {
         if (ctx1)
             GLASS_gfx_swapScreenBuffers(ctx1->params.targetScreen);
 
-        ctx1NeedsSwap = false;
+        ctx1HasTransfer = false;
     }
 
-    // Handle swapping.
-    if (ctx0NeedsSwap || ctx1NeedsSwap) {
+    // Handle transfers.
+    if (ctx0HasTransfer || ctx1HasTransfer) {
         // Choose a command buffer to use.
         CtxCommon* transferCtx = NULL;
 
@@ -332,9 +342,9 @@ void glassSwapContextBuffers(GLASSCtx wrapped0, GLASSCtx wrapped1) {
 
         kygxLock();
 
-        // If ctx1 has vsync but ctx0 doesn't, execute ctx1 first.
+        // If ctx1 has VSync but ctx0 doesn't, execute ctx1 first.
         if (ctx1HasVSync && !ctx0HasVSync) {
-            if (ctx1NeedsSwap) {
+            if (ctx1HasTransfer) {
                 if (left1Params.src) {
                     kygxAddDisplayTransferChecked(&transferCtx->GXCmdBuf, left1Params.src, left1Params.dst,
                         left1Params.srcWidth, left1Params.srcHeight, left1Params.dstWidth, left1Params.dstHeight,
@@ -347,10 +357,12 @@ void glassSwapContextBuffers(GLASSCtx wrapped0, GLASSCtx wrapped1) {
                         &right1Params.transferFlags);
                 }
 
-                kygxCmdBufferFinalize(&transferCtx->GXCmdBuf, swapBuffersCallback, (void*)ctx1->params.targetScreen);
+                // Ctx1 has VSync.
+                GLASS_vsyncBarrier_clear(&ctx1->vsyncBarrier);
+                kygxCmdBufferFinalize(&transferCtx->GXCmdBuf, swapBuffersVSyncCallback, ctx1);
             }
 
-            if (ctx0NeedsSwap) {
+            if (ctx0HasTransfer) {
                 if (left0Params.src) {
                     kygxAddDisplayTransferChecked(&transferCtx->GXCmdBuf, left0Params.src, left0Params.dst,
                         left0Params.srcWidth, left0Params.srcHeight, left0Params.dstWidth, left0Params.dstHeight,
@@ -363,11 +375,12 @@ void glassSwapContextBuffers(GLASSCtx wrapped0, GLASSCtx wrapped1) {
                         &right0Params.transferFlags);
                 }
 
+                // Ctx0 doesn't have VSync.
                 kygxCmdBufferFinalize(&transferCtx->GXCmdBuf, swapBuffersCallback, (void*)ctx0->params.targetScreen);
             }
         } else {
             // In any other case, we have to either wait for ctx0, or none at all.
-            if (ctx0NeedsSwap) {
+            if (ctx0HasTransfer) {
                 if (left0Params.src) {
                     kygxAddDisplayTransferChecked(&transferCtx->GXCmdBuf, left0Params.src, left0Params.dst,
                         left0Params.srcWidth, left0Params.srcHeight, left0Params.dstWidth, left0Params.dstHeight,
@@ -380,10 +393,15 @@ void glassSwapContextBuffers(GLASSCtx wrapped0, GLASSCtx wrapped1) {
                         &right0Params.transferFlags);
                 }
 
-                kygxCmdBufferFinalize(&transferCtx->GXCmdBuf, swapBuffersCallback, (void*)ctx0->params.targetScreen);
+                if (ctx0HasVSync) {
+                    GLASS_vsyncBarrier_clear(&ctx0->vsyncBarrier);
+                    kygxCmdBufferFinalize(&transferCtx->GXCmdBuf, swapBuffersVSyncCallback, ctx0);
+                } else {
+                    kygxCmdBufferFinalize(&transferCtx->GXCmdBuf, swapBuffersCallback, (void*)ctx0->params.targetScreen);
+                }
             }
 
-            if (ctx1NeedsSwap) {
+            if (ctx1HasTransfer) {
                 if (left1Params.src) {
                     kygxAddDisplayTransferChecked(&transferCtx->GXCmdBuf, left1Params.src, left1Params.dst,
                         left1Params.srcWidth, left1Params.srcHeight, left1Params.dstWidth, left1Params.dstHeight,
@@ -396,18 +414,33 @@ void glassSwapContextBuffers(GLASSCtx wrapped0, GLASSCtx wrapped1) {
                         &right1Params.transferFlags);
                 }
 
-                kygxCmdBufferFinalize(&transferCtx->GXCmdBuf, swapBuffersCallback, (void*)ctx1->params.targetScreen);
+                if (ctx1HasVSync) {
+                    GLASS_vsyncBarrier_clear(&ctx1->vsyncBarrier);
+                    kygxCmdBufferFinalize(&transferCtx->GXCmdBuf, swapBuffersVSyncCallback, ctx1);
+                } else {
+                    kygxCmdBufferFinalize(&transferCtx->GXCmdBuf, swapBuffersCallback, (void*)ctx1->params.targetScreen);
+                }
             }
         }
         
         kygxUnlock(true);
 
-        // If any of the contexts has vsync enabled, wait for vblank.
-        // TODO: only wait for the contexts that have vsync enabled (requires a primitive in kygx).
-        if (ctx0HasVSync || ctx1HasVSync) {
-            kygxWaitCompletion();
-            kygxWaitVBlank();
-        }
+        // Wait for async swap on the relative contexts if VSync is on.
+        if (ctx0HasTransfer && ctx0HasVSync)
+            GLASS_vsyncBarrier_wait(&ctx0->vsyncBarrier);
+
+        if (ctx1HasTransfer && ctx1HasVSync)
+            GLASS_vsyncBarrier_wait(&ctx1->vsyncBarrier);
+
+        // Wait for VBlank on the relative contexts if VSync is on.
+        kygxClearIntr(KYGX_INTR_PDC0);
+        kygxClearIntr(KYGX_INTR_PDC1);
+
+        if (ctx0HasVSync)
+            kygxWaitIntr(ctx0->params.targetScreen == GLASS_SCREEN_TOP ? KYGX_INTR_PDC0 : KYGX_INTR_PDC1);
+
+        if (ctx1HasVSync)
+            kygxWaitIntr(ctx1->params.targetScreen == GLASS_SCREEN_TOP ? KYGX_INTR_PDC0 : KYGX_INTR_PDC1);
     }
 }
 
