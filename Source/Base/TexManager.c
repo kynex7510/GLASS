@@ -155,13 +155,15 @@ TexReallocStatus GLASS_tex_realloc(TextureInfo* tex, size_t width, size_t height
     return GLASS_reallocTexImpl(tex, width, height, format, vram) ? TEXREALLOCSTATUS_UPDATED : TEXREALLOCSTATUS_FAILED;
 }
 
-void GLASS_tex_write(TextureInfo* tex, const u8* data, size_t size, size_t face, size_t level) {
+void GLASS_tex_write(TextureInfo* tex, const u8* data, size_t face, size_t level) {
     KYGX_ASSERT(tex);
     KYGX_ASSERT(tex->target != GLASS_TEX_TARGET_UNBOUND);
     KYGX_ASSERT(glassIsLinear(data));
-    KYGX_ASSERT(size);
+    KYGX_ASSERT(face < getNumFaces(tex->target));
 
-    const size_t mipmapOffset = ripGetTextureDataOffset(tex->width, tex->height, getRIPPixelFormat(tex->format), level);
+    const RIPPixelFormat pixelFormat = getRIPPixelFormat(tex->format);
+    const size_t mipmapOffset = ripGetTextureDataOffset(tex->width, tex->height, pixelFormat, level);
+    const size_t size = (tex->width * tex->height * ripGetPixelFormatBPP(pixelFormat)) >> 3;
 
     // Ensure the hardware can access data correctly.
     KYGXFlushCacheRegionsBuffer flushSrc;
@@ -173,7 +175,7 @@ void GLASS_tex_write(TextureInfo* tex, const u8* data, size_t size, size_t face,
     flushDst.size = size;
 
     kygxSyncFlushCacheRegions(&flushSrc, &flushDst, NULL);
-    kygxSyncTextureCopy(data, tex->faces[face] + mipmapOffset, size, 0, 0, 0, 0);
+    kygxSyncTextureCopy(flushSrc.addr, flushDst.addr, flushSrc.size, 0, 0, 0, 0);
 
     // Avoid possible prefetches.
     kygxInvalidateDataCache(flushDst.addr, flushDst.size);
@@ -182,6 +184,7 @@ void GLASS_tex_write(TextureInfo* tex, const u8* data, size_t size, size_t face,
 void GLASS_tex_writeUntiled(TextureInfo* tex, const u8* data, size_t face, size_t level) {
     KYGX_ASSERT(tex);
     KYGX_ASSERT(tex->target != GLASS_TEX_TARGET_UNBOUND);
+    KYGX_ASSERT(data);
 
     const size_t width = tex->width >> level;
     const size_t height = tex->height >> level;
@@ -211,6 +214,6 @@ void GLASS_tex_writeUntiled(TextureInfo* tex, const u8* data, size_t face, size_
         glassLinearFree((void*)src);
 
     // Write the converted data.
-    GLASS_tex_write(tex, dst, size, face, level);
+    GLASS_tex_write(tex, dst, face, level);
     glassLinearFree(dst);
 }
