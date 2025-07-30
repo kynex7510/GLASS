@@ -170,12 +170,13 @@ void GLASS_tex_write(TextureInfo* tex, const u8* data, size_t face, size_t level
     flushSrc.addr = data;
     flushSrc.size = size;
 
+    u8* dst = tex->faces[face] + mipmapOffset;
     KYGXFlushCacheRegionsBuffer flushDst;
-    flushDst.addr = tex->faces[face] + mipmapOffset;
+    flushDst.addr = dst;
     flushDst.size = size;
 
     kygxSyncFlushCacheRegions(&flushSrc, &flushDst, NULL);
-    kygxSyncTextureCopy(flushSrc.addr, flushDst.addr, flushSrc.size, 0, 0, 0, 0);
+    kygxSyncTextureCopy(flushSrc.addr, dst, flushSrc.size, 0, 0, 0, 0);
 
     // Avoid possible prefetches.
     kygxInvalidateDataCache(flushDst.addr, flushDst.size);
@@ -216,4 +217,157 @@ void GLASS_tex_writeUntiled(TextureInfo* tex, const u8* data, size_t face, size_
     // Write the converted data.
     GLASS_tex_write(tex, dst, face, level);
     glassLinearFree(dst);
+}
+
+void GLASS_tex_readRect(TextureInfo* tex, u8* dst, size_t face, size_t level, size_t x, size_t y, size_t width, size_t height) {
+    KYGX_ASSERT(tex);
+    KYGX_ASSERT(tex->target != GLASS_TEX_TARGET_UNBOUND);
+    KYGX_ASSERT(glassIsLinear(dst));    
+    KYGX_ASSERT(face < getNumFaces(tex->target));
+    KYGX_ASSERT(kygxIsAligned(x, 8));
+    KYGX_ASSERT(kygxIsAligned(y, 8));
+    KYGX_ASSERT(kygxIsAligned(width, 8));
+    KYGX_ASSERT(kygxIsAligned(height, 8));
+
+    const RIPPixelFormat pixelFormat = getRIPPixelFormat(tex->format);
+    const size_t bytesPerPixel = ripGetPixelFormatBPP(pixelFormat) >> 3;
+    const size_t mipmapOffset = ripGetTextureDataOffset(tex->width, tex->height, pixelFormat, level);
+
+    KYGXTextureCopySurface srcSurface;
+    srcSurface.addr = tex->faces[face] + mipmapOffset;
+    srcSurface.width = tex->width;
+    srcSurface.height = tex->height;
+    srcSurface.pixelSize = bytesPerPixel; // TODO
+    srcSurface.rotated = true;
+
+    KYGXTextureCopySurface dstSurface;
+    dstSurface.addr = dst;
+    dstSurface.width = width;
+    dstSurface.height = height;
+    dstSurface.pixelSize = bytesPerPixel; // TODO
+    dstSurface.rotated = true;
+
+    KYGXTextureCopyRect srcRect;
+    srcRect.x = x;
+    srcRect.y = y;
+    srcRect.width = width;
+    srcRect.height = height;
+
+    KYGXTextureCopyRect dstRect;
+    dstRect.x = 0;
+    dstRect.y = 0;
+    dstRect.width = width;
+    dstRect.height = height;
+
+    kygxSyncRectCopy(&srcSurface, &srcRect, &dstSurface, &dstRect);
+}
+
+void GLASS_tex_writeRect(TextureInfo* tex, const u8* data, size_t face, size_t level, size_t x, size_t y, size_t width, size_t height) {
+    KYGX_ASSERT(tex);
+    KYGX_ASSERT(tex->target != GLASS_TEX_TARGET_UNBOUND);
+    KYGX_ASSERT(glassIsLinear(data));
+    KYGX_ASSERT(face < getNumFaces(tex->target));
+    KYGX_ASSERT(kygxIsAligned(x, 8));
+    KYGX_ASSERT(kygxIsAligned(y, 8));
+    KYGX_ASSERT(kygxIsAligned(width, 8));
+    KYGX_ASSERT(kygxIsAligned(height, 8));
+    
+    const RIPPixelFormat pixelFormat = getRIPPixelFormat(tex->format);
+    const size_t bytesPerPixel = ripGetPixelFormatBPP(pixelFormat) >> 3;
+    const size_t mipmapOffset = ripGetTextureDataOffset(tex->width, tex->height, pixelFormat, level);
+
+    KYGXTextureCopySurface srcSurface;
+    srcSurface.addr = (void*)data;
+    srcSurface.width = width;
+    srcSurface.height = height;
+    srcSurface.pixelSize = bytesPerPixel; // TODO: use official macros.
+    srcSurface.rotated = true;
+
+    KYGXTextureCopySurface dstSurface;
+    dstSurface.addr = tex->faces[face] + mipmapOffset;
+    dstSurface.width = tex->width;
+    dstSurface.height = tex->height;
+    dstSurface.pixelSize = bytesPerPixel; // TODO
+    dstSurface.rotated = true;
+
+    KYGXTextureCopyRect srcRect;
+    srcRect.x = 0;
+    srcRect.y = 0;
+    srcRect.width = width;
+    srcRect.height = height;
+
+    KYGXTextureCopyRect dstRect;
+    dstRect.x = x;
+    dstRect.y = y;
+    dstRect.width = width;
+    dstRect.height = height;
+
+    kygxSyncRectCopy(&srcSurface, &srcRect, &dstSurface, &dstRect);
+}
+
+void GLASS_tex_readUntiledRect(TextureInfo* tex, u8* dst, size_t face, size_t level, size_t x, size_t y, size_t width, size_t height) {
+    KYGX_ASSERT(tex);
+    KYGX_ASSERT(tex->target != GLASS_TEX_TARGET_UNBOUND);
+    KYGX_ASSERT(glassIsLinear(dst));
+    KYGX_ASSERT(face < getNumFaces(tex->target));
+
+    const RIPPixelFormat pixelFormat = getRIPPixelFormat(tex->format);
+    const size_t bytesPerPixel = ripGetPixelFormatBPP(pixelFormat) >> 3;
+
+    const size_t alignedX = kygxAlignDown(x, 8);
+    const size_t alignedY = kygxAlignDown(y, 8);
+    const size_t alignedWidth = kygxAlignUp(width, 8);
+    const size_t alignedHeight = kygxAlignUp(height, 8);
+
+    u8* tmpRect = glassLinearAlloc(alignedWidth * alignedHeight * bytesPerPixel);
+    KYGX_ASSERT(tmpRect);
+
+    GLASS_tex_readRect(tex, tmpRect, face, level, alignedX, alignedY, alignedWidth, alignedHeight);
+    ripConvertInPlaceFromNative(tmpRect, alignedWidth, alignedHeight, pixelFormat, true);
+
+    const size_t lineWidth = width * bytesPerPixel;
+    size_t srcOffset = ((y - alignedY) * alignedWidth * bytesPerPixel) + ((x - alignedX) * bytesPerPixel);
+    size_t dstOffset = 0;
+
+    for (size_t i = 0; i < height; ++i) {
+        memcpy(dst + dstOffset, tmpRect + srcOffset, lineWidth);
+        srcOffset += alignedWidth * bytesPerPixel;
+        dstOffset += lineWidth;
+    }
+
+    glassLinearFree(tmpRect);
+}
+
+void GLASS_tex_writeUntiledRect(TextureInfo* tex, const u8* data, size_t face, size_t level, size_t x, size_t y, size_t width, size_t height) {
+    KYGX_ASSERT(tex);
+    KYGX_ASSERT(data);
+    KYGX_ASSERT(tex->target != GLASS_TEX_TARGET_UNBOUND);
+
+    const RIPPixelFormat pixelFormat = getRIPPixelFormat(tex->format);
+    const size_t bytesPerPixel = ripGetPixelFormatBPP(pixelFormat) >> 3;
+
+    const size_t alignedX = kygxAlignDown(x, 8);
+    const size_t alignedY = kygxAlignDown(y, 8);
+    const size_t alignedWidth = kygxAlignUp(width, 8);
+    const size_t alignedHeight = kygxAlignUp(height, 8);
+
+    u8* tmpRect = glassLinearAlloc(alignedWidth * alignedHeight * bytesPerPixel);
+    KYGX_ASSERT(tmpRect);
+
+    GLASS_tex_readUntiledRect(tex, tmpRect, face, level, alignedX, alignedY, alignedWidth, alignedHeight);
+
+    // Write data.
+    const size_t lineWidth = width * bytesPerPixel;
+    size_t srcOffset = 0;
+    size_t dstOffset = ((y - alignedY) * alignedWidth * bytesPerPixel) + ((x - alignedX) * bytesPerPixel);
+
+    for (size_t i = 0; i < height; ++i) {
+        memcpy(tmpRect + dstOffset, data + srcOffset, lineWidth);
+        srcOffset += lineWidth;
+        dstOffset += alignedWidth * bytesPerPixel;
+    }
+
+    ripConvertInPlaceToNative(tmpRect, alignedWidth, alignedHeight, pixelFormat, true);
+    GLASS_tex_writeRect(tex, tmpRect, face, level, alignedX, alignedY, alignedWidth, alignedHeight);
+    glassLinearFree(tmpRect);
 }

@@ -23,4 +23,10 @@ TexReallocStatus GLASS_tex_realloc(TextureInfo* tex, size_t width, size_t height
 void GLASS_tex_write(TextureInfo* tex, const u8* data, size_t face, size_t level);
 void GLASS_tex_writeUntiled(TextureInfo* tex, const u8* data, size_t face, size_t level);
 
+void GLASS_tex_readRect(TextureInfo* tex, u8* dst, size_t face, size_t level, size_t x, size_t y, size_t width, size_t height);
+void GLASS_tex_writeRect(TextureInfo* tex, const u8* data, size_t face, size_t level, size_t x, size_t y, size_t width, size_t height);
+
+void GLASS_tex_readUntiledRect(TextureInfo* tex, u8* dst, size_t face, size_t level, size_t x, size_t y, size_t width, size_t height);
+void GLASS_tex_writeUntiledRect(TextureInfo* tex, const u8* data, size_t face, size_t level, size_t x, size_t y, size_t width, size_t height);
+
 #endif /* _GLASS_TEXMANAGER_H */
