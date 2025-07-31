@@ -5,7 +5,7 @@
 ### Buffers
 
 | Name                   | Available? |
-|------------------------|------------|
+| ---------------------- | ---------- |
 | glBindBuffer           | Yes        |
 | glBufferData           | Yes        |
 | glBufferSubData        | Yes        |
@@ -17,7 +17,7 @@
 ### Combiners (extensions)
 
 | Name                | Available? |
-|---------------------|------------|
+| ------------------- | ---------- |
 | glCombinerColorPICA | Yes        |
 | glCombinerFuncPICA  | Yes        |
 | glCombinerOpPICA    | Yes        |
@@ -28,7 +28,7 @@
 ### Effects
 
 | Name                    | Available? |
-|-------------------------|------------|
+| ----------------------- | ---------- |
 | glAlphaFunc             | Yes        |
 | glBlendColor            | Yes        |
 | glBlendEquation         | Yes        |
@@ -78,25 +78,27 @@
 
 ### Texture
 
-| Name                      | Available? |
-| ------------------------- | ---------- |
-| glActiveTexture           | Yes        |
-| glBindTexture             | Yes        |
-| glCompressedTexImage2D    | Stubbed    |
-| glCompressedTexSubImage2D | Stubbed    |
-| glCopyTexImage2D          | No         |
-| glCopyTexSubImage2D       | No         |
-| glDeleteTextures          | Yes        |
-| glGenTextures             | Yes        |
-| glGetTexParameterfv       | No         |
-| glGetTexParameteriv       | No         |
-| glIsTexture               | Yes        |
-| glTexImage2D              | Yes        |
-| glTexParameterf           | Yes        |
-| glTexParameteri           | Yes        |
-| glTexParameterfv          | Yes        |
-| glTexParameteriv          | Yes        |
-| glTexSubImage2D           | Yes        |
+| Name                      | Available?  |
+| ------------------------- | ----------- |
+| glActiveTexture           | Yes         |
+| glBindTexture             | Yes         |
+| glCompressedTexImage2D    | Stubbed     |
+| glCompressedTexSubImage2D | Stubbed     |
+| glCopyTexImage2D          | No          |
+| glCopyTexSubImage2D       | No          |
+| glDeleteTextures          | Yes         |
+| glGenTextures             | Yes         |
+| glGetTexParameterfv       | No          |
+| glGetTexParameteriv       | No          |
+| glIsTexture               | Yes         |
+| glTexImage2D              | Yes         |
+| glTexParameterf           | Yes         |
+| glTexParameteri           | Yes         |
+| glTexParameterfv          | Yes         |
+| glTexParameteriv          | Yes         |
+| glTexSubImage2D           | Stubbed (*) |
+
+- (*) Implemented but untested.
 
 ### Texture (extensions)
 

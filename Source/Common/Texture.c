@@ -522,6 +522,11 @@ void glTexImage2D(GLenum target, GLint level, GLint internalformat, GLsizei widt
 }
 
 void glTexSubImage2D(GLenum target, GLint level, GLint xoffset, GLint yoffset, GLsizei width, GLsizei height, GLenum format, GLenum type, const GLvoid* data) {
+    // TODO: test.
+    GLASS_context_setError(GL_INVALID_OPERATION);
+    return;
+    
+/*
     if (!isTexFormat(format) || !isTexType(type)) {
         GLASS_context_setError(GL_INVALID_ENUM);
         return;
@@ -604,6 +609,7 @@ void glTexSubImage2D(GLenum target, GLint level, GLint xoffset, GLint yoffset, G
     }
 
     GLASS_tex_writeUntiledRect(tex, data, face, level, xoffset, yoffset, width, height);
+*/
 }
 
 void glTexVRAMPICA(GLboolean enabled) {
