@@ -684,7 +684,7 @@ void glassMoveTex3DS(RIPTexture* tex3ds) {
     if (!tex3ds)
         return;
 
-    CtxCommon* ctx = GLASS_context_getCommon();
+    CtxCommon* ctx = GLASS_context_getBound();
     TextureInfo* tex = (TextureInfo*)ctx->textureUnits[ctx->activeTextureUnit];
 
     // We don't support default textures.
