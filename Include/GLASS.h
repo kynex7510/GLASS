@@ -159,6 +159,9 @@ GLASSDownscale glassGetDownscale(GLASSCtx ctx);
 // Set downscale.
 void glassSetDownscale(GLASSCtx ctx, GLASSDownscale downscale);
 
+// Move Tex3DS texture data in the currently bound texture object.
+void glassMoveTex3DS(RIPTexture* tex);
+
 void* glassHeapAlloc(size_t size);
 void glassHeapFree(void* p);
 size_t glassHeapSize(const void* p);

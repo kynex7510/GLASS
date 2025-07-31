@@ -5,6 +5,7 @@
  */
 
 #include <KYGX/Utility.h>
+#include <RIP/Texture.h>
 
 #include "Base/Context.h"
 #include "Base/TexManager.h"
@@ -641,3 +642,92 @@ void glCompressedTexSubImage2D(GLenum target, GLint level, GLint xoffset, GLint 
 // TODO
 void glCopyTexImage2D(GLenum target, GLint level, GLenum internalformat, GLint x, GLint y, GLsizei width, GLsizei height, GLint border);
 void glCopyTexSubImage2D(GLenum target, GLint level, GLint xoffset, GLint yoffset, GLint x, GLint y, GLsizei width, GLsizei height);
+
+static inline GPUTexFormat getNativeFormat(RIPPixelFormat pixelFormat) {
+    switch (pixelFormat) {
+        case RIP_PIXELFORMAT_RGBA8:
+            return TEXFORMAT_RGBA8;
+        case RIP_PIXELFORMAT_RGB8:
+            return TEXFORMAT_RGB8;
+        case RIP_PIXELFORMAT_RGB5A1:
+            return TEXFORMAT_RGB5A1;
+        case RIP_PIXELFORMAT_RGB565:
+            return TEXFORMAT_RGB565;
+        case RIP_PIXELFORMAT_RGBA4:
+            return TEXFORMAT_RGBA4;
+        case RIP_PIXELFORMAT_LA8:
+            return TEXFORMAT_LA8;
+        case RIP_PIXELFORMAT_HILO8:
+            return TEXFORMAT_HILO8;
+        case RIP_PIXELFORMAT_L8:
+            return TEXFORMAT_L8;
+        case RIP_PIXELFORMAT_A8:
+            return TEXFORMAT_A8;
+        case RIP_PIXELFORMAT_LA4:
+            return TEXFORMAT_LA4;
+        case RIP_PIXELFORMAT_L4:
+            return TEXFORMAT_L4;
+        case RIP_PIXELFORMAT_A4:
+            return TEXFORMAT_A4;
+        case RIP_PIXELFORMAT_ETC1:
+            return TEXFORMAT_ETC1;
+        case RIP_PIXELFORMAT_ETC1A4:
+            return TEXFORMAT_ETC1A4;
+        default:
+            KYGX_UNREACHABLE("Invalid parameter!");
+    }
+
+    return 0;
+}
+
+void glassMoveTex3DS(RIPTexture* tex3ds) {
+    if (!tex3ds)
+        return;
+
+    CtxCommon* ctx = GLASS_context_getCommon();
+    TextureInfo* tex = (TextureInfo*)ctx->textureUnits[ctx->activeTextureUnit];
+
+    // We don't support default textures.
+    if (!tex) {
+        GLASS_context_setError(GL_INVALID_OPERATION);
+        return;
+    }
+
+    // Check target.
+    if (tex->target != (tex3ds->isCubeMap ? GL_TEXTURE_CUBE_MAP : GL_TEXTURE_2D)) {
+        GLASS_context_setError(GL_INVALID_OPERATION);
+        return;
+    }
+
+    // Check if texture data has been moved already.
+    if (!tex3ds->faces[0]) {
+        GLASS_context_setError(GL_INVALID_OPERATION);
+        return;
+    }
+
+    const GPUTexFormat nativeFormat = getNativeFormat(tex3ds->pixelFormat);
+
+    if (tex->vram) {
+        const TexReallocStatus reallocStatus = GLASS_tex_realloc(tex, tex3ds->width, tex3ds->height, nativeFormat, true);
+        if (reallocStatus == TEXREALLOCSTATUS_FAILED)
+            return;
+
+        // Move data.
+        const size_t numFaces = tex3ds->isCubeMap ? 6 : 1;
+
+        for (size_t face = 0; face < numFaces; ++face) {
+            for (size_t level = 0; level < tex3ds->levels; ++level) {
+                const size_t mipmapOffset = ripGetTextureDataOffset(tex3ds->width, tex3ds->height, tex3ds->pixelFormat, level);
+                GLASS_tex_write(tex, tex3ds->faces[face] + mipmapOffset, face, level);
+            }
+
+            glassLinearFree(tex3ds->faces[face]);
+        }
+    } else {
+        // Just move the pointers.
+        GLASS_tex_setParams(tex, tex3ds->width, tex3ds->height, nativeFormat, false, tex3ds->faces);
+    }
+
+    memset(tex->faces, 0, GLASS_NUM_TEX_FACES * sizeof(uint8_t*));
+    ctx->flags |= GLASS_CONTEXT_FLAG_TEXTURE;
+}
