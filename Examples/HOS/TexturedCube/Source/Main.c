@@ -2,7 +2,7 @@
 #include <kazmath/kazmath.h>
 
 #include "stb_image.h"
-#include "TexturedCubeRaw_vshader_shbin.h"
+#include "TexturedCube_vshader_shbin.h"
 
 typedef struct {
     float position[3];
@@ -99,7 +99,7 @@ static void sceneInit(GLuint* vbo, GLuint* tex) {
     // Load the vertex shader, create a shader program and bind it.
     GLuint prog = glCreateProgram();
     GLuint shad = glCreateShader(GL_VERTEX_SHADER);
-    glShaderBinary(1, &shad, GL_SHADER_BINARY_PICA, TexturedCubeRaw_vshader_shbin, TexturedCubeRaw_vshader_shbin_size);
+    glShaderBinary(1, &shad, GL_SHADER_BINARY_PICA, TexturedCube_vshader_shbin, TexturedCube_vshader_shbin_size);
     glAttachShader(prog, shad);
     glDeleteShader(shad);
     glLinkProgram(prog);
