@@ -728,6 +728,6 @@ void glassMoveTex3DS(RIPTex3DS* tex3ds) {
         GLASS_tex_setParams(tex, tex3ds->width, tex3ds->height, nativeFormat, false, tex3ds->faces);
     }
 
-    memset(tex->faces, 0, GLASS_NUM_TEX_FACES * sizeof(uint8_t*));
+    memset(tex3ds->faces, 0, GLASS_NUM_TEX_FACES * sizeof(uint8_t*));
     ctx->flags |= GLASS_CONTEXT_FLAG_TEXTURE;
 }
