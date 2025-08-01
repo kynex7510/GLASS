@@ -680,7 +680,7 @@ static inline GPUTexFormat getNativeFormat(RIPPixelFormat pixelFormat) {
     return 0;
 }
 
-void glassMoveTex3DS(RIPTexture* tex3ds) {
+void glassMoveTex3DS(RIPTex3DS* tex3ds) {
     if (!tex3ds)
         return;
 
