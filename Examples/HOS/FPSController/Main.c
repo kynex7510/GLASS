@@ -64,7 +64,7 @@ static GLuint sceneInit(void) {
 
 static void sceneRender(float a) {
     // Compute color.
-    float b = (cosf(a * kmPI * 2) + 1.0f) / 2.0f;
+    float b = (cosf(kmRevolutionsToRadians(a)) + 1.0f) / 2.0f;
 
     // Update the uniforms.
     glUniformMatrix4fv(g_ProjLoc, 1, GL_FALSE, g_Projection.mat);

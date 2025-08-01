@@ -70,7 +70,7 @@ static void sceneRender(float angleX, float angleY) {
     // Compute the model matrix.
     kmMat4 tmp;
     kmMat4 modelView;
-    kmMat4RotationY(&modelView, angleY * kmPI * 2);
+    kmMat4RotationY(&modelView, kmRevolutionsToRadians(angleY));
     kmMat4Multiply(&tmp, &g_BaseModelView, &modelView);
     kmMat4Transpose(&modelView, &tmp);
 

@@ -66,7 +66,7 @@ static void sceneRender(float a) {
     const bool isTop = isTopScreen();
 
     // Compute color.
-    float b = (cosf(a * kmPI * 2) + 1.0f) / 2.0f;
+    float b = (cosf(kmRevolutionsToRadians(a)) + 1.0f) / 2.0f;
     if (!isTop)
         b = 1.0f - b;
 

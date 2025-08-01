@@ -71,7 +71,7 @@ static void sceneRender(float iod, float angleX, float angleY) {
 
     // Compute the model matrix.
     kmMat4 modelView;
-    kmMat4RotationY(&modelView, angleY * kmPI * 2);
+    kmMat4RotationY(&modelView, kmRevolutionsToRadians(angleY));
     kmMat4Multiply(&tmp, &g_BaseModelView, &modelView);
     kmMat4Transpose(&modelView, &tmp);
 
@@ -130,7 +130,7 @@ int main() {
     float angleX = 0.0;
     float angleY = 0.0;
 
-    while ( aptMainLoop()) {
+    while (aptMainLoop()) {
         hidScanInput();
 
         // Respond to user input.
