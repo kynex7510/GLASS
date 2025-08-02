@@ -623,6 +623,8 @@ void glTexVRAMPICA(GLboolean enabled) {
     }
 
     const TexReallocStatus reallocStatus = GLASS_tex_realloc(tex, tex->width, tex->height, tex->format, enabled);
+    KYGX_ASSERT(reallocStatus != TEXREALLOCSTATUS_FAILED);
+
     if (reallocStatus == TEXREALLOCSTATUS_UPDATED) {
         tex->vram = enabled;
         ctx->flags |= GLASS_CONTEXT_FLAG_TEXTURE;

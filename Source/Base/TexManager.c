@@ -176,7 +176,7 @@ void GLASS_tex_write(TextureInfo* tex, const u8* data, size_t face, size_t level
     flushDst.size = size;
 
     kygxSyncFlushCacheRegions(&flushSrc, &flushDst, NULL);
-    kygxSyncTextureCopy(flushSrc.addr, dst, flushSrc.size, 0, 0, 0, 0);
+    kygxSyncTextureCopy(data, dst, size, 0, 0, 0, 0);
 
     // Avoid possible prefetches.
     kygxInvalidateDataCache(flushDst.addr, flushDst.size);
