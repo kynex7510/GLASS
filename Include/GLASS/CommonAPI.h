@@ -3,7 +3,7 @@
 
 #include <GLASS/Defs.h>
 
-#if defined(__cplusplus)
+#ifdef __cplusplus
 extern "C" {
 #endif // __cplusplus
 
@@ -102,7 +102,7 @@ void glTexSubImage2D(GLenum target, GLint level, GLint xoffset, GLint yoffset, G
 
 void glTexVRAMPICA(GLboolean enabled);
 
-#if defined(__cplusplus)
+#ifdef __cplusplus
 }
 #endif // __cplusplus
 

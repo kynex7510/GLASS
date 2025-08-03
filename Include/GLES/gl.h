@@ -77,7 +77,7 @@ void glTexCoordPointer (GLint size, GLenum type, GLsizei stride, const void* poi
 void glTexParameteriv (GLenum target, GLenum pname, const GLint* params);
 void glVertexPointer (GLint size, GLenum type, GLsizei stride, const void* pointer);
 
-#if defined(__cplusplus)
+#ifdef __cplusplus
 }
 #endif // __cplusplus
 

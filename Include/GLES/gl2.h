@@ -97,7 +97,7 @@ void glUniformMatrix2fv(GLint location, GLsizei count, GLboolean transpose, cons
 void glUniformMatrix3fv(GLint location, GLsizei count, GLboolean transpose, const GLfloat* value);
 void glUniformMatrix4fv(GLint location, GLsizei count, GLboolean transpose, const GLfloat* value);
 
-#if defined(__cplusplus)
+#ifdef __cplusplus
 }
 #endif // __cplusplus
 
