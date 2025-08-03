@@ -105,7 +105,7 @@ void GLASS_tex_setParams(TextureInfo* tex, size_t width, size_t height, GPUTexFo
     for (size_t i = 0; i < numFaces; ++i) {
         u8* p = tex->faces[i];
         tex->vram ? glassVRAMFree(p) : glassLinearFree(p);
-        tex->faces[i] = faces[i];
+        tex->faces[i] = faces ? faces[i] : NULL;
     }
 
     tex->format = format;
@@ -117,21 +117,20 @@ void GLASS_tex_setParams(TextureInfo* tex, size_t width, size_t height, GPUTexFo
 static inline bool GLASS_reallocTexImpl(TextureInfo* tex, size_t width, size_t height, GPUTexFormat format, bool vram) {
     KYGX_ASSERT(tex);
 
-    u8* faces[GLASS_NUM_TEX_FACES];
-    memset(faces, 0, GLASS_NUM_TEX_FACES * sizeof(u8*));
+    GLASS_tex_setParams(tex, width, height, format, vram, NULL);
 
     if (width && height) {
         const size_t numFaces = getNumFaces(tex->target);
-        const size_t allocSize = ripGetTextureDataSize(width, height, getRIPPixelFormat(format), ripGetNumTextureLevels(width, height));
+        const size_t allocSize = ripGetTextureDataSize(tex->width, tex->height, getRIPPixelFormat(tex->format), ripGetNumTextureLevels(tex->width, tex->height));
 
         for (size_t i = 0; i < numFaces; ++i) {
-            faces[i] = vram ? glassVRAMAlloc(allocSize, KYGX_ALLOC_VRAM_BANK_ANY) : glassLinearAlloc(allocSize);
+            tex->faces[i] = tex->vram ? glassVRAMAlloc(allocSize, KYGX_ALLOC_VRAM_BANK_ANY) : glassLinearAlloc(allocSize);
+            const bool valid = tex->faces[i] && (i == 0 || ripValidateTextureFaceAddr(tex->faces[0], tex->faces[i]));
 
-            const bool valid = faces[i] && (i == 0 || ripValidateTextureFaceAddr(faces[0], faces[i]));
             if (!valid) {
                 // Free allocated buffers.
                 for (size_t j = 0; j < i; ++j) {
-                    u8* q = faces[j];
+                    u8* q = tex->faces[j];
                     vram ? glassVRAMFree(q) : glassLinearFree(q);
                 }
 
@@ -141,10 +140,9 @@ static inline bool GLASS_reallocTexImpl(TextureInfo* tex, size_t width, size_t h
         }
 
         if (numFaces > 1)
-            ripSortTextureFaces(faces);
+            ripSortTextureFaces(tex->faces);
     }
 
-    GLASS_tex_setParams(tex, width, height, format, vram, faces);
     return true;
 }
 
