@@ -5,6 +5,7 @@
  */
 
 #include <KYGX/Utility.h>
+#include <RIP/Texture.h>
 
 #include "Platform/GPU.h"
 #include "Base/Math.h"
@@ -1221,12 +1222,12 @@ void GLASS_gpu_setTextureUnits(GLASSGPUCommandList* list, const GLuint* units) {
         params[4] = mainTexAddr >> 3;
 
         if (hasCubeMap) {
-            const u32 mask = (mainTexAddr >> 3) & ~(0x3FFFFFu);
-
             for (size_t j = 1; j < GLASS_NUM_TEX_FACES; ++j) {
+                KYGX_ASSERT(ripValidateTextureFaceAddr(tex->faces[0], tex->faces[j]));
+
                 const u32 dataAddr = kygxGetPhysicalAddress(tex->faces[j]);
                 KYGX_ASSERT(dataAddr);
-                KYGX_ASSERT(((dataAddr >> 3) & ~(0x3FFFFFu)) == mask);
+            
                 params[4 + j] = (dataAddr >> 3) & 0x3FFFFFu;
             }
         }

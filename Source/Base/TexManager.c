@@ -126,7 +126,9 @@ static inline bool GLASS_reallocTexImpl(TextureInfo* tex, size_t width, size_t h
 
         for (size_t i = 0; i < numFaces; ++i) {
             faces[i] = vram ? glassVRAMAlloc(allocSize, KYGX_ALLOC_VRAM_BANK_ANY) : glassLinearAlloc(allocSize);
-            if (!faces[i]) {
+
+            const bool valid = faces[i] && (i == 0 || ripValidateTextureFaceAddr(faces[0], faces[i]));
+            if (!valid) {
                 // Free allocated buffers.
                 for (size_t j = 0; j < i; ++j) {
                     u8* q = faces[j];
@@ -137,6 +139,9 @@ static inline bool GLASS_reallocTexImpl(TextureInfo* tex, size_t width, size_t h
                 return false;
             }
         }
+
+        if (numFaces > 1)
+            ripSortTextureFaces(faces);
     }
 
     GLASS_tex_setParams(tex, width, height, format, vram, faces);
