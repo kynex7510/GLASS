@@ -165,16 +165,19 @@ void glassMoveTex3DS(RIPTex3DS* tex);
 
 void* glassHeapAlloc(size_t size);
 void glassHeapFree(void* p);
+void* glassHeapRealloc(void* p, size_t newSize);
 size_t glassHeapSize(const void* p);
 bool glassIsHeap(const void* p);
 
 void* glassLinearAlloc(size_t size);
 void glassLinearFree(void* p);
+void* glassLinearRealloc(void* p, size_t newSize);
 size_t glassLinearSize(const void* p);
 bool glassIsLinear(const void* p);
 
 void* glassVRAMAlloc(size_t size, KYGXVRAMBank bank);
 void glassVRAMFree(void* p);
+void* glassVRAMRealloc(void* p, size_t newSize);
 size_t glassVRAMSize(const void* p);
 bool glassIsVRAM(const void* p);
 

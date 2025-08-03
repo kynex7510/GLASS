@@ -16,10 +16,10 @@ option(GLASS_ES_1_1 "Enable ES 1.1 support" OFF)
 option(GLASS_COMPILE_EXAMPLES "Enable examples compilation" OFF)
 
 # Setup dependencies.
-CPMAddPackage("gh:kynex7510/KYGX#8835e8b")
+CPMAddPackage("gh:kynex7510/KYGX#e704045")
 
 CPMAddPackage(
-    URI "gh:kynex7510/RIP#7f16731"
+    URI "gh:kynex7510/RIP#93c244d"
     OPTIONS "RIP_BACKEND kygx"
 )
 
