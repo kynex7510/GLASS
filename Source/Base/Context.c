@@ -23,6 +23,7 @@ static CtxCommon* g_OldCtx = NULL;
 
 void GLASS_context_initCommon(CtxCommon* ctx, const GLASSCtxParams* ctxParams) {
     KYGX_ASSERT(ctx);
+    KYGX_ASSERT(ctxParams);
 
     memcpy(&ctx->params, ctxParams, sizeof(GLASSCtxParams));
 
@@ -196,11 +197,28 @@ void GLASS_context_cleanupCommon(CtxCommon* ctx) {
 #ifdef GLASS_ES_1_1
 
 void GLASS_context_init11(Ctx11* ctx, const GLASSCtxParams* ctxParams) {
+    KYGX_ASSERT(ctx);
+    KYGX_ASSERT(ctxParams);
 
+    GLASS_context_initCommon((CtxCommon*)ctx, ctxParams);
+
+    // Matrix.
+    GLASS_mtxstack_init(&ctx->modelViewMtxStack, GLASS_MODELVIEW_STACK_SIZE);
+    GLASS_mtxstack_init(&ctx->projMtxStack, GLASS_PROJECTION_STACK_SIZE);
+    GLASS_mtxstack_init(&ctx->tex0MtxStack, GLASS_TEXTURE_STACK_SIZE);
+    GLASS_mtxstack_init(&ctx->tex1MtxStack, GLASS_TEXTURE_STACK_SIZE);
+    GLASS_mtxstack_init(&ctx->tex2MtxStack, GLASS_TEXTURE_STACK_SIZE);
+    ctx->mtxMode = GL_MODELVIEW;
 }
 
 void GLASS_context_cleanup11(Ctx11* ctx) {
-    
+    KYGX_ASSERT(ctx);
+
+    GLASS_mtxstack_destroy(&ctx->tex2MtxStack);
+    GLASS_mtxstack_destroy(&ctx->tex1MtxStack);
+    GLASS_mtxstack_destroy(&ctx->tex0MtxStack);
+    GLASS_mtxstack_destroy(&ctx->projMtxStack);
+    GLASS_mtxstack_destroy(&ctx->modelViewMtxStack);
 }
 
 #endif // GLASS_ES_1_1

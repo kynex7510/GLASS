@@ -87,3 +87,69 @@ void GLASS_math_unpackFloatVector(const u32* in, float* out) {
     out[2] = GLASS_math_f24tof32((in[1] >> 16) | ((in[0] & 0xFF) << 16));
     out[3] = GLASS_math_f24tof32(in[0] >> 8);
 }
+
+void GLASS_mtxstack_init(MtxStack* s, size_t capacity) {
+    KYGX_ASSERT(s);
+    KYGX_ASSERT(capacity > 0);
+
+    s->matrices = glassHeapAlloc(sizeof(kmMat4) * capacity);
+    KYGX_ASSERT(s->matrices);
+
+    s->count = 1;
+    s->capacity = capacity;
+
+    kmMat4 identity;
+    kmMat4Identity(&identity);
+    GLASS_mtxstack_load(s, identity.mat);
+}
+
+void GLASS_mtxstack_destroy(MtxStack* s) {
+    KYGX_ASSERT(s);
+    glassHeapFree(s->matrices);
+    s->matrices = NULL;
+    s->count = 0;
+    s->capacity = 0;
+}
+
+bool GLASS_mtxstack_push(MtxStack* s) {
+    KYGX_ASSERT(s);
+    KYGX_ASSERT(s->count > 0);
+
+    if (s->count >= s->capacity)
+        return false;
+
+    ++s->count;
+    GLASS_mtxstack_load(s, (const GLfloat*)&s->matrices[s->count - 2]);
+    return true;
+}
+
+bool GLASS_mtxstack_pop(MtxStack* s) {
+    KYGX_ASSERT(s);
+    KYGX_ASSERT(s->count > 0);
+
+    if (s->count <= 1)
+        return false;
+
+    --s->count;
+    return true;
+}
+
+void GLASS_mtxstack_load(MtxStack* s, const GLfloat* mtx) {
+    KYGX_ASSERT(s);
+    KYGX_ASSERT(mtx);
+    KYGX_ASSERT(s->count > 0);
+
+    kmMat4Assign(&s->matrices[s->count - 1], (kmMat4*)mtx);
+}
+
+void GLASS_mtxstack_multiply(MtxStack* s, const GLfloat* mtx) {
+    KYGX_ASSERT(s);
+    KYGX_ASSERT(mtx);
+    KYGX_ASSERT(s->count > 0);
+
+    kmMat4 tmp;
+    kmMat4* dst = &s->matrices[s->count - 1];
+
+    kmMat4Assign(&tmp, dst);
+    kmMat4Multiply(dst, &tmp, (kmMat4*)mtx);
+}

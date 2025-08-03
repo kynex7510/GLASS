@@ -2,7 +2,7 @@ ctr_add_shader_library(BothScreens_vshader VShader.v.pica)
 dkp_add_embedded_binary_library(BothScreens-shaders BothScreens_vshader)
 
 add_executable(BothScreens Main.c)
-target_link_libraries(BothScreens PRIVATE GLASS kazmath BothScreens-shaders)
+target_link_libraries(BothScreens PRIVATE GLASS BothScreens-shaders)
 
 ctr_create_3dsx(BothScreens)
 

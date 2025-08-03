@@ -8,6 +8,7 @@
 #define _GLASS_BASE_CONTEXT_H
 
 #include "Base/Types.h"
+#include "Base/Math.h"
 
 /*
 typedef struct {
@@ -191,6 +192,14 @@ typedef struct {
 
 typedef struct {
     CtxCommon common;
+
+    // Matrix
+    MtxStack modelViewMtxStack;
+    MtxStack projMtxStack;
+    MtxStack tex0MtxStack;
+    MtxStack tex1MtxStack;
+    MtxStack tex2MtxStack;
+    GLenum mtxMode;
 } Ctx11;
 
 #endif // GLASS_ES_1_1

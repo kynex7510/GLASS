@@ -23,6 +23,11 @@ CPMAddPackage(
     OPTIONS "RIP_BACKEND kygx"
 )
 
+CPMAddPackage(
+    URI "gh:kynex7510/kazmath_3ds#e3f3d3b"
+    OPTIONS "KAZMATH_BUILD_GL_UTILS OFF"
+)
+
 # Setup library.
 set(GLASS_SOURCES
     Source/Base/Context.c
@@ -48,7 +53,8 @@ set(GLASS_SOURCES
 
 if (GLASS_ES_1_1)
     set(GLASS_SOURCES
-        ${GLASS_SOURCES}    
+        ${GLASS_SOURCES}
+        Source/V1/Matrix.c
     )
 endif()
 
@@ -63,7 +69,7 @@ if (CMAKE_BUILD_TYPE STREQUAL "Debug")
 endif()
 
 target_include_directories(GLASS PUBLIC Include PRIVATE Source)
-target_link_libraries(GLASS PUBLIC kygx rip)
+target_link_libraries(GLASS PUBLIC kygx rip kazmath)
 target_compile_options(GLASS PRIVATE -Wall -Werror)
 
 install(TARGETS GLASS)
