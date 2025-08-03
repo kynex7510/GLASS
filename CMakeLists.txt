@@ -18,7 +18,7 @@ option(GLASS_COMPILE_EXAMPLES "Enable examples compilation" OFF)
 CPMAddPackage("gh:kynex7510/KYGX#8835e8b")
 
 CPMAddPackage(
-    URI "gh:kynex7510/RIP#923ab6f"
+    URI "gh:kynex7510/RIP#7f16731"
     OPTIONS "RIP_BACKEND kygx"
 )
 
