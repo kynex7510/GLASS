@@ -2,25 +2,8 @@ include(BM/FIRM)
 
 add_subdirectory(Common9)
 
-add_subdirectory(SimpleTri)
-add_subdirectory(Lenny)
+add_subdirectory(V2)
 
-set(ARM9_LOAD_ADDRESS 0x08000040)
-set(ARM9_ENTRYPOINT 0x08000040)
-set(ARM9_COPY_METHOD NDMA)
-
-set(ARM11_LOAD_ADDRESS 0x1FF89000)
-set(ARM11_ENTRYPOINT 0x1FF89034)
-set(ARM11_COPY_METHOD XDMA)
-
-# SimpleTri
-make_firm(SimpleTriFIRM
-    ARM9 Common9_bin ${ARM9_LOAD_ADDRESS} ${ARM9_ENTRYPOINT} ${ARM9_COPY_METHOD}
-    ARM11 SimpleTri_bin ${ARM11_LOAD_ADDRESS} ${ARM11_ENTRYPOINT} ${ARM11_COPY_METHOD}
-)
-
-# Lenny
-make_firm(LennyFIRM
-    ARM9 Common9_bin ${ARM9_LOAD_ADDRESS} ${ARM9_ENTRYPOINT} ${ARM9_COPY_METHOD}
-    ARM11 Lenny_bin ${ARM11_LOAD_ADDRESS} ${ARM11_ENTRYPOINT} ${ARM11_COPY_METHOD}
-)
+if (GLASS_ES_1_1)
+    #add_subdirectory(V11)
+endif()

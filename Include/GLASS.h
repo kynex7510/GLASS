@@ -17,7 +17,8 @@ typedef struct GLASSCtxImpl* GLASSCtx;
 
 /// @brief OpenGL ES version.
 typedef enum {
-    GLASS_VERSION_ES_2, ///< OpenGL ES 2.
+    GLASS_VERSION_ES_1_1, ///< OpenGL ES 1.1.
+    GLASS_VERSION_ES_2,   ///< OpenGL ES 2.
 } GLASSVersion;
 
 /// @brief Target screen.

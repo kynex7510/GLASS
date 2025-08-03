@@ -193,6 +193,18 @@ void GLASS_context_cleanupCommon(CtxCommon* ctx) {
     GLASS_gpu_freeList(&ctx->params.GPUCmdList);
 }
 
+#ifdef GLASS_ES_1_1
+
+void GLASS_context_init11(Ctx11* ctx, const GLASSCtxParams* ctxParams) {
+
+}
+
+void GLASS_context_cleanup11(Ctx11* ctx) {
+    
+}
+
+#endif // GLASS_ES_1_1
+
 CtxCommon* GLASS_context_getBound(void) {
     KYGX_ASSERT(g_Context);
     return g_Context;

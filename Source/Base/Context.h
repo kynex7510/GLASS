@@ -187,10 +187,34 @@ typedef struct {
     bool blendMode;
 } CtxCommon;
 
+#ifdef GLASS_ES_1_1
+
+typedef struct {
+    CtxCommon common;
+} Ctx11;
+
+#endif // GLASS_ES_1_1
+
 void GLASS_context_initCommon(CtxCommon* ctx, const GLASSCtxParams* ctxParams);
 void GLASS_context_cleanupCommon(CtxCommon* ctx);
 
+#ifdef GLASS_ES_1_1
+void GLASS_context_init11(Ctx11* ctx, const GLASSCtxParams* ctxParams);
+void GLASS_context_cleanup11(Ctx11* ctx);
+#endif // GLASS_ES_1_1
+
 CtxCommon* GLASS_context_getBound(void);
+
+#ifdef GLASS_ES_1_1
+
+static inline Ctx11* GLASS_context_getBound11(void) {
+    CtxCommon* ctx = GLASS_context_getBound();
+    KYGX_ASSERT(ctx->params.version == GLASS_VERSION_ES_1_1);
+    return (Ctx11*)ctx;
+}
+
+#endif // GLASS_ES_1_1
+
 bool GLASS_context_hasBound(void);
 bool GLASS_context_isBound(CtxCommon* ctx);
 

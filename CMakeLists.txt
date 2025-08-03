@@ -12,6 +12,7 @@ if (CTR_BAREMETAL)
     include(BM/ARM11)
 endif()
 
+option(GLASS_ES_1_1 "Enable ES 1.1 support" OFF)
 option(GLASS_COMPILE_EXAMPLES "Enable examples compilation" OFF)
 
 # Setup dependencies.
@@ -45,17 +46,27 @@ set(GLASS_SOURCES
     Source/Platform/GPU.c
 )
 
-add_library(GLASSv2 STATIC ${GLASS_SOURCES})
-
-if (CMAKE_BUILD_TYPE STREQUAL "Debug")
-    target_compile_definitions(GLASSv2 PRIVATE GLASS_NO_MERCY)
+if (GLASS_ES_1_1)
+    set(GLASS_SOURCES
+        ${GLASS_SOURCES}    
+    )
 endif()
 
-target_include_directories(GLASSv2 PUBLIC Include PRIVATE Source)
-target_link_libraries(GLASSv2 PUBLIC kygx rip)
-target_compile_options(GLASSv2 PRIVATE -Wall -Werror)
+add_library(GLASS STATIC ${GLASS_SOURCES})
 
-install(TARGETS GLASSv2)
+if (GLASS_ES_1_1)
+    target_compile_definitions(GLASS PRIVATE GLASS_ES_1_1)
+endif()
+
+if (CMAKE_BUILD_TYPE STREQUAL "Debug")
+    target_compile_definitions(GLASS PRIVATE GLASS_NO_MERCY)
+endif()
+
+target_include_directories(GLASS PUBLIC Include PRIVATE Source)
+target_link_libraries(GLASS PUBLIC kygx rip)
+target_compile_options(GLASS PRIVATE -Wall -Werror)
+
+install(TARGETS GLASS)
 install(DIRECTORY Include/ DESTINATION include)
 
 if (GLASS_COMPILE_EXAMPLES)

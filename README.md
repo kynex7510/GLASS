@@ -1,6 +1,6 @@
 # GLASS
 
-(WIP) OpenGL ES 2 implementation for the 3DS.
+(WIP) OpenGL ES 1.1/2 implementation for the 3DS.
 
 ## Setup
 

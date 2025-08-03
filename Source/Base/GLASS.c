@@ -24,28 +24,44 @@ typedef struct {
 } TransferParams;
 
 GLASSCtx glassCreateContext(const GLASSCtxParams* ctxParams) {
-    if (!ctxParams)
-        return NULL;
+    KYGX_ASSERT(ctxParams);
 
-    if (ctxParams->version == GLASS_VERSION_ES_2) {
-        CtxCommon* ctx = (CtxCommon*)glassHeapAlloc(sizeof(CtxCommon));
-        if (ctx) {
-            GLASS_context_initCommon(ctx, ctxParams);
-        }
-        return (GLASSCtx)ctx;
+    CtxCommon* ctx = NULL;
+
+    switch (ctxParams->version) {
+#ifdef GLASS_ES_1_1
+        case GLASS_VERSION_ES_1_1:
+            ctx = (CtxCommon*)glassHeapAlloc(sizeof(Ctx11));
+            if (ctx)
+                GLASS_context_init11((Ctx11*)ctx, ctxParams);
+            break;
+#endif // GLASS_ES_1_1
+        case GLASS_VERSION_ES_2:
+            ctx = (CtxCommon*)glassHeapAlloc(sizeof(CtxCommon));
+            if (ctx)
+                GLASS_context_initCommon(ctx, ctxParams);
+            break;
+        default:;
     }
 
-    return NULL;
+    return (GLASSCtx)ctx;
 }
 
 void glassDestroyContext(GLASSCtx wrapped) {
     KYGX_ASSERT(wrapped);
     CtxCommon* ctx = (CtxCommon*)wrapped;
 
-    if (ctx->params.version == GLASS_VERSION_ES_2) {
-        GLASS_context_cleanupCommon((CtxCommon*)ctx);
-    } else {
-        KYGX_UNREACHABLE("Invalid context version!");
+    switch (ctx->params.version) {
+#ifdef GLASS_ES_1_1
+        case GLASS_VERSION_ES_1_1:
+            GLASS_context_cleanup11((Ctx11*)ctx);
+            break;
+#endif // GLASS_ES_1_1
+        case GLASS_VERSION_ES_2:
+            GLASS_context_cleanupCommon(ctx);
+            break;
+        default:
+            KYGX_UNREACHABLE("Invalid context version!");
     }
 
     glassHeapFree(ctx);
