@@ -96,7 +96,6 @@ void GLASS_tex_getAsRenderbuffer(const TextureInfo* tex, size_t face, Renderbuff
 
 void GLASS_tex_setParams(TextureInfo* tex, size_t width, size_t height, GPUTexFormat format, bool vram, u8** faces) {
     KYGX_ASSERT(tex);
-    KYGX_ASSERT(faces);
     KYGX_ASSERT(tex->target != GLASS_TEX_TARGET_UNBOUND);
     KYGX_ASSERT(kygxIsPo2(width));
     KYGX_ASSERT(kygxIsPo2(height));

@@ -10,6 +10,36 @@ extern "C" {
 
 #define glTexEnvStagePICA glCombinerStagePICA
 
+/* ClipPlane */
+
+void glClipPlanef(GLenum p, const GLfloat* eqn);
+void glGetClipPlanef(GLenum plane, GLfloat* equation);
+
+/* Color */
+
+void glColor4f(GLfloat red, GLfloat green, GLfloat blue, GLfloat alpha);
+void glColor4ub(GLubyte red, GLubyte green, GLubyte blue, GLubyte alpha);
+void glColorPointer(GLint size, GLenum type, GLsizei stride, const void* pointer);
+
+/* Fog */
+
+void glFogf(GLenum pname, GLfloat param);
+void glFogfv(GLenum pname, const GLfloat* params);
+
+/* Light */
+
+void glLightf(GLenum light, GLenum pname, GLfloat param);
+void glLightfv(GLenum light, GLenum pname, const GLfloat* params);
+void glLightModelf(GLenum pname, GLfloat param);
+void glLightModelfv(GLenum pname, const GLfloat* params);
+void glGetLightfv(GLenum light, GLenum pname, GLfloat* params);
+
+/* Material */
+
+void glMaterialf(GLenum face, GLenum pname, GLfloat param);
+void glMaterialfv(GLenum face, GLenum pname, const GLfloat* params);
+void glGetMaterialfv(GLenum face, GLenum pname, GLfloat* params);
+
 /* Matrix */
 
 void glPushMatrix(void);
@@ -24,21 +54,30 @@ void glRotatef(GLfloat angle, GLfloat x, GLfloat y, GLfloat z);
 void glOrthof(GLfloat l, GLfloat r, GLfloat b, GLfloat t, GLfloat n, GLfloat f);
 void glFrustumf(GLfloat l, GLfloat r, GLfloat b, GLfloat t, GLfloat n, GLfloat f);
 
-/* Color */
+/* Normal */
 
-void glColor4f(GLfloat red, GLfloat green, GLfloat blue, GLfloat alpha);
+void glNormal3f(GLfloat nx, GLfloat ny, GLfloat nz);
+void glNormalPointer(GLenum type, GLsizei stride, const void* pointer);
 
-/* Fog */
+/* Point */
 
-void glFogf(GLenum pname, GLfloat param);
-void glFogfv(GLenum pname, const GLfloat* params);
+void glPointParameterf(GLenum pname, GLfloat param);
+void glPointParameterfv(GLenum pname, const GLfloat* params);
+void glPointSize(GLfloat size);
 
-/* Light */
+/* State */
 
-void glLightf(GLenum light, GLenum pname, GLfloat param);
-void glLightfv(GLenum light, GLenum pname, const GLfloat* params);
-void glLightModelf(GLenum pname, GLfloat param);
-void glLightModelfv(GLenum pname, const GLfloat* params);
+void glClientActiveTexture(GLenum texture);
+void glDisableClientState(GLenum array);
+void glEnableClientState(GLenum array);
+void glLineWidth(GLfloat width);
+void glHint(GLenum target, GLenum mode);
+void glPixelStorei(GLenum pname, GLint param);
+
+/* TexCoord */
+
+void glMultiTexCoord4f(GLenum target, GLfloat s, GLfloat t, GLfloat r, GLfloat q);
+void glTexCoordPointer(GLint size, GLenum type, GLsizei stride, const void* pointer);
 
 /* TexEnv (wrapper to combiners?) */
 
@@ -49,44 +88,15 @@ void glTexEnviv(GLenum target, GLenum pname, const GLint* params);
 void glGetTexEnviv(GLenum target, GLenum pname, GLint* params);
 void glGetTexEnvfv(GLenum target, GLenum pname, GLfloat* params);
 
+/* Vertex */
+
+void glVertexPointer(GLint size, GLenum type, GLsizei stride, const void* pointer);
+
 // ...
 
-void glClipPlanef (GLenum p, const GLfloat* eqn);
-
-void glGetClipPlanef (GLenum plane, GLfloat* equation);
-void glGetLightfv (GLenum light, GLenum pname, GLfloat* params);
-void glGetMaterialfv (GLenum face, GLenum pname, GLfloat* params);
-
-
-void glLineWidth (GLfloat width);
-void glMaterialf (GLenum face, GLenum pname, GLfloat param);
-void glMaterialfv (GLenum face, GLenum pname, const GLfloat* params);
-
-void glMultiTexCoord4f (GLenum target, GLfloat s, GLfloat t, GLfloat r, GLfloat q);
-void glNormal3f (GLfloat nx, GLfloat ny, GLfloat nz);
-
-void glPointParameterf (GLenum pname, GLfloat param);
-void glPointParameterfv (GLenum pname, const GLfloat* params);
-void glPointSize (GLfloat size);
-
-void glTexParameterfv (GLenum target, GLenum pname, const GLfloat* params);
-
-void glClientActiveTexture (GLenum texture);
-void glColor4ub (GLubyte red, GLubyte green, GLubyte blue, GLubyte alpha);
-void glColorPointer (GLint size, GLenum type, GLsizei stride, const void* pointer);
-void glDisableClientState (GLenum array);
-void glEnableClientState (GLenum array);
 void glGetPointerv (GLenum pname, void** params);
-
-void glHint (GLenum target, GLenum mode);
-
-void glNormalPointer (GLenum type, GLsizei stride, const void* pointer);
-void glPixelStorei (GLenum pname, GLint param);
 void glSampleCoverage (GLfloat value, GLboolean invert);
 void glShadeModel (GLenum mode);
-void glTexCoordPointer (GLint size, GLenum type, GLsizei stride, const void* pointer);
-void glTexParameteriv (GLenum target, GLenum pname, const GLint* params);
-void glVertexPointer (GLint size, GLenum type, GLsizei stride, const void* pointer);
 
 #ifdef __cplusplus
 }
