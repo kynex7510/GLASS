@@ -114,6 +114,9 @@ void glassSwapBuffers(void);
 // Swap buffers of the contexts. Can bind any of the two.
 void glassSwapContextBuffers(GLASSCtx top, GLASSCtx bottom);
 
+// Get the screen framebuffer targeted by a context.
+u8* glassGetScreenFramebuffer(GLASSCtx ctx, u16* width, u16* height, GLenum* format);
+
 // Get context version.
 GLASSVersion glassGetVersion(GLASSCtx ctx);
 

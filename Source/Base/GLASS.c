@@ -61,6 +61,17 @@ void glassFlushPendingGPUCommands(GLASSCtx ctx) {
     GLASS_context_flush((CtxCommon*)ctx, false);
 }
 
+u8* glassGetScreenFramebuffer(GLASSCtx wrapped, u16* width, u16* height, GLenum* format) {
+    KYGX_ASSERT(wrapped);
+
+    CtxCommon* ctx = (CtxCommon*)wrapped;
+
+    if (format)
+        *format = GLASS_gfx_getFramebufferFormat(ctx->params.targetScreen);
+
+    return GLASS_gfx_getFramebuffer(ctx->params.targetScreen, ctx->params.targetSide, height, width);
+}
+
 GLASSVersion glassGetVersion(GLASSCtx ctx) {
     KYGX_ASSERT(ctx);
     return ((CtxCommon*)ctx)->params.version;
