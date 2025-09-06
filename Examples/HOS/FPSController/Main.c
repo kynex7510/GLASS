@@ -20,9 +20,9 @@ static kmMat4 g_Projection;
 
 static u32 g_FPS = 0;
 
-static GLuint sceneInit(void) {
+static GLuint sceneInit(u16 width, u16 height) {
     // Set default state.
-    glViewport(0, 0, 400, 240);
+    glViewport(0, 0, width, height);
     glClearColor(0.4f, 0.68f, 0.84f, 1.0f);
 
     // Load the vertex shader, create a shader program and bind it.
@@ -102,6 +102,10 @@ int main() {
     glassBindContext(ctx);
 
     // Initialize the render target.
+    u16 screenWidth = 0;
+    u16 screenHeight = 0;
+    glassGetScreenFramebuffer(ctx, &screenWidth, &screenHeight, NULL);
+
     GLuint fb;
     GLuint rb;
 
@@ -109,11 +113,11 @@ int main() {
     glGenRenderbuffers(1, &rb);
     glBindFramebuffer(GL_FRAMEBUFFER, fb);
     glBindRenderbuffer(GL_RENDERBUFFER, rb);
-    glRenderbufferStorage(GL_RENDERBUFFER, GL_RGBA8_OES, 400, 240);
+    glRenderbufferStorage(GL_RENDERBUFFER, GL_RGBA8_OES, screenWidth, screenHeight);
     glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_RENDERBUFFER, rb);
 
     // Initialize the scene.
-    GLuint vbo = sceneInit();
+    GLuint vbo = sceneInit(screenWidth, screenHeight);
 
     // Main loop.
     float count = 0.0f;

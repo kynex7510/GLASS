@@ -14,9 +14,9 @@ static const Vertex g_VertexList[3] = {
     { -0.66f, 0.5f }, // Right
 };
 
-static GLuint sceneInit() {
+static GLuint sceneInit(u16 width, u16 height) {
     // Set default state.
-    glViewport(0, 0, 400, 240);
+    glViewport(0, 0, width, height);
     glClearColor(0.4f, 0.68f, 0.84f, 1.0f);
 
     // Load the vertex shader, create a shader program and bind it.
@@ -70,7 +70,7 @@ int main() {
     glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_RENDERBUFFER, rb);
 
     // Initialize the scene.
-    GLuint vbo = sceneInit();
+    GLuint vbo = sceneInit(screenWidth, screenHeight);
 
     // Main loop.
     while (aptMainLoop()) {

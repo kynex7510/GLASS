@@ -10,7 +10,12 @@ static GLint g_ModelViewLoc;
 static kmMat4 g_Projection;
 static kmMat4 g_BaseModelView;
 
-static GLuint sceneInit(void) {
+static GLuint sceneInit(u16 screenWidth, u16 screenHeight) {
+    // Set default state.
+    glViewport(0, 0, screenWidth, screenHeight);
+    glClearColor(0.4f, 0.68f, 0.84f, 1.0f);
+    glClearDepthf(0.0f);
+
     // Load the vertex shader, create a shader program and bind it.
     GLuint prog = glCreateProgram();
     GLuint shad = glCreateShader(GL_VERTEX_SHADER);
@@ -62,11 +67,6 @@ static GLuint sceneInit(void) {
 }
 
 static void sceneRender(float angleX, float angleY) {
-    // Set default state.
-    glViewport(0, 0, 800, 240);
-    glClearColor(0.4f, 0.68f, 0.84f, 1.0f);
-    glClearDepthf(0.0f);
-    
     // Compute the model matrix.
     kmMat4 tmp;
     kmMat4 modelView;
@@ -95,6 +95,10 @@ int main() {
     glassBindContext(ctx);
 
     /// Initialize the render target.
+    u16 screenWidth = 0;
+    u16 screenHeight = 0;
+    glassGetScreenFramebuffer(ctx, &screenWidth, &screenHeight, NULL);
+
     GLuint fb;
     GLuint rb[2];
     glGenFramebuffers(1, &fb);
@@ -103,15 +107,15 @@ int main() {
     glBindFramebuffer(GL_FRAMEBUFFER, fb);
 
     glBindRenderbuffer(GL_RENDERBUFFER, rb[0]);
-    glRenderbufferStorage(GL_RENDERBUFFER, GL_RGBA8_OES, 800, 240);
+    glRenderbufferStorage(GL_RENDERBUFFER, GL_RGBA8_OES, screenWidth, screenHeight);
     glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_RENDERBUFFER, rb[0]);
 
     glBindRenderbuffer(GL_RENDERBUFFER, rb[1]);
-    glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8_OES, 800, 240);
+    glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8_OES, screenWidth, screenHeight);
     glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, rb[1]);
 
     // Initialize the scene.
-    GLuint vbo = sceneInit();
+    GLuint vbo = sceneInit(screenWidth, screenHeight);
 
     // Main loop.
     float angleX = 0.0;

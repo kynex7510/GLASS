@@ -90,9 +90,9 @@ static const Vertex g_VertexList[] = {
 
 #define NUM_VERTICES (sizeof(g_VertexList)/sizeof(Vertex))
 
-static void sceneInit(GLuint* vbo, GLuint* tex) {
+static void sceneInit(u16 screenWidth, u16 screenHeight, GLuint* vbo, GLuint* tex) {
     // Set default state.
-    glViewport(0, 0, 400, 240);
+    glViewport(0, 0, screenWidth, screenHeight);
     glClearColor(0.4f, 0.68f, 0.84f, 1.0f);
     glEnable(GL_CULL_FACE);
     
@@ -215,6 +215,10 @@ int main() {
     glassBindContext(ctx);
 
     // Initialize the render target.
+    u16 screenWidth = 0;
+    u16 screenHeight = 0;
+    glassGetScreenFramebuffer(ctx, &screenWidth, &screenHeight, NULL);
+
     GLuint fb;
     GLuint rb;
 
@@ -222,13 +226,13 @@ int main() {
     glGenRenderbuffers(1, &rb);
     glBindFramebuffer(GL_FRAMEBUFFER, fb);
     glBindRenderbuffer(GL_RENDERBUFFER, rb);
-    glRenderbufferStorage(GL_RENDERBUFFER, GL_RGBA8_OES, 400, 240);
+    glRenderbufferStorage(GL_RENDERBUFFER, GL_RGBA8_OES, screenWidth, screenHeight);
     glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_RENDERBUFFER, rb);
 
     // Initialize the scene.
     GLuint vbo;
     GLuint tex;
-    sceneInit(&vbo, &tex);
+    sceneInit(screenWidth, screenHeight, &vbo, &tex);
 
     // Main loop.
     float angleX = 0.0f, angleY = 0.0f;
