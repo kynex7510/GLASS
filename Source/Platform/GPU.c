@@ -45,10 +45,8 @@ static inline size_t addCmdImplStep(u32* cmdBuffer, u32 header, const u32* param
     memcpy(&cmdBuffer[2], &params[1], (numParams - 1) * sizeof(u32));
 
     // Make sure commands are kept aligned.
-    if ((numParams + 1) & 1) {
+    if ((numParams + 1) & 1)
         ++numParams;
-        cmdBuffer[numParams] = 0;
-    }
 
     return (numParams + 1) * sizeof(u32);
 }
