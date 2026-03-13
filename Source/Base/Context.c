@@ -312,7 +312,7 @@ void GLASS_context_flush(CtxCommon* ctx, bool send) {
                 pinfo->flags &= ~GLASS_PROGRAM_FLAG_UPDATE_GEOMETRY;
             }
 
-            GLASS_gpu_bindShaders(&ctx->params.GPUCmdList, vs, gs);
+            GLASS_gpu_bindShaders(&ctx->params.GPUCmdList, vs, gs, pinfo->gsStride, pinfo->gsPermutations);
 
             if (vs)
                 GLASS_gpu_uploadConstUniforms(&ctx->params.GPUCmdList, vs);

@@ -127,6 +127,8 @@ typedef struct {
     GLuint linkedVertex;     // Linked vertex shader.
     GLuint attachedGeometry; // Attached geometry shader.
     GLuint linkedGeometry;   // Linked geometry shader.
+    u32 gsStride;            // Geometry input stride.
+    u32 gsPermutations[2];   // Geometry permutations.
     u32 flags;               // Program flags.
 } ProgramInfo;
 
@@ -166,6 +168,9 @@ typedef struct {
     SharedShaderData* sharedData;       // Shared shader data.
     size_t codeEntrypoint;              // Code entrypoint.
     GPUGeoShaderMode gsMode;            // Mode for geometry shader.
+    u8 gsFixedVtxArrayStart;            // Index of first vertex array register for fixed mode (geometry only).
+    u8 gsSizeOfFixedVtxArray;           // Size of vertex array for fixed mode (geometry only).
+    u8 gsSizeOfVariableVtxArray;        // Size of vertex array for variable mode (geometry only).
     u16 outMask;                        // Used output registers mask.
     u16 outTotal;                       // Total number of output registers.
     u32 outSems[7];                     // Output register semantics.

@@ -70,7 +70,10 @@ typedef struct{
 
 typedef struct {
     bool isGeometry;                  // This DVLE is for a geometry shader.
-    bool mergeOutmaps;                // Merge shader outmaps (geometry only).
+    bool gsMergeOutmaps;              // Merge shader outmaps (geometry only).
+    u8 gsFixedVtxArrayStart;          // Index of first vertex array register for fixed mode (geometry only).
+    u8 gsSizeOfFixedVtxArray;         // Size of vertex array for fixed mode (geometry only).
+    u8 gsSizeOfVariableVtxArray;      // Size of vertex array for variable mode (geometry only).
     u32 entrypoint;                   // Code entrypoint.
     GPUGeoShaderMode gsMode;          // Geometry shader mode.
     DVLEConstEntry* constUniforms;    // Constant uniform table.
@@ -344,17 +347,23 @@ static void getDVLEInfo(const u8* data, size_t size, DVLEInfo* out) {
 
     // Get info.
     u8 flags = 0;
-    u8 mergeOutmaps = 0;
+    u8 gsMergeOutmaps = 0;
     u8 gsMode = 0;
+    u8 gsFixedVtxArrayStart = 0;
+    u8 gsSizeOfVariableVtxArray = 0;
+    u8 gsSizeOfFixedVtxArray = 0;
     u32 offsetToConstTable = 0;
     u32 offsetToOutTable = 0;
     u32 offsetToUniformTable = 0;
     u32 offsetToSymbolTable = 0;
 
     memcpy(&flags, data + 0x06, sizeof(u8));
-    memcpy(&mergeOutmaps, data + 0x07, sizeof(u8));
+    memcpy(&gsMergeOutmaps, data + 0x07, sizeof(u8));
     memcpy(&out->entrypoint, data + 0x08, sizeof(u32));
     memcpy(&gsMode, data + 0x14, sizeof(u8));
+    memcpy(&gsFixedVtxArrayStart, data + 0x15, sizeof(u8));
+    memcpy(&gsSizeOfVariableVtxArray, data + 0x16, sizeof(u8));
+    memcpy(&gsSizeOfFixedVtxArray, data + 0x17, sizeof(u8));
 
     memcpy(&out->numOfConstUniforms, data + 0x1C, sizeof(u32));
     if (out->numOfConstUniforms) {
@@ -397,14 +406,14 @@ static void getDVLEInfo(const u8* data, size_t size, DVLEInfo* out) {
     }
 
     // Handle merge outmaps.
-    if (mergeOutmaps & 1) {
+    if (gsMergeOutmaps & 1) {
         KYGX_ASSERT(out->isGeometry);
-        out->mergeOutmaps = true;
+        out->gsMergeOutmaps = true;
     } else {
-        out->mergeOutmaps = false;
+        out->gsMergeOutmaps = false;
     }
 
-    // Handle geometry mode.
+    // Handle geometry only params.
     if (out->isGeometry) {
         switch (gsMode) {
             case 0x00:
@@ -419,6 +428,15 @@ static void getDVLEInfo(const u8* data, size_t size, DVLEInfo* out) {
             default:
                 KYGX_UNREACHABLE("Unknown DVLE geometry shader mode!");
         }
+
+        out->gsFixedVtxArrayStart = gsFixedVtxArrayStart;
+        out->gsSizeOfFixedVtxArray = gsSizeOfFixedVtxArray;
+        out->gsSizeOfVariableVtxArray = gsSizeOfVariableVtxArray;
+    } else {
+        out->gsMode = GEOSHADERMODE_POINT;
+        out->gsFixedVtxArrayStart = 0;
+        out->gsSizeOfFixedVtxArray = 0;
+        out->gsSizeOfVariableVtxArray = 0;
     }
 
     // Set table pointers.
@@ -750,6 +768,9 @@ GLuint glCreateProgram(void) {
         info->linkedVertex = GLASS_INVALID_OBJECT;
         info->attachedGeometry = GLASS_INVALID_OBJECT;
         info->linkedGeometry = GLASS_INVALID_OBJECT;
+        info->gsStride = 0;
+        info->gsPermutations[0] = 0x76543210;
+        info->gsPermutations[1] = 0xFEDCBA98;
         info->flags = 0;
         return name;
     }
@@ -1064,7 +1085,8 @@ void glShaderBinary(GLsizei n, const GLuint* shaders, GLenum binaryformat, const
 
         // Build shader.
         ShaderInfo* shader = (ShaderInfo*)shaders[index];
-        if (info.mergeOutmaps) {
+        if (info.gsMergeOutmaps) {
+            KYGX_ASSERT(info.isGeometry);
             shader->flags |= GLASS_SHADER_FLAG_MERGE_OUTMAPS;
         } else {
             shader->flags &= ~GLASS_SHADER_FLAG_MERGE_OUTMAPS;
@@ -1072,8 +1094,17 @@ void glShaderBinary(GLsizei n, const GLuint* shaders, GLenum binaryformat, const
 
         shader->codeEntrypoint = info.entrypoint;
 
-        if (info.isGeometry)
+        if (info.isGeometry) {
             shader->gsMode = info.gsMode;
+            shader->gsFixedVtxArrayStart = info.gsFixedVtxArrayStart;
+            shader->gsSizeOfFixedVtxArray = info.gsSizeOfFixedVtxArray;
+            shader->gsSizeOfVariableVtxArray = info.gsSizeOfVariableVtxArray;
+        } else {
+            shader->gsMode = GEOSHADERMODE_POINT;
+            shader->gsFixedVtxArrayStart = 0;
+            shader->gsSizeOfFixedVtxArray = 0;
+            shader->gsSizeOfVariableVtxArray = 0;
+        }
 
         generateOutmaps(&info, shader);
 
@@ -1146,6 +1177,47 @@ void glUseProgram(GLuint program) {
         // Set program.
         ctx->currentProgram = program;
         ctx->flags |= GLASS_CONTEXT_FLAG_PROGRAM;
+    }
+}
+
+void glProgramGeometryStridePICA(GLuint program, GLuint stride) {
+    if (!GLASS_OBJ_IS_PROGRAM(program)) {
+        GLASS_context_setError(GL_INVALID_OPERATION);
+        return;
+    }
+
+    // Update program.
+    ProgramInfo* pinfo = (ProgramInfo*)program;
+    pinfo->gsStride = stride;
+
+    // Signal change.
+    if (GLASS_OBJ_IS_SHADER(pinfo->linkedGeometry)) {
+        pinfo->flags |= GLASS_PROGRAM_FLAG_UPDATE_GEOMETRY;
+
+        CtxCommon* ctx = GLASS_context_getBound();
+        if (ctx->currentProgram == program)
+            ctx->flags |= GLASS_CONTEXT_FLAG_PROGRAM;
+    }
+}
+
+void glProgramGeometryPermutationsPICA(GLuint program, const GLuint* permutations) {
+    if (!GLASS_OBJ_IS_PROGRAM(program)) {
+        GLASS_context_setError(GL_INVALID_OPERATION);
+        return;
+    }
+
+    // Update program.
+    ProgramInfo* pinfo = (ProgramInfo*)program;
+    pinfo->gsPermutations[0] = permutations[0];
+    pinfo->gsPermutations[1] = permutations[1];
+
+    // Signal change.
+    if (GLASS_OBJ_IS_SHADER(pinfo->linkedGeometry)) {
+        pinfo->flags |= GLASS_PROGRAM_FLAG_UPDATE_GEOMETRY;
+
+        CtxCommon* ctx = GLASS_context_getBound();
+        if (ctx->currentProgram == program)
+            ctx->flags |= GLASS_CONTEXT_FLAG_PROGRAM;
     }
 }
 
