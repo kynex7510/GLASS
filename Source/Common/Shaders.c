@@ -248,22 +248,22 @@ static inline size_t lenActiveAttribs(const ProgramInfo* info) {
     return lenOfActiveAttribs;
 }
 
-static size_t lookupShader(const GLuint* shaders, size_t maxShaders, size_t index, bool isGeometry) {
+static bool lookupShader(const GLuint* shaders, size_t maxShaders, size_t index, bool isGeometry, size_t* out) {
     KYGX_ASSERT(shaders);
+    KYGX_ASSERT(out);
 
-    for (size_t i = (index + 1); i < maxShaders; ++i) {
+    for (size_t i = index; i < maxShaders; ++i) {
         GLuint name = shaders[i];
-
-        // Force failure if one of the shaders is invalid.
-        if (!GLASS_OBJ_IS_SHADER(name))
-            break;
+        KYGX_ASSERT(GLASS_OBJ_IS_SHADER(name));
 
         const ShaderInfo* shader = (const ShaderInfo*)name;
-        if (((shader->flags & GLASS_SHADER_FLAG_GEOMETRY) == GLASS_SHADER_FLAG_GEOMETRY) == isGeometry)
-            return i;
+        if (((shader->flags & GLASS_SHADER_FLAG_GEOMETRY) == GLASS_SHADER_FLAG_GEOMETRY) == isGeometry) {
+            *out = i;
+            return true;
+        }
     }
 
-    return index;
+    return false;
 }
 
 static DVLB* parseDVLB(const u8* data, size_t size) {
@@ -1034,8 +1034,8 @@ void glShaderBinary(GLsizei n, const GLuint* shaders, GLenum binaryformat, const
 
     const u8* data = (u8*)binary;
     const size_t size = length;
-    size_t lastVertexIdx = (size_t)-1;
-    size_t lastGeometryIdx = (size_t)-1;
+    size_t lastVertexIdx = 0;
+    size_t lastGeometryIdx = 0;
     DVLB* dvlb = NULL;
     SharedShaderData* sharedData = NULL;
 
@@ -1049,15 +1049,22 @@ void glShaderBinary(GLsizei n, const GLuint* shaders, GLenum binaryformat, const
         return;
     }
 
-  // Do nothing if no shaders.
-    if (!n)
-        goto glShaderBinary_skip;
+    for (size_t i = 0; i < n; ++i) {
+        if (!GLASS_OBJ_IS_SHADER(shaders[i])) {
+            GLASS_context_setError(GL_INVALID_VALUE);
+            return;
+        }
+    }
 
-  // Parse DVLB.
+    // Do nothing if no shaders.
+    if (!n)
+        return;
+
+    // Parse DVLB.
     dvlb = parseDVLB(data, size);
     if (!dvlb) {
         GLASS_context_setError(GL_OUT_OF_MEMORY);
-        goto glShaderBinary_skip;
+        return;
     }
 
     // Parse DVLP.
@@ -1065,7 +1072,7 @@ void glShaderBinary(GLsizei n, const GLuint* shaders, GLenum binaryformat, const
     sharedData = parseDVLP(data + dvlbSize, size - dvlbSize);
     if (!sharedData) {
         GLASS_context_setError(GL_OUT_OF_MEMORY);
-        goto glShaderBinary_skip;
+        goto glShaderBinary_freeRes;
     }
 
     // Handle DVLEs.
@@ -1073,17 +1080,16 @@ void glShaderBinary(GLsizei n, const GLuint* shaders, GLenum binaryformat, const
         const u8* pointerToDVLE = (u8*)dvlb->DVLETable[i];
         const size_t maxSize = size - (size_t)(pointerToDVLE - data);
 
-        // Lookup shader.
+        // Extract info about this DVLE.
         DVLEInfo info;
         getDVLEInfo(pointerToDVLE, maxSize, &info);
-        const size_t index = lookupShader(shaders, n, (info.isGeometry ? lastGeometryIdx : lastVertexIdx), info.isGeometry);
 
-        if (index == (info.isGeometry ? lastGeometryIdx : lastVertexIdx)) {
-            GLASS_context_setError(GL_INVALID_OPERATION);
-            goto glShaderBinary_skip;
-        }
+        // Lookup shader object, if we don't have a matching one go to the next DVLE.
+        size_t index = 0;
+        if (!lookupShader(shaders, n, (info.isGeometry ? lastGeometryIdx : lastVertexIdx), info.isGeometry, &index))
+            continue;
 
-        // Build shader.
+        // Setup shader.
         ShaderInfo* shader = (ShaderInfo*)shaders[index];
         if (info.gsMergeOutmaps) {
             KYGX_ASSERT(info.isGeometry);
@@ -1116,7 +1122,7 @@ void glShaderBinary(GLsizei n, const GLuint* shaders, GLenum binaryformat, const
         shader->symbolTable = (char*)glassHeapAlloc(info.sizeOfSymbolTable);
         if (!shader->symbolTable) {
             GLASS_context_setError(GL_OUT_OF_MEMORY);
-            goto glShaderBinary_skip;
+            goto glShaderBinary_freeRes;
         }
 
         memcpy(shader->symbolTable, info.symbolTable, info.sizeOfSymbolTable);
@@ -1125,7 +1131,7 @@ void glShaderBinary(GLsizei n, const GLuint* shaders, GLenum binaryformat, const
         // Load uniforms, can only fail for memory issues.
         if (!loadUniforms(&info, shader)) {
             GLASS_context_setError(GL_OUT_OF_MEMORY);
-            goto glShaderBinary_skip;
+            goto glShaderBinary_freeRes;
         }
 
         // Set shared data.
@@ -1135,15 +1141,15 @@ void glShaderBinary(GLsizei n, const GLuint* shaders, GLenum binaryformat, const
         shader->sharedData = sharedData;
         ++sharedData->refc;
 
-        // Increment index.
+        // Update index.
         if (info.isGeometry) {
-            lastGeometryIdx = index;
+            lastGeometryIdx = index + 1;
         } else {
-            lastVertexIdx = index;
+            lastVertexIdx = index + 1;
         }
     }
 
-glShaderBinary_skip:
+glShaderBinary_freeRes:
     // Free resources.
     if (sharedData && !sharedData->refc)
         glassHeapFree(sharedData);
