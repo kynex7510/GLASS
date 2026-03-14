@@ -114,9 +114,9 @@ static void getAsInt(const Value* in, GLint* out) {
 static void getImpl(GLenum pname, size_t type, void* out) {
     KYGX_ASSERT(out);
 
-    GLboolean boolBuffer[1];
+    GLboolean boolBuffer[4];
     GLfloat floatBuffer[4];
-    GLint intBuffer[1];
+    GLint intBuffer[4];
 
     Value value;
     value.type = 0;
