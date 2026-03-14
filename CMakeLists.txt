@@ -36,6 +36,7 @@ set(GLASS_SOURCES
     Source/Common/Combiners.c
     Source/Common/Effects.c
     Source/Common/Framebuffer.c
+    Source/Common/Get.c
     Source/Common/Rendering.c
     Source/Common/Shaders.c
     Source/Common/State.c
