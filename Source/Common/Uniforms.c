@@ -273,7 +273,8 @@ static GLint lookupUniform(const ShaderInfo* shader, const char* name, size_t of
             break;
 
         // Make location.
-        return (GLint)(((size_t)(shader->flags & GLASS_SHADER_FLAG_GEOMETRY) << 16) | (i << 8) | (offset & 0xFF));
+        const u32 isGeometry = (shader->flags & GLASS_SHADER_FLAG_GEOMETRY) == GLASS_SHADER_FLAG_GEOMETRY;
+        return (GLint)((isGeometry << 16) | (i << 8) | (offset & 0xFF));
     }
 
     return -1;

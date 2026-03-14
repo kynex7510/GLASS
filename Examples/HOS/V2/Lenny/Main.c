@@ -9,7 +9,12 @@ static GLint g_ModelViewLoc;
 
 static kmMat4 g_BaseModelView;
 
-static GLuint sceneInit(void) {
+static GLuint sceneInit(u16 width, u16 height) {
+    // Set default state.
+    glViewport(0, 0, width, height);
+    glClearColor(0.4f, 0.68f, 0.84f, 1.0f);
+    glClearDepthf(0.0f);
+
     // Load the vertex shader, create a shader program and bind it.
     GLuint prog = glCreateProgram();
     GLuint shad = glCreateShader(GL_VERTEX_SHADER);
@@ -58,11 +63,6 @@ static GLuint sceneInit(void) {
 }
 
 static void sceneRender(float iod, float angleX, float angleY) {
-    // Set default state.
-    glViewport(0, 0, 400, 240);
-    glClearColor(0.4f, 0.68f, 0.84f, 1.0f);
-    glClearDepthf(0.0f);
-
     // Compute the projection matrix.
     kmMat4 tmp;
     kmMat4 projection;
@@ -83,18 +83,18 @@ static void sceneRender(float iod, float angleX, float angleY) {
     glDrawArrays(GL_TRIANGLES, 0, VERTEX_LIST_COUNT);
 }
 
-static void createFramebuffer(GLuint* fb, GLuint* rb) {
+static void createFramebuffer(u16 width, u16 height, GLuint* fb, GLuint* rb) {
     glGenFramebuffers(1, fb);
     glGenRenderbuffers(2, rb);
 
     glBindFramebuffer(GL_FRAMEBUFFER, *fb);
 
     glBindRenderbuffer(GL_RENDERBUFFER, rb[0]);
-    glRenderbufferStorage(GL_RENDERBUFFER, GL_RGBA8_OES, 400, 240);
+    glRenderbufferStorage(GL_RENDERBUFFER, GL_RGBA8_OES, width, height);
     glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_RENDERBUFFER, rb[0]);
 
     glBindRenderbuffer(GL_RENDERBUFFER, rb[1]);
-    glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8_OES, 400, 240);
+    glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8_OES, width, height);
     glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, rb[1]);
 }
 
@@ -111,20 +111,24 @@ int main() {
     glassBindContext(ctx);
 
     /// Initialize the render targets.
+    u16 screenWidth = 0;
+    u16 screenHeight = 0;
+    glassGetScreenFramebuffer(ctx, &screenWidth, &screenHeight, NULL);
+
     GLuint leftFB;
     GLuint leftRBs[2];
 
     glassSetTargetSide(ctx, GLASS_SIDE_LEFT);
-    createFramebuffer(&leftFB, leftRBs);
+    createFramebuffer(screenWidth, screenHeight, &leftFB, leftRBs);
 
     GLuint rightFB;
     GLuint rightRBs[2];
 
     glassSetTargetSide(ctx, GLASS_SIDE_RIGHT);
-    createFramebuffer(&rightFB, rightRBs);
+    createFramebuffer(screenWidth, screenHeight, &rightFB, rightRBs);
 
     // Initialize the scene.
-    GLuint vbo = sceneInit();
+    GLuint vbo = sceneInit(screenWidth, screenHeight);
 
     // Main loop.
     float angleX = 0.0;

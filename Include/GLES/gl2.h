@@ -71,6 +71,11 @@ void glShaderSource(GLuint shader, GLsizei count, const GLchar* const* string, c
 void glUseProgram(GLuint program);
 void glValidateProgram(GLuint program);
 
+/* Shaders (extensions) */
+
+void glProgramGeometryStridePICA(GLuint program, GLuint stride);
+void glProgramGeometryPermutationsPICA(GLuint program, const GLuint* permutations);
+
 /* Uniform */
 
 void glGetActiveUniform(GLuint program, GLuint index, GLsizei bufSize, GLsizei* length, GLint* size, GLenum* type, GLchar* name);
