@@ -5,120 +5,6 @@
  */
 
 /*
-
-GL_ARRAY_BUFFER_BINDING
-...
-GL_BLEND_SRC_RGB
-
-GL_COMPRESSED_TEXTURE_FORMATS
-
-GL_CURRENT_PROGRAM
-params returns one value, the name of the program object that is currently active, or 0 if no program object is active. See glUseProgram.
-
-GL_DEPTH_BITS
-params returns one value, the number of bitplanes in the depth buffer of the currently bound framebuffer.
-
-GL_DEPTH_CLEAR_VALUE
-params returns one value, the value that is used to clear the depth buffer. Integer values, if requested, are linearly mapped from the internal floating-point representation such that 1.0 returns the most positive representable integer value, and −1.0
- returns the most negative representable integer value. The initial value is 1. See glClearDepthf.
-
-GL_DEPTH_FUNC
-params returns one value, the symbolic constant that indicates the depth comparison function. The initial value is GL_LESS. See glDepthFunc.
-
-GL_DEPTH_RANGE
-params returns two values: the near and far mapping limits for the depth buffer. Integer values, if requested, are linearly mapped from the internal floating-point representation such that 1.0 returns the most positive representable integer value, and −1.0
- returns the most negative representable integer value. The initial value is (0, 1). See glDepthRangef.
-
-GL_DEPTH_TEST
-params returns a single boolean value indicating whether depth testing of fragments is enabled. The initial value is GL_FALSE. See glDepthFunc and glDepthRangef.
-
-GL_DEPTH_WRITEMASK
-params returns a single boolean value indicating if the depth buffer is enabled for writing. The initial value is GL_TRUE. See glDepthMask.
-
-GL_DITHER
-params returns a single boolean value indicating whether dithering of fragment colors and indices is enabled. The initial value is GL_TRUE.
-
-GL_ELEMENT_ARRAY_BUFFER_BINDING
-params returns a single value, the name of the buffer object currently bound to the target GL_ELEMENT_ARRAY_BUFFER. If no buffer object is bound to this target, 0 is returned. The initial value is 0. See glBindBuffer.
-
-GL_FRAMEBUFFER_BINDING
-params returns a single value, the name of the currently bound framebuffer. The initial value is 0, indicating the default framebuffer. See glBindFramebuffer.
-
-GL_FRONT_FACE
-params returns one value, a symbolic constant indicating whether clockwise or counterclockwise polygon winding is treated as front-facing. The initial value is GL_CCW. See glFrontFace.
-
-GL_GENERATE_MIPMAP_HINT
-params returns one value, a symbolic constant indicating the mode of the mipmap generation filtering hint. The initial value is GL_DONT_CARE. See glHint.
-
-GL_GREEN_BITS
-params returns one value, the number of green bitplanes in the color buffer of the currently bound framebuffer.
-
-GL_IMPLEMENTATION_COLOR_READ_FORMAT
-params returns one value, the format chosen by the implementation in which pixels may be read from the color buffer of the currently bound framebuffer in conjunction with GL_IMPLEMENTATION_COLOR_READ_TYPE. In addition to this implementation-dependent format/type pair, format GL_RGBA in conjunction with type GL_UNSIGNED_BYTE is always allowed by every implementation, regardless of the currently bound render surface. See glReadPixels.
-
-GL_IMPLEMENTATION_COLOR_READ_TYPE
-params returns one value, the type chosen by the implementation with which pixels may be read from the color buffer of the currently bound framebuffer in conjunction with GL_IMPLEMENTATION_COLOR_READ_FORMAT. In addition to this implementation-dependent format/type pair, format GL_RGBA in conjunction with type GL_UNSIGNED_BYTE is always allowed by every implementation, regardless of the currently bound render surface. See glReadPixels.
-
-GL_LINE_WIDTH
-params returns one value, the line width as specified with glLineWidth. The initial value is 1.
-
-GL_MAX_COMBINED_TEXTURE_IMAGE_UNITS
-params returns one value, the maximum supported texture image units that can be used to access texture maps from the vertex shader and the fragment processor combined. If both the vertex shader and the fragment processing stage access the same texture image unit, then that counts as using two texture image units against this limit. The value must be at least 8. See glActiveTexture.
-
-GL_MAX_CUBE_MAP_TEXTURE_SIZE
-params returns one value. The value gives a rough estimate of the largest cube-map texture that the GL can handle. The value must be at least 16. See glTexImage2D.
-
-GL_MAX_FRAGMENT_UNIFORM_VECTORS
-params returns one value, the maximum number of four-element floating-point, integer, or boolean vectors that can be held in uniform variable storage for a fragment shader. The value must be at least 16. See glUniform.
-
-GL_MAX_RENDERBUFFER_SIZE
-params returns one value. The value indicates the largest renderbuffer width and height that the GL can handle. The value must be at least 1. See glRenderbufferStorage.
-
-GL_MAX_TEXTURE_IMAGE_UNITS
-params returns one value, the maximum supported texture image units that can be used to access texture maps from the fragment shader. The value must be at least 8. See glActiveTexture.
-
-GL_MAX_TEXTURE_SIZE
-params returns one value. The value gives a rough estimate of the largest texture that the GL can handle. The value must be at least 64. See glTexImage2D.
-
-GL_MAX_VARYING_VECTORS
-params returns one value, the maximum number four-element floating-point vectors available for interpolating varying variables used by vertex and fragment shaders. Varying variables declared as matrices or arrays will consume multiple interpolators. The value must be at least 8.
-
-GL_MAX_VERTEX_ATTRIBS
-params returns one value, the maximum number of 4-component generic vertex attributes accessible to a vertex shader. The value must be at least 8. See glVertexAttrib.
-
-GL_MAX_VERTEX_TEXTURE_IMAGE_UNITS
-params returns one value, the maximum supported texture image units that can be used to access texture maps from the vertex shader. The value may be 0. See glActiveTexture.
-
-GL_MAX_VERTEX_UNIFORM_VECTORS
-params returns one value, the maximum number of four-element floating-point, integer, or boolean vectors that can be held in uniform variable storage for a vertex shader. The value must be at least 128. See glUniform.
-
-GL_MAX_VIEWPORT_DIMS
-params returns two values: the maximum supported width and height of the viewport. These must be at least as large as the visible dimensions of the display being rendered to. See glViewport.
-
-GL_NUM_COMPRESSED_TEXTURE_FORMATS
-params returns a single integer value indicating the number of available compressed texture formats. The minimum value is 0. See glCompressedTexImage2D.
-
-GL_NUM_SHADER_BINARY_FORMATS
-params returns a single integer value indicating the number of available shader binary formats. The minimum value is 0. See glShaderBinary.
-
-GL_PACK_ALIGNMENT
-params returns one value, the byte alignment used for writing pixel data to memory. The initial value is 4. See glPixelStorei.
-
-GL_POLYGON_OFFSET_FACTOR
-params returns one value, the scaling factor used to determine the variable offset that is added to the depth value of each fragment generated when a polygon is rasterized. The initial value is 0. See glPolygonOffset.
-
-GL_POLYGON_OFFSET_FILL
-params returns a single boolean value indicating whether polygon offset is enabled for polygons in fill mode. The initial value is GL_FALSE. See glPolygonOffset.
-
-GL_POLYGON_OFFSET_UNITS
-params returns one value. This value is multiplied by an implementation-specific value and then added to the depth value of each fragment generated when a polygon is rasterized. The initial value is 0. See glPolygonOffset.
-
-GL_RED_BITS
-params returns one value, the number of red bitplanes in the color buffer of the currently bound framebuffer.
-
-GL_RENDERBUFFER_BINDING
-params returns a single value, the name of the currently bound renderbuffer. The initial value is 0, indicating no renderbuffer is bound. See glBindRenderbuffer.
-
 GL_SAMPLE_ALPHA_TO_COVERAGE
 params returns a single boolean value indicating if the fragment coverage value should be ANDed with a temporary coverage value based on the fragment's alpha value. The initial value is GL_FALSE. See glSampleCoverage.
 
@@ -136,22 +22,6 @@ params returns a single positive floating-point value indicating the current sam
 
 GL_SAMPLES
 params returns a single integer value indicating the coverage mask size of the currently bound framebuffer. See glSampleCoverage.
-
-GL_SCISSOR_BOX
-params returns four values: the x
- and y
- window coordinates of the scissor box, followed by its width and height. Initially the x
- and y
- window coordinates are both 0 and the width and height are set to the size of the window. See glScissor.
-
-GL_SCISSOR_TEST
-params returns a single boolean value indicating whether scissoring is enabled. The initial value is GL_FALSE. See glScissor.
-
-GL_SHADER_BINARY_FORMATS
-params returns a list of symbolic constants of length GL_NUM_SHADER_BINARY_FORMATS indicating which shader binary formats are available. See glShaderBinary.
-
-GL_SHADER_COMPILER
-params returns a single boolean value indicating whether a shader compiler is supported. GL_FALSE indicates that any call to glShaderSource, glCompileShader, or glReleaseShaderCompiler will result in a GL_INVALID_OPERATION error being generated.
 
 GL_STENCIL_BACK_FAIL
 params returns one value, a symbolic constant indicating what action is taken for back-facing polygons when the stencil test fails. The initial value is GL_KEEP. See glStencilOpSeparate.
@@ -203,26 +73,6 @@ params returns one value, the mask that is used to mask both the stencil referen
 
 GL_STENCIL_WRITEMASK
 params returns one value, the mask that controls writing of the stencil bitplanes for front-facing polygons and non-polygons. The initial value is all 1's. See glStencilMask and glStencilMaskSeparate.
-
-GL_SUBPIXEL_BITS
-params returns one value, an estimate of the number of bits of subpixel resolution that are used to position rasterized geometry in window coordinates. The value must be at least 4.
-
-GL_TEXTURE_BINDING_2D
-params returns a single value, the name of the texture currently bound to the target GL_TEXTURE_2D for the active multitexture unit. The initial value is 0. See glBindTexture.
-
-GL_TEXTURE_BINDING_CUBE_MAP
-params returns a single value, the name of the texture currently bound to the target GL_TEXTURE_CUBE_MAP for the active multitexture unit. The initial value is 0. See glBindTexture.
-
-GL_UNPACK_ALIGNMENT
-params returns one value, the byte alignment used for reading pixel data from memory. The initial value is 4. See glPixelStorei.
-
-GL_VIEWPORT
-params returns four values: the x
- and y
- window coordinates of the viewport, followed by its width and height. Initially the x
- and y
- window coordinates are both set to 0, and the width and height are set to the width and height of the window into which the GL will do its rendering. See glViewport.
-
 */
 
 ON_GET(GL_ACTIVE_TEXTURE):
@@ -232,16 +82,19 @@ ON_GET(GL_ACTIVE_TEXTURE):
 END_CASE
 
 ON_GET(GL_ALIASED_LINE_WIDTH_RANGE):
-    // TODO: params returns two values, the smallest and largest supported widths for aliased lines. The range must include width 1.
+    SET_TYPE(FLOAT)
+    SET_NUM_PARAMS(2)
+    SET_FLOAT_PARAM(0, 1.0)
+    SET_FLOAT_PARAM(1, 1.0)
 END_CASE
 
-ON_GET(GL_ALIASED_POINT_SIZE_RANGE):
+// ON_GET(GL_ALIASED_POINT_SIZE_RANGE):
     // TODO: params returns two values, the smallest and largest supported sizes for aliased points. The range must include size 1.
-END_CASE
+// END_CASE
 
-ON_GET(GL_ALPHA_BITS):
+// ON_GET(GL_ALPHA_BITS):
     // TODO: params returns one value, the number of alpha bitplanes in the color buffer of the currently bound framebuffer.
-END_CASE
+// END_CASE
 
 ON_GET(GL_ARRAY_BUFFER_BINDING):
     SET_TYPE(INT)
@@ -302,16 +155,16 @@ ON_GET(GL_BLEND_SRC_RGB):
     SET_INT_PARAM(0, ctx->blendSrcRGB)
 END_CASE
 
-ON_GET(GL_BLUE_BITS):
+// ON_GET(GL_BLUE_BITS):
     // TODO: params returns one value, the number of blue bitplanes in the color buffer of the currently bound framebuff
-END_CASE
+// END_CASE
 
-ON_GET(GL_COLOR_CLEAR_VALUE):
+// ON_GET(GL_COLOR_CLEAR_VALUE):
     // TODO: params returns four values: the red, green, blue, and alpha values used to clear the color buffers.
     // Integer values, if requested, are linearly mapped from the internal floating-point representation such that 1.0 returns
     // the most positive representable integer value, and −1.0 returns the most negative representable integer value.
     // The initial value is (0, 0, 0, 0). See glClearColor.
-END_CASE
+// END_CASE
 
 ON_GET(GL_COLOR_WRITEMASK):
     SET_TYPE(BOOL)
@@ -323,10 +176,10 @@ ON_GET(GL_COLOR_WRITEMASK):
     SET_BOOL_PARAM(3, ctx->writeAlpha ? GL_TRUE : GL_FALSE)
 END_CASE
 
-ON_GET(GL_COMPRESSED_TEXTURE_FORMATS):
+// ON_GET(GL_COMPRESSED_TEXTURE_FORMATS):
     // TODO: params returns a list of symbolic constants of length GL_NUM_COMPRESSED_TEXTURE_FORMATS indicating
     // which compressed texture formats are available. See glCompressedTexImage2D.
-END_CASE
+// END_CASE
 
 ON_GET(GL_CULL_FACE):
     SET_TYPE(BOOL)
@@ -338,4 +191,300 @@ ON_GET(GL_CULL_FACE_MODE):
     SET_TYPE(INT)
     SET_NUM_PARAMS(1)
     SET_INT_PARAM(0, ctx->cullFaceMode)
+END_CASE
+
+ON_GET(GL_CURRENT_PROGRAM):
+    SET_TYPE(INT)
+    SET_NUM_PARAMS(1)
+    SET_INT_PARAM(0, ctx->currentProgram)
+END_CASE
+
+// ON_GET(GL_DEPTH_BITS):
+    // TODO: params returns one value, the number of bitplanes in the depth buffer of the currently bound framebuffer.
+// END_CASE
+
+// ON_GET(GL_DEPTH_CLEAR_VALUE):
+    // TODO: params returns one value, the value that is used to clear the depth buffer. Integer values, if requested,
+    // are linearly mapped from the internal floating-point representation such that 1.0 returns the most positive
+    // representable integer value, and −1.0 returns the most negative representable integer value. The initial value is 1.
+    // See glClearDepthf.
+// END_CASE
+
+ON_GET(GL_DEPTH_FUNC):
+    SET_TYPE(INT)
+    SET_NUM_PARAMS(1)
+    SET_INT_PARAM(0, ctx->depthFunc)
+END_CASE
+
+// ON_GET(GL_DEPTH_RANGE):
+    // TODO: params returns two values: the near and far mapping limits for the depth buffer. Integer values, if requested,
+    // are linearly mapped from the internal floating-point representation such that 1.0 returns the most positive representable
+    // integer value, and −1.0 returns the most negative representable integer value. The initial value is (0, 1).
+    // See glDepthRangef.
+// END_CASE
+
+ON_GET(GL_DEPTH_TEST):
+    SET_TYPE(BOOL)
+    SET_NUM_PARAMS(1)
+    SET_BOOL_PARAM(0, ctx->depthTest ? GL_TRUE : GL_FALSE)
+END_CASE
+
+ON_GET(GL_DEPTH_WRITEMASK):
+    SET_TYPE(BOOL)
+    SET_NUM_PARAMS(1)
+    SET_BOOL_PARAM(0, ctx->writeDepth ? GL_TRUE : GL_FALSE)
+END_CASE
+
+// ON_GET(GL_DITHER):
+    // TODO: params returns a single boolean value indicating whether dithering of fragment colors and indices is enabled.
+    // The initial value is GL_TRUE.
+// END_CASE
+
+ON_GET(GL_ELEMENT_ARRAY_BUFFER_BINDING):
+    SET_TYPE(INT)
+    SET_NUM_PARAMS(1)
+    SET_INT_PARAM(0, ctx->elementArrayBuffer)
+END_CASE
+
+ON_GET(GL_FRAMEBUFFER_BINDING):
+    SET_TYPE(INT)
+    SET_NUM_PARAMS(1)
+    SET_INT_PARAM(0, ctx->framebuffer[GLASS_context_getFBIndex(ctx)])
+END_CASE
+
+// Extension
+ON_GET(GL_FRAMEBUFFER_BINDING_PICA):
+    SET_TYPE(INT)
+    SET_NUM_PARAMS(2)
+    SET_INT_PARAM(0, ctx->framebuffer[0])
+    SET_INT_PARAM(1, ctx->framebuffer[1])
+END_CASE
+
+ON_GET(GL_FRONT_FACE):
+    SET_TYPE(INT)
+    SET_NUM_PARAMS(1)
+    SET_INT_PARAM(0, ctx->frontFaceMode)
+END_CASE
+
+//ON_GET(GL_GENERATE_MIPMAP_HINT):
+    // TODO: params returns one value, a symbolic constant indicating the mode of the mipmap generation filtering hint.
+    // The initial value is GL_DONT_CARE. See glHint.
+//END_CASE
+
+ON_GET(GL_GREEN_BITS):
+    // TODO: params returns one value, the number of green bitplanes in the color buffer of the currently bound framebuffer.
+END_CASE
+
+ON_GET(GL_IMPLEMENTATION_COLOR_READ_FORMAT):
+    // TODO: params returns one value, the format chosen by the implementation in which pixels may be read from the color
+    // buffer of the currently bound framebuffer in conjunction with GL_IMPLEMENTATION_COLOR_READ_TYPE. In addition to this
+    // implementation-dependent format/type pair, format GL_RGBA in conjunction with type GL_UNSIGNED_BYTE is always allowed
+    // by every implementation, regardless of the currently bound render surface. See glReadPixels.
+END_CASE
+
+ON_GET(GL_IMPLEMENTATION_COLOR_READ_TYPE):
+    // TODO: params returns one value, the type chosen by the implementation with which pixels may be read from the color
+    // buffer of the currently bound framebuffer in conjunction with GL_IMPLEMENTATION_COLOR_READ_FORMAT. In addition to this
+    // implementation-dependent format/type pair, format GL_RGBA in conjunction with type GL_UNSIGNED_BYTE is always allowed by
+    // every implementation, regardless of the currently bound render surface. See glReadPixels.
+END_CASE
+
+ON_GET(GL_LINE_WIDTH):
+    SET_TYPE(FLOAT)
+    SET_NUM_PARAMS(1)
+    SET_FLOAT_PARAM(0, 1.0)
+END_CASE
+
+//ON_GET(GL_MAX_COMBINED_TEXTURE_IMAGE_UNITS):
+    // TODO: params returns one value, the maximum supported texture image units that can be used to access texture maps from
+    // the vertex shader and the fragment processor combined. If both the vertex shader and the fragment processing stage access
+    // the same texture image unit, then that counts as using two texture image units against this limit. The value must be at
+    // least 8. See glActiveTexture.
+//END_CASE
+
+// ON_GET(GL_MAX_CUBE_MAP_TEXTURE_SIZE):
+    // TODO: params returns one value. The value gives a rough estimate of the largest cube-map texture that the GL can handle.
+    // The value must be at least 16. See glTexImage2D.
+// END_CASE
+
+// ON_GET(GL_MAX_FRAGMENT_UNIFORM_VECTORS):
+    // TODO: params returns one value, the maximum number of four-element floating-point, integer, or boolean vectors that
+    // can be held in uniform variable storage for a fragment shader. The value must be at least 16. See glUniform.
+// END_CASE
+
+ON_GET(GL_MAX_RENDERBUFFER_SIZE):
+    SET_TYPE(INT)
+    SET_NUM_PARAMS(1)
+    SET_INT_PARAM(0, GLASS_MAX_FB_WIDTH) // Width and height are the same.
+END_CASE
+
+// ON_GET(GL_MAX_TEXTURE_IMAGE_UNITS):
+    // TODO: params returns one value, the maximum supported texture image units that can be used to access texture maps from
+    // the fragment shader. The value must be at least 8. See glActiveTexture.
+// END_CASE
+
+ON_GET(GL_MAX_TEXTURE_SIZE):
+    SET_TYPE(INT)
+    SET_NUM_PARAMS(1)
+    SET_INT_PARAM(0, GLASS_MAX_TEX_SIZE)
+END_CASE
+
+// ON_GET(GL_MAX_VARYING_VECTORS):
+    // TODO: params returns one value, the maximum number four-element floating-point vectors available for interpolating
+    // varying variables used by vertex and fragment shaders. Varying variables declared as matrices or arrays will consume
+    // multiple interpolators. The value must be at least 8.
+// END_CASE
+
+ON_GET(GL_MAX_VERTEX_ATTRIBS):
+    SET_TYPE(INT)
+    SET_NUM_PARAMS(1)
+    SET_INT_PARAM(0, GLASS_NUM_ATTRIB_REGS)
+END_CASE
+
+// ON_GET(GL_MAX_VERTEX_TEXTURE_IMAGE_UNITS):
+    // TODO: params returns one value, the maximum supported texture image units that can be used to access texture maps from
+    // the vertex shader. The value may be 0. See glActiveTexture.
+// END_CASE
+
+// ON_GET(GL_MAX_VERTEX_UNIFORM_VECTORS):
+    // TODO: params returns one value, the maximum number of four-element floating-point, integer, or boolean vectors that can
+    // be held in uniform variable storage for a vertex shader. The value must be at least 128. See glUniform.
+// END_CASE
+
+ON_GET(GL_MAX_VIEWPORT_DIMS):
+    SET_TYPE(INT)
+    SET_NUM_PARAMS(2)
+    SET_INT_PARAM(0, GLASS_MAX_VIEWPORT_WIDTH)
+    SET_INT_PARAM(1, GLASS_MAX_VIEWPORT_HEIGHT)
+END_CASE
+
+// ON_GET(GL_NUM_COMPRESSED_TEXTURE_FORMATS):
+    // TODO: params returns a single integer value indicating the number of available compressed texture formats.
+    // The minimum value is 0. See glCompressedTexImage2D.
+// END_CASE
+
+ON_GET(GL_NUM_SHADER_BINARY_FORMATS):
+    SET_TYPE(INT)
+    SET_NUM_PARAMS(1)
+    SET_INT_PARAM(0, 1)
+END_CASE
+
+// ON_GET(GL_PACK_ALIGNMENT):
+    // TODO: params returns one value, the byte alignment used for writing pixel data to memory.
+    // The initial value is 4. See glPixelStorei.
+// END_CASE
+
+ON_GET(GL_POLYGON_OFFSET_FACTOR):
+    SET_TYPE(FLOAT)
+    SET_NUM_PARAMS(1)
+    SET_FLOAT_PARAM(0, ctx->polygonFactor)
+END_CASE
+
+ON_GET(GL_POLYGON_OFFSET_FILL):
+    SET_TYPE(BOOL)
+    SET_NUM_PARAMS(1)
+    SET_BOOL_PARAM(0, ctx->polygonOffset ? GL_TRUE : GL_FALSE)
+END_CASE
+
+ON_GET(GL_POLYGON_OFFSET_UNITS):
+    SET_TYPE(FLOAT)
+    SET_NUM_PARAMS(1)
+    SET_FLOAT_PARAM(0, ctx->polygonUnits)
+END_CASE
+
+// ON_GET(GL_RED_BITS):
+    // TODO: params returns one value, the number of red bitplanes in the color buffer of the currently bound framebuffer.
+// END_CASE
+
+ON_GET(GL_RENDERBUFFER_BINDING):
+    SET_TYPE(INT)
+    SET_NUM_PARAMS(1)
+    SET_INT_PARAM(0, ctx->renderbuffer)
+END_CASE
+
+// TODO: GL_SAMPLE*
+
+ON_GET(GL_SCISSOR_BOX):
+    SET_TYPE(INT)
+    SET_NUM_PARAMS(4)
+    
+    SET_INT_PARAM(0, ctx->scissorX)
+    SET_INT_PARAM(1, ctx->scissorY)
+    SET_INT_PARAM(2, ctx->scissorW)
+    SET_INT_PARAM(3, ctx->scissorH)
+END_CASE
+
+ON_GET(GL_SCISSOR_TEST):
+    SET_TYPE(BOOL)
+    SET_NUM_PARAMS(1)
+    SET_BOOL_PARAM(0, ctx->scissorMode == SCISSORMODE_NORMAL ? GL_TRUE : GL_FALSE)
+END_CASE
+
+// Extension
+ON_GET(GL_SCISSOR_TEST_INVERTED_PICA):
+    SET_TYPE(BOOL)
+    SET_NUM_PARAMS(1)
+    SET_BOOL_PARAM(0, ctx->scissorMode == SCISSORMODE_INVERTED ? GL_TRUE : GL_FALSE)
+END_CASE
+
+ON_GET(GL_SHADER_BINARY_FORMATS):
+    SET_TYPE(INT)
+    SET_NUM_PARAMS(1)
+    SET_INT_PARAM(0, GL_SHADER_BINARY_PICA)
+END_CASE
+
+ON_GET(GL_SHADER_COMPILER):
+    SET_TYPE(BOOL)
+    SET_NUM_PARAMS(1)
+    SET_BOOL_PARAM(0, GL_FALSE)
+END_CASE
+
+// TODO: GL_STENCIL*
+
+// ON_GET(GL_SUBPIXEL_BITS):
+    // TODO: params returns one value, an estimate of the number of bits of subpixel resolution that are used
+    // to position rasterized geometry in window coordinates. The value must be at least 4.
+// END_CASE
+
+ON_GET(GL_TEXTURE_BINDING_2D): {
+    SET_TYPE(INT)
+    SET_NUM_PARAMS(1)
+
+    GLuint name = ctx->textureUnits[ctx->activeTextureUnit];
+    const TextureInfo* tex = (TextureInfo*)name;
+
+    if (tex && tex->target != GL_TEXTURE_2D)
+        name = 0;
+
+    SET_INT_PARAM(0, name)
+    END_CASE
+}
+
+ON_GET(GL_TEXTURE_BINDING_CUBE_MAP): {
+    SET_TYPE(INT)
+    SET_NUM_PARAMS(1)
+
+    GLuint name = ctx->textureUnits[ctx->activeTextureUnit];
+    const TextureInfo* tex = (TextureInfo*)name;
+
+    if (tex && tex->target != GL_TEXTURE_CUBE_MAP)
+        name = 0;
+
+    SET_INT_PARAM(0, name)
+}
+END_CASE
+
+// ON_GET(GL_UNPACK_ALIGNMENT):
+    // TODO: params returns one value, the byte alignment used for reading pixel data from memory. The initial value is 4.
+    // See glPixelStorei.
+// END_CASE
+
+ON_GET(GL_VIEWPORT):
+    SET_TYPE(INT)
+    SET_NUM_PARAMS(4)
+    
+    SET_INT_PARAM(0, ctx->viewportX)
+    SET_INT_PARAM(1, ctx->viewportY)
+    SET_INT_PARAM(2, ctx->viewportW)
+    SET_INT_PARAM(3, ctx->viewportH)
 END_CASE
