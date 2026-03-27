@@ -22,57 +22,6 @@ params returns a single positive floating-point value indicating the current sam
 
 GL_SAMPLES
 params returns a single integer value indicating the coverage mask size of the currently bound framebuffer. See glSampleCoverage.
-
-GL_STENCIL_BACK_FAIL
-params returns one value, a symbolic constant indicating what action is taken for back-facing polygons when the stencil test fails. The initial value is GL_KEEP. See glStencilOpSeparate.
-
-GL_STENCIL_BACK_FUNC
-params returns one value, a symbolic constant indicating what function is used for back-facing polygons to compare the stencil reference value with the stencil buffer value. The initial value is GL_ALWAYS. See glStencilFuncSeparate.
-
-GL_STENCIL_BACK_PASS_DEPTH_FAIL
-params returns one value, a symbolic constant indicating what action is taken for back-facing polygons when the stencil test passes, but the depth test fails. The initial value is GL_KEEP. See glStencilOpSeparate.
-
-GL_STENCIL_BACK_PASS_DEPTH_PASS
-params returns one value, a symbolic constant indicating what action is taken for back-facing polygons when the stencil test passes and the depth test passes. The initial value is GL_KEEP. See glStencilOpSeparate.
-
-GL_STENCIL_BACK_REF
-params returns one value, the reference value that is compared with the contents of the stencil buffer for back-facing polygons. The initial value is 0. See glStencilFuncSeparate.
-
-GL_STENCIL_BACK_VALUE_MASK
-params returns one value, the mask that is used for back-facing polygons to mask both the stencil reference value and the stencil buffer value before they are compared. The initial value is all 1's. See glStencilFuncSeparate.
-
-GL_STENCIL_BACK_WRITEMASK
-params returns one value, the mask that controls writing of the stencil bitplanes for back-facing polygons. The initial value is all 1's. See glStencilMaskSeparate.
-
-GL_STENCIL_BITS
-params returns one value, the number of bitplanes in the stencil buffer of the currently bound framebuffer.
-
-GL_STENCIL_CLEAR_VALUE
-params returns one value, the index to which the stencil bitplanes are cleared. The initial value is 0. See glClearStencil.
-
-GL_STENCIL_FAIL
-params returns one value, a symbolic constant indicating what action is taken when the stencil test fails for front-facing polygons and non-polygons. The initial value is GL_KEEP. See glStencilOp and glStencilOpSeparate.
-
-GL_STENCIL_FUNC
-params returns one value, a symbolic constant indicating what function is used to compare the stencil reference value with the stencil buffer value for front-facing polygons and non-polygons. The initial value is GL_ALWAYS. See glStencilFunc and glStencilFuncSeparate.
-
-GL_STENCIL_PASS_DEPTH_FAIL
-params returns one value, a symbolic constant indicating what action is taken when the stencil test passes, but the depth test fails for front-facing polygons and non-polygons. The initial value is GL_KEEP. See glStencilOp and glStencilOpSeparate.
-
-GL_STENCIL_PASS_DEPTH_PASS
-params returns one value, a symbolic constant indicating what action is taken when the stencil test passes and the depth test passes for front-facing polygons and non-polygons. The initial value is GL_KEEP. See glStencilOp and glStencilOpSeparate.
-
-GL_STENCIL_REF
-params returns one value, the reference value that is compared with the contents of the stencil buffer for front-facing polygons and non-polygons. The initial value is 0. See glStencilFunc and glStencilFuncSeparate.
-
-GL_STENCIL_TEST
-params returns a single boolean value indicating whether stencil testing of fragments is enabled. The initial value is GL_FALSE. See glStencilFunc and glStencilOp.
-
-GL_STENCIL_VALUE_MASK
-params returns one value, the mask that is used to mask both the stencil reference value and the stencil buffer value before they are compared for front-facing polygons and non-polygons. The initial value is all 1's. See glStencilFunc and glStencilFuncSeparate.
-
-GL_STENCIL_WRITEMASK
-params returns one value, the mask that controls writing of the stencil bitplanes for front-facing polygons and non-polygons. The initial value is all 1's. See glStencilMask and glStencilMaskSeparate.
 */
 
 ON_GET(GL_ACTIVE_TEXTURE):
@@ -92,9 +41,11 @@ END_CASE
     // TODO: params returns two values, the smallest and largest supported sizes for aliased points. The range must include size 1.
 // END_CASE
 
-// ON_GET(GL_ALPHA_BITS):
-    // TODO: params returns one value, the number of alpha bitplanes in the color buffer of the currently bound framebuffer.
-// END_CASE
+ON_GET(GL_ALPHA_BITS):
+    SET_TYPE(INT)
+    SET_NUM_PARAMS(1)
+    SET_INT_PARAM(0, getFBColorSize(ctx, GL_RENDERBUFFER_ALPHA_SIZE))
+END_CASE
 
 ON_GET(GL_ARRAY_BUFFER_BINDING):
     SET_TYPE(INT)
@@ -155,9 +106,11 @@ ON_GET(GL_BLEND_SRC_RGB):
     SET_INT_PARAM(0, ctx->blendSrcRGB)
 END_CASE
 
-// ON_GET(GL_BLUE_BITS):
-    // TODO: params returns one value, the number of blue bitplanes in the color buffer of the currently bound framebuff
-// END_CASE
+ON_GET(GL_BLUE_BITS):
+    SET_TYPE(INT)
+    SET_NUM_PARAMS(1)
+    SET_INT_PARAM(0, getFBColorSize(ctx, GL_RENDERBUFFER_BLUE_SIZE))
+END_CASE
 
 // ON_GET(GL_COLOR_CLEAR_VALUE):
     // TODO: params returns four values: the red, green, blue, and alpha values used to clear the color buffers.
@@ -272,7 +225,9 @@ END_CASE
 //END_CASE
 
 ON_GET(GL_GREEN_BITS):
-    // TODO: params returns one value, the number of green bitplanes in the color buffer of the currently bound framebuffer.
+    SET_TYPE(INT)
+    SET_NUM_PARAMS(1)
+    SET_INT_PARAM(0, getFBColorSize(ctx, GL_RENDERBUFFER_GREEN_SIZE))
 END_CASE
 
 ON_GET(GL_IMPLEMENTATION_COLOR_READ_FORMAT):
@@ -392,9 +347,11 @@ ON_GET(GL_POLYGON_OFFSET_UNITS):
     SET_FLOAT_PARAM(0, ctx->polygonUnits)
 END_CASE
 
-// ON_GET(GL_RED_BITS):
-    // TODO: params returns one value, the number of red bitplanes in the color buffer of the currently bound framebuffer.
-// END_CASE
+ON_GET(GL_RED_BITS):
+    SET_TYPE(INT)
+    SET_NUM_PARAMS(1)
+    SET_INT_PARAM(0, getFBColorSize(ctx, GL_RENDERBUFFER_RED_SIZE))
+END_CASE
 
 ON_GET(GL_RENDERBUFFER_BINDING):
     SET_TYPE(INT)
@@ -439,7 +396,107 @@ ON_GET(GL_SHADER_COMPILER):
     SET_BOOL_PARAM(0, GL_FALSE)
 END_CASE
 
-// TODO: GL_STENCIL*
+ON_GET(GL_STENCIL_BACK_FAIL):
+    SET_TYPE(INT)
+    SET_NUM_PARAMS(1)
+    SET_INT_PARAM(0, ctx->stencilFail)
+END_CASE
+
+ON_GET(GL_STENCIL_BACK_FUNC):
+    SET_TYPE(INT)
+    SET_NUM_PARAMS(1)
+    SET_INT_PARAM(0, ctx->stencilFunc)
+END_CASE
+
+ON_GET(GL_STENCIL_BACK_PASS_DEPTH_FAIL):
+    SET_TYPE(INT)
+    SET_NUM_PARAMS(1)
+    SET_INT_PARAM(0, ctx->stencilDepthFail)
+END_CASE
+
+ON_GET(GL_STENCIL_BACK_PASS_DEPTH_PASS):
+    SET_TYPE(INT)
+    SET_NUM_PARAMS(1)
+    SET_INT_PARAM(0, ctx->stencilPass)
+END_CASE
+
+ON_GET(GL_STENCIL_BACK_REF):
+    SET_TYPE(INT)
+    SET_NUM_PARAMS(1)
+    SET_INT_PARAM(0, ctx->stencilRef)
+END_CASE
+
+ON_GET(GL_STENCIL_BACK_VALUE_MASK):
+    SET_TYPE(INT)
+    SET_NUM_PARAMS(1)
+    SET_INT_PARAM(0, ctx->stencilMask)
+END_CASE
+
+ON_GET(GL_STENCIL_BACK_WRITEMASK):
+    SET_TYPE(INT)
+    SET_NUM_PARAMS(1)
+    SET_INT_PARAM(0, ctx->stencilWriteMask)
+END_CASE
+
+ON_GET(GL_STENCIL_BITS):
+    SET_TYPE(INT)
+    SET_NUM_PARAMS(1)
+    SET_INT_PARAM(0, getFBStencilBits(ctx))
+END_CASE
+
+ON_GET(GL_STENCIL_CLEAR_VALUE):
+    SET_TYPE(INT)
+    SET_NUM_PARAMS(1)
+    SET_INT_PARAM(0, ctx->clearStencil)
+END_CASE
+
+ON_GET(GL_STENCIL_FAIL):
+    SET_TYPE(INT)
+    SET_NUM_PARAMS(1)
+    SET_INT_PARAM(0, ctx->stencilFail)
+END_CASE
+
+ON_GET(GL_STENCIL_FUNC):
+    SET_TYPE(INT)
+    SET_NUM_PARAMS(1)
+    SET_INT_PARAM(0, ctx->stencilFunc)
+END_CASE
+
+ON_GET(GL_STENCIL_PASS_DEPTH_FAIL):
+    SET_TYPE(INT)
+    SET_NUM_PARAMS(1)
+    SET_INT_PARAM(0, ctx->stencilDepthFail)
+END_CASE
+
+ON_GET(GL_STENCIL_PASS_DEPTH_PASS):
+    SET_TYPE(INT)
+    SET_NUM_PARAMS(1)
+    SET_INT_PARAM(0, ctx->stencilPass)
+END_CASE
+
+ON_GET(GL_STENCIL_REF):
+    SET_TYPE(INT)
+    SET_NUM_PARAMS(1)
+    SET_INT_PARAM(0, ctx->stencilRef)
+END_CASE
+
+ON_GET(GL_STENCIL_TEST):
+    SET_TYPE(BOOL)
+    SET_NUM_PARAMS(1)
+    SET_BOOL_PARAM(1, ctx->stencilTest ? GL_TRUE : GL_FALSE)
+END_CASE
+
+ON_GET(GL_STENCIL_VALUE_MASK):
+    SET_TYPE(INT)
+    SET_NUM_PARAMS(1)
+    SET_INT_PARAM(0, ctx->stencilMask)
+END_CASE
+
+ON_GET(GL_STENCIL_WRITEMASK):
+    SET_TYPE(INT)
+    SET_NUM_PARAMS(1)
+    SET_INT_PARAM(0, ctx->stencilWriteMask)
+END_CASE
 
 // ON_GET(GL_SUBPIXEL_BITS):
     // TODO: params returns one value, an estimate of the number of bits of subpixel resolution that are used

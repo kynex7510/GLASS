@@ -20,7 +20,54 @@ typedef struct {
     bool normalizeInt; // Normalize int between -MAX_INT...MAX_INT, only meaningful for floats.
 } Value;
 
-static void getAsBool(const Value* in, GLboolean* out) {
+static inline GLint getFBColorSize(CtxCommon* ctx, GLenum color) {
+    KYGX_ASSERT(ctx);
+
+    const FramebufferInfo* fbInfo = (const FramebufferInfo*)ctx->framebuffer[GLASS_context_getFBIndex(ctx)];
+    if (!fbInfo)
+        return 0;
+
+    const RenderbufferInfo* cbInfo = (const RenderbufferInfo*)fbInfo->colorBuffer;
+    if (!cbInfo)
+        return 0;
+
+    switch (cbInfo->format) {
+        case GL_RGBA8_OES:
+            return 8;
+        case GL_RGB5_A1:
+            return color == GL_RENDERBUFFER_ALPHA_SIZE ? 1 : 5;
+        case GL_RGB565:
+            if (color == GL_RENDERBUFFER_GREEN_SIZE) {
+                return 6;
+            } else if (color == GL_RENDERBUFFER_ALPHA_SIZE) {
+                return 0;
+            } else {
+                return 5;
+            }
+        case GL_RGBA4:
+                return 4;
+        default:
+            KYGX_UNREACHABLE("Invalid parameter!");
+    }
+
+    return 0;
+}
+
+static inline GLint getFBStencilBits(CtxCommon* ctx) {
+    KYGX_ASSERT(ctx);
+
+    const FramebufferInfo* fbInfo = (const FramebufferInfo*)ctx->framebuffer[GLASS_context_getFBIndex(ctx)];
+    if (!fbInfo)
+        return 0;
+
+    const RenderbufferInfo* cbInfo = (const RenderbufferInfo*)fbInfo->colorBuffer;
+    if (!cbInfo)
+        return 0;
+
+    return cbInfo->format == GL_DEPTH24_STENCIL8_OES ? 8 : 0;
+}
+
+static inline void getAsBool(const Value* in, GLboolean* out) {
     KYGX_ASSERT(in);
     KYGX_ASSERT(in->p);
     KYGX_ASSERT(out);
@@ -49,7 +96,7 @@ static void getAsBool(const Value* in, GLboolean* out) {
     }
 }
 
-static void getAsFloat(const Value* in, GLfloat* out) {
+static inline void getAsFloat(const Value* in, GLfloat* out) {
     KYGX_ASSERT(in);
     KYGX_ASSERT(in->p);
     KYGX_ASSERT(out);
@@ -78,7 +125,7 @@ static void getAsFloat(const Value* in, GLfloat* out) {
     }
 }
 
-static void getAsInt(const Value* in, GLint* out) {
+static inline void getAsInt(const Value* in, GLint* out) {
     KYGX_ASSERT(in);
     KYGX_ASSERT(in->p);
     KYGX_ASSERT(out);

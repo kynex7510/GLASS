@@ -71,9 +71,9 @@
 | glEnable      | Yes        |
 | glIsEnabled   | Yes        |
 | glGetError    | Yes        |
-| glGetBooleanv | No         |
-| glGetFloatv   | No         |
-| glGetIntegerv | No         |
+| glGetBooleanv | Yes        |
+| glGetFloatv   | Yes        |
+| glGetIntegerv | Yes        |
 | glGetString   | Yes        |
 
 ### Texture
@@ -157,7 +157,7 @@
 | glAttachShader             | Yes        |
 | glCompileShader            | Stubbed    |
 | glCreateProgram            | Yes        |
-| glCreateShader             | Yes (*)    |
+| glCreateShader             | Yes        |
 | glDeleteProgram            | Yes        |
 | glDeleteShader             | Yes        |
 | glDetachShader             | Yes        |
@@ -176,8 +176,6 @@
 | glShaderSource             | Stubbed    |
 | glUseProgram               | Yes        |
 | glValidateProgram          | Yes        |
-
-- (*) Geometry shaders are not currently supported.
 
 ### Uniform
 
