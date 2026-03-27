@@ -269,10 +269,11 @@ END_CASE
     // least 8. See glActiveTexture.
 //END_CASE
 
-// ON_GET(GL_MAX_CUBE_MAP_TEXTURE_SIZE):
-    // TODO: params returns one value. The value gives a rough estimate of the largest cube-map texture that the GL can handle.
-    // The value must be at least 16. See glTexImage2D.
-// END_CASE
+ON_GET(GL_MAX_CUBE_MAP_TEXTURE_SIZE):
+    SET_TYPE(INT)
+    SET_NUM_PARAMS(1)
+    SET_INT_PARAM(0, GLASS_MAX_TEX_SIZE)
+END_CASE
 
 // ON_GET(GL_MAX_FRAGMENT_UNIFORM_VECTORS):
     // TODO: params returns one value, the maximum number of four-element floating-point, integer, or boolean vectors that
@@ -545,10 +546,11 @@ ON_GET(GL_TEXTURE_BINDING_CUBE_MAP): {
 }
 END_CASE
 
-// ON_GET(GL_UNPACK_ALIGNMENT):
-    // TODO: params returns one value, the byte alignment used for reading pixel data from memory. The initial value is 4.
-    // See glPixelStorei.
-// END_CASE
+ON_GET(GL_UNPACK_ALIGNMENT):
+    SET_TYPE(INT)
+    SET_NUM_PARAMS(1)
+    SET_INT_PARAM(0, ctx->unpackAlignment)
+END_CASE
 
 ON_GET(GL_VIEWPORT):
     SET_TYPE(INT)

@@ -19,6 +19,9 @@ typedef struct {
     KYGXCmdBuffer GXCmdBuf;    // GX command buffer.
     VSyncBarrier vsyncBarrier; // VSync barrier.
 
+    // Pixel alignment
+    u8 unpackAlignment; // Alignment required when reading textures.
+
     // Buffers
     GLuint arrayBuffer;        // GL_ARRAY_BUFFER
     GLuint elementArrayBuffer; // GL_ELEMENT_ARRAY_BUFFER  
@@ -172,6 +175,7 @@ typedef struct {
     GLclampf clearEarlyDepth;
     GLclampf alphaRef;
     u8 clearStencil;
+    u8 unpackAlignment;
     bool block32;
     bool writeRed;
     bool writeGreen;

@@ -77,6 +77,7 @@ void glGetBooleanv(GLenum pname, GLboolean* params);
 void glGetFloatv(GLenum pname, GLfloat* params);
 void glGetIntegerv(GLenum pname, GLint* params);
 const GLubyte* glGetString(GLenum name);
+void glPixelStorei(GLenum pname, GLint param);
 
 /* Texture */
 

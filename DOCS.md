@@ -15,6 +15,7 @@
 - `glBindAttribLocation`: always returns `GL_INVALID_OPERATION`.
 - `glEnable`, `glDisable`, `glIsEnabled` accept additional parameter names: `GL_SCISSOR_TEST_INVERTED_PICA`.
 - `glGet*` accepts additional parameter names: `GL_FRAMEBUFFER_BINDING_PICA`, `GL_SCISSOR_TEST_INVERTED_PICA`.
+- `glPixelStorei` doesn't support alignment by 8, and all other alignment values are effectively the same (width being >= 8 and po2 guarantees the alignment).
 
 ## Attributes
 
