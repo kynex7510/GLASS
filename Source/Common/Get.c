@@ -53,6 +53,30 @@ static inline GLint getFBColorSize(CtxCommon* ctx, GLenum color) {
     return 0;
 }
 
+static inline GLint getFBDepthBits(CtxCommon* ctx) {
+    KYGX_ASSERT(ctx);
+
+    const FramebufferInfo* fbInfo = (const FramebufferInfo*)ctx->framebuffer[GLASS_context_getFBIndex(ctx)];
+    if (!fbInfo)
+        return 0;
+
+    const RenderbufferInfo* dbInfo = (const RenderbufferInfo*)fbInfo->depthBuffer;
+    if (!dbInfo)
+        return 0;
+
+    switch (dbInfo->format) {
+        case GL_DEPTH_COMPONENT16:
+            return 16;
+        case GL_DEPTH_COMPONENT24_OES:
+        case GL_DEPTH24_STENCIL8_OES:
+            return 24;
+        default:
+            KYGX_UNREACHABLE("Invalid parameter!");
+    }
+
+    return 0;
+}
+
 static inline GLint getFBStencilBits(CtxCommon* ctx) {
     KYGX_ASSERT(ctx);
 
@@ -60,11 +84,11 @@ static inline GLint getFBStencilBits(CtxCommon* ctx) {
     if (!fbInfo)
         return 0;
 
-    const RenderbufferInfo* cbInfo = (const RenderbufferInfo*)fbInfo->colorBuffer;
-    if (!cbInfo)
+    const RenderbufferInfo* dbInfo = (const RenderbufferInfo*)fbInfo->depthBuffer;
+    if (!dbInfo)
         return 0;
 
-    return cbInfo->format == GL_DEPTH24_STENCIL8_OES ? 8 : 0;
+    return dbInfo->format == GL_DEPTH24_STENCIL8_OES ? 8 : 0;
 }
 
 static inline void getAsBool(const Value* in, GLboolean* out) {

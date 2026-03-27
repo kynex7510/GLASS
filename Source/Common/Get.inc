@@ -37,9 +37,12 @@ ON_GET(GL_ALIASED_LINE_WIDTH_RANGE):
     SET_FLOAT_PARAM(1, 1.0)
 END_CASE
 
-// ON_GET(GL_ALIASED_POINT_SIZE_RANGE):
-    // TODO: params returns two values, the smallest and largest supported sizes for aliased points. The range must include size 1.
-// END_CASE
+ON_GET(GL_ALIASED_POINT_SIZE_RANGE):
+    SET_TYPE(FLOAT)
+    SET_NUM_PARAMS(2)
+    SET_FLOAT_PARAM(0, 1.0)
+    SET_FLOAT_PARAM(1, 1.0)
+END_CASE
 
 ON_GET(GL_ALPHA_BITS):
     SET_TYPE(INT)
@@ -112,12 +115,16 @@ ON_GET(GL_BLUE_BITS):
     SET_INT_PARAM(0, getFBColorSize(ctx, GL_RENDERBUFFER_BLUE_SIZE))
 END_CASE
 
-// ON_GET(GL_COLOR_CLEAR_VALUE):
-    // TODO: params returns four values: the red, green, blue, and alpha values used to clear the color buffers.
-    // Integer values, if requested, are linearly mapped from the internal floating-point representation such that 1.0 returns
-    // the most positive representable integer value, and −1.0 returns the most negative representable integer value.
-    // The initial value is (0, 0, 0, 0). See glClearColor.
-// END_CASE
+ON_GET(GL_COLOR_CLEAR_VALUE):
+    SET_TYPE(FLOAT)
+    SET_NUM_PARAMS(4)
+    ENABLE_NORMALIZATION()
+
+    SET_FLOAT_PARAM(0, ((ctx->clearColor >> 24) & 0xFF) / 255.0f)
+    SET_FLOAT_PARAM(1, ((ctx->clearColor >> 16) & 0xFF) / 255.0f)
+    SET_FLOAT_PARAM(2, ((ctx->clearColor >> 8) & 0xFF) / 255.0f)
+    SET_FLOAT_PARAM(3, (ctx->clearColor & 0xFF) / 255.0f)
+END_CASE
 
 ON_GET(GL_COLOR_WRITEMASK):
     SET_TYPE(BOOL)
@@ -129,10 +136,11 @@ ON_GET(GL_COLOR_WRITEMASK):
     SET_BOOL_PARAM(3, ctx->writeAlpha ? GL_TRUE : GL_FALSE)
 END_CASE
 
-// ON_GET(GL_COMPRESSED_TEXTURE_FORMATS):
-    // TODO: params returns a list of symbolic constants of length GL_NUM_COMPRESSED_TEXTURE_FORMATS indicating
-    // which compressed texture formats are available. See glCompressedTexImage2D.
-// END_CASE
+ON_GET(GL_COMPRESSED_TEXTURE_FORMATS):
+    SET_TYPE(INT)
+    // TODO: I'm not sure whether supporting compressed (ETC1) textures with this API.
+    SET_NUM_PARAMS(0)
+END_CASE
 
 ON_GET(GL_CULL_FACE):
     SET_TYPE(BOOL)
@@ -152,16 +160,18 @@ ON_GET(GL_CURRENT_PROGRAM):
     SET_INT_PARAM(0, ctx->currentProgram)
 END_CASE
 
-// ON_GET(GL_DEPTH_BITS):
-    // TODO: params returns one value, the number of bitplanes in the depth buffer of the currently bound framebuffer.
-// END_CASE
+ON_GET(GL_DEPTH_BITS):
+    SET_TYPE(INT)
+    SET_NUM_PARAMS(1)
+    SET_INT_PARAM(0, getFBDepthBits(ctx))
+END_CASE
 
-// ON_GET(GL_DEPTH_CLEAR_VALUE):
-    // TODO: params returns one value, the value that is used to clear the depth buffer. Integer values, if requested,
-    // are linearly mapped from the internal floating-point representation such that 1.0 returns the most positive
-    // representable integer value, and −1.0 returns the most negative representable integer value. The initial value is 1.
-    // See glClearDepthf.
-// END_CASE
+ON_GET(GL_DEPTH_CLEAR_VALUE):
+    SET_TYPE(FLOAT)
+    SET_NUM_PARAMS(1)
+    ENABLE_NORMALIZATION()
+    SET_FLOAT_PARAM(0, ctx->clearDepth)
+END_CASE
 
 ON_GET(GL_DEPTH_FUNC):
     SET_TYPE(INT)
@@ -169,12 +179,14 @@ ON_GET(GL_DEPTH_FUNC):
     SET_INT_PARAM(0, ctx->depthFunc)
 END_CASE
 
-// ON_GET(GL_DEPTH_RANGE):
-    // TODO: params returns two values: the near and far mapping limits for the depth buffer. Integer values, if requested,
-    // are linearly mapped from the internal floating-point representation such that 1.0 returns the most positive representable
-    // integer value, and −1.0 returns the most negative representable integer value. The initial value is (0, 1).
-    // See glDepthRangef.
-// END_CASE
+ON_GET(GL_DEPTH_RANGE):
+    SET_TYPE(FLOAT)
+    SET_NUM_PARAMS(2)
+    ENABLE_NORMALIZATION()
+
+    SET_FLOAT_PARAM(0, ctx->depthNear)
+    SET_FLOAT_PARAM(1, ctx->depthFar)
+END_CASE
 
 ON_GET(GL_DEPTH_TEST):
     SET_TYPE(BOOL)
@@ -313,10 +325,12 @@ ON_GET(GL_MAX_VIEWPORT_DIMS):
     SET_INT_PARAM(1, GLASS_MAX_VIEWPORT_HEIGHT)
 END_CASE
 
-// ON_GET(GL_NUM_COMPRESSED_TEXTURE_FORMATS):
-    // TODO: params returns a single integer value indicating the number of available compressed texture formats.
-    // The minimum value is 0. See glCompressedTexImage2D.
-// END_CASE
+ON_GET(GL_NUM_COMPRESSED_TEXTURE_FORMATS):
+    SET_TYPE(INT)
+    SET_NUM_PARAMS(1)
+    // TODO: I'm not sure whether supporting compressed (ETC1) textures with this API.
+    SET_INT_PARAM(0, 0)
+END_CASE
 
 ON_GET(GL_NUM_SHADER_BINARY_FORMATS):
     SET_TYPE(INT)

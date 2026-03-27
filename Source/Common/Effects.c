@@ -301,8 +301,8 @@ void glViewport(GLint x, GLint y, GLsizei width, GLsizei height) {
     CtxCommon* ctx = GLASS_context_getBound();
     ctx->viewportX = x;
     ctx->viewportY = y;
-    ctx->viewportW = width;
-    ctx->viewportH = height;
+    ctx->viewportW = GLASS_CLAMP(0, GLASS_MAX_VIEWPORT_WIDTH, width);
+    ctx->viewportH = GLASS_CLAMP(0, GLASS_MAX_VIEWPORT_HEIGHT, height);
     ctx->scissorMode = SCISSORMODE_DISABLE;
     ctx->flags |= (GLASS_CONTEXT_FLAG_VIEWPORT | GLASS_CONTEXT_FLAG_SCISSOR);
 }
