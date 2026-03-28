@@ -10,6 +10,7 @@
 #include "Base/Context.h"
 #include "Base/TexManager.h"
 #include "Base/Math.h"
+#include "Base/Read.h"
 #include "Platform/GPU.h"
 
 #include <string.h> // memset
@@ -306,12 +307,6 @@ static inline bool isReadType(GLenum type) {
     }
 }
 
-static size_t pixelSize(GLenum format) {
-    switch (format) {
-        case 
-    }
-}
-
 void glReadPixels(GLint x, GLint y, GLsizei width, GLsizei height, GLenum format, GLenum type, GLvoid* data) {
     if (!isReadFormat(format) || !isReadType(type)) {
         GLASS_context_setError(GL_INVALID_ENUM);
@@ -342,22 +337,9 @@ void glReadPixels(GLint x, GLint y, GLsizei width, GLsizei height, GLenum format
     if (!checkFB())
         return;
 
-    // Get color buffer.
+    // Read the color buffer.
     CtxCommon* ctx = GLASS_context_getBound();
+    const FramebufferInfo* fbInfo = (const FramebufferInfo*)ctx->framebuffer[GLASS_context_getFBIndex(ctx)];
 
-    // Align dimensions to block size.
-    const u16 alignedX = kygxAlignDown(x, 8);
-    const u16 alignedY = kygxAlignDown(y, 8);
-    const u16 alignedW = kygxAlignUp(width, 8);
-    const u16 alignedH = kygxAlignUp(height, 8);
-
-    // Setup surfaces.
-    KYGXTextureCopySurface cbSurface;
-    cbSurface.addr = cbAddr;
-    cbSurface.width = 
-
-    // Read rectangle (RectCopy).
-    // Convert rectangle in place (ripConvertFromNativeInPlace).
-    // Convert to RGBA8.
-    // Copy to source.
+    GLASS_read_colorBuffer(fbInfo, x, y, width, height, RIP_PIXELFORMAT_RGBA8, data);
 }

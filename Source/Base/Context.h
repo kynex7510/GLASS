@@ -20,7 +20,8 @@ typedef struct {
     VSyncBarrier vsyncBarrier; // VSync barrier.
 
     // Pixel alignment
-    u8 unpackAlignment; // Alignment required when reading textures.
+    u8 packAlignment;   // Alignment required when reading the framebuffer.
+    u8 unpackAlignment; // Alignment required when uploading textures.
 
     // Buffers
     GLuint arrayBuffer;        // GL_ARRAY_BUFFER
@@ -175,6 +176,7 @@ typedef struct {
     GLclampf clearEarlyDepth;
     GLclampf alphaRef;
     u8 clearStencil;
+    u8 packAlignment;
     u8 unpackAlignment;
     bool block32;
     bool writeRed;

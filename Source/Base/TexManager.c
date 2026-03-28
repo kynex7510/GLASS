@@ -242,14 +242,14 @@ void GLASS_tex_readRect(TextureInfo* tex, u8* dst, size_t face, size_t level, si
     srcSurface.addr = tex->faces[face] + mipmapOffset;
     srcSurface.width = tex->width;
     srcSurface.height = tex->height;
-    srcSurface.pixelSize = bytesPerPixel; // TODO
+    srcSurface.pixelSize = bytesPerPixel;
     srcSurface.rotated = true;
 
     KYGXTextureCopySurface dstSurface;
     dstSurface.addr = dst;
     dstSurface.width = width;
     dstSurface.height = height;
-    dstSurface.pixelSize = bytesPerPixel; // TODO
+    dstSurface.pixelSize = bytesPerPixel;
     dstSurface.rotated = true;
 
     KYGXTextureCopyRect srcRect;
@@ -285,14 +285,14 @@ void GLASS_tex_writeRect(TextureInfo* tex, const u8* data, size_t face, size_t l
     srcSurface.addr = (void*)data;
     srcSurface.width = width;
     srcSurface.height = height;
-    srcSurface.pixelSize = bytesPerPixel; // TODO: use official macros.
+    srcSurface.pixelSize = bytesPerPixel;
     srcSurface.rotated = true;
 
     KYGXTextureCopySurface dstSurface;
     dstSurface.addr = tex->faces[face] + mipmapOffset;
     dstSurface.width = tex->width;
     dstSurface.height = tex->height;
-    dstSurface.pixelSize = bytesPerPixel; // TODO
+    dstSurface.pixelSize = bytesPerPixel;
     dstSurface.rotated = true;
 
     KYGXTextureCopyRect srcRect;

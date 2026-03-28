@@ -35,6 +35,10 @@ void GLASS_context_initCommon(CtxCommon* ctx, const GLASSCtxParams* ctxParams) {
 
     GLASS_vsyncBarrier_init(&ctx->vsyncBarrier);
 
+    // Pixel alignment.
+    ctx->packAlignment = 4;
+    ctx->unpackAlignment = 4;
+
     // Buffers.
     ctx->arrayBuffer = GLASS_INVALID_OBJECT;
     ctx->elementArrayBuffer = GLASS_INVALID_OBJECT;

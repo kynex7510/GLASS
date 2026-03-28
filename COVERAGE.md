@@ -61,7 +61,7 @@
 | glDrawElements | Yes        |
 | glFinish       | Yes        |
 | glFlush        | Yes        |
-| glReadPixels   | No         |
+| glReadPixels   | Yes        |
 
 ### State
 

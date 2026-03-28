@@ -339,10 +339,11 @@ ON_GET(GL_NUM_SHADER_BINARY_FORMATS):
     SET_INT_PARAM(0, 1)
 END_CASE
 
-// ON_GET(GL_PACK_ALIGNMENT):
-    // TODO: params returns one value, the byte alignment used for writing pixel data to memory.
-    // The initial value is 4. See glPixelStorei.
-// END_CASE
+ON_GET(GL_PACK_ALIGNMENT):
+    SET_TYPE(INT)
+    SET_NUM_PARAMS(1)
+    SET_INT_PARAM(0, ctx->packAlignment)
+END_CASE
 
 ON_GET(GL_POLYGON_OFFSET_FACTOR):
     SET_TYPE(FLOAT)
