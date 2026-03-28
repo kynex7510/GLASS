@@ -5,3 +5,4 @@ add_executable(MultipleBuf Main.c)
 target_link_libraries(MultipleBuf PRIVATE GLASSv2 kazmath MultipleBuf-shaders)
 
 ctr_create_3dsx(MultipleBuf)
+install(FILES ${CMAKE_CURRENT_BINARY_DIR}/MultipleBuf.3dsx TYPE BIN)

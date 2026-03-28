@@ -33,6 +33,8 @@ void GLASS_context_initCommon(CtxCommon* ctx, const GLASSCtxParams* ctxParams) {
     GLASS_gpu_allocList(&ctx->params.GPUCmdList);
     KYGX_BREAK_UNLESS(kygxCmdBufferAlloc(&ctx->GXCmdBuf, 32));
 
+    GLASS_vsyncBarrier_init(&ctx->vsyncBarrier);
+
     // Buffers.
     ctx->arrayBuffer = GLASS_INVALID_OBJECT;
     ctx->elementArrayBuffer = GLASS_INVALID_OBJECT;
@@ -185,6 +187,8 @@ void GLASS_context_cleanupCommon(CtxCommon* ctx) {
     if (ctx == g_Context)
         GLASS_context_bind(NULL);
 
+    GLASS_vsyncBarrier_destroy(&ctx->vsyncBarrier);
+
     kygxCmdBufferFree(&ctx->GXCmdBuf);
     GLASS_gpu_freeList(&ctx->params.GPUCmdList);
 }
@@ -308,7 +312,7 @@ void GLASS_context_flush(CtxCommon* ctx, bool send) {
                 pinfo->flags &= ~GLASS_PROGRAM_FLAG_UPDATE_GEOMETRY;
             }
 
-            GLASS_gpu_bindShaders(&ctx->params.GPUCmdList, vs, gs);
+            GLASS_gpu_bindShaders(&ctx->params.GPUCmdList, vs, gs, pinfo->gsStride, pinfo->gsPermutations);
 
             if (vs)
                 GLASS_gpu_uploadConstUniforms(&ctx->params.GPUCmdList, vs);

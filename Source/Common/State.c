@@ -138,3 +138,23 @@ const GLubyte* glGetString(GLenum name) {
     GLASS_context_setError(GL_INVALID_ENUM);
     return NULL;
 }
+
+void glPixelStorei(GLenum pname, GLint param) {
+    if (param != 1 && param != 2 && param != 4) {
+        GLASS_context_setError(GL_INVALID_VALUE);
+        return;
+    }
+
+    CtxCommon* ctx = GLASS_context_getBound();
+
+    switch (pname) {
+        case GL_UNPACK_ALIGNMENT:
+            ctx->unpackAlignment = param;
+            break;
+        // TODO: when we implement glReadPixels.
+        case GL_PACK_ALIGNMENT:
+        default:
+            GLASS_context_setError(GL_INVALID_ENUM);
+            return;
+    }
+}

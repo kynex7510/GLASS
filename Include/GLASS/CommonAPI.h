@@ -17,7 +17,7 @@ void glGenBuffers(GLsizei n, GLuint* buffers);
 void glGetBufferParameteriv(GLenum target, GLenum pname, GLint* params);
 GLboolean glIsBuffer(GLuint buffer);
 
-/* Combiners (extension) */
+/* Combiners (extensions) */
 
 void glCombinerColorPICA(GLclampf red, GLclampf green, GLclampf blue, GLclampf alpha);
 void glCombinerFuncPICA(GLenum pname, GLenum func);
@@ -77,6 +77,7 @@ void glGetBooleanv(GLenum pname, GLboolean* params);
 void glGetFloatv(GLenum pname, GLfloat* params);
 void glGetIntegerv(GLenum pname, GLint* params);
 const GLubyte* glGetString(GLenum name);
+void glPixelStorei(GLenum pname, GLint param);
 
 /* Texture */
 
@@ -98,7 +99,7 @@ void glTexParameterfv(GLenum target, GLenum pname, const GLfloat* params);
 void glTexParameteriv(GLenum target, GLenum pname, const GLint* params);
 void glTexSubImage2D(GLenum target, GLint level, GLint xoffset, GLint yoffset, GLsizei width, GLsizei height, GLenum format, GLenum type, const GLvoid* data);
 
-/* Texture (extension) */
+/* Texture (extensions) */
 
 void glTexVRAMPICA(GLboolean enabled);
 

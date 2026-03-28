@@ -5,6 +5,7 @@
  */
 
 #include <KYGX/Utility.h>
+#include <RIP/Texture.h>
 
 #include "Platform/GPU.h"
 #include "Base/Math.h"
@@ -44,10 +45,8 @@ static inline size_t addCmdImplStep(u32* cmdBuffer, u32 header, const u32* param
     memcpy(&cmdBuffer[2], &params[1], (numParams - 1) * sizeof(u32));
 
     // Make sure commands are kept aligned.
-    if ((numParams + 1) & 1) {
+    if ((numParams + 1) & 1)
         ++numParams;
-        cmdBuffer[numParams] = 0;
-    }
 
     return (numParams + 1) * sizeof(u32);
 }
@@ -314,7 +313,7 @@ static void uploadShaderBinary(GLASSGPUCommandList* list, const ShaderInfo* shad
     }
 }
 
-void GLASS_gpu_bindShaders(GLASSGPUCommandList* list, const ShaderInfo* vertexShader, const ShaderInfo* geometryShader) {
+void GLASS_gpu_bindShaders(GLASSGPUCommandList* list, const ShaderInfo* vertexShader, const ShaderInfo* geometryShader, GLuint gsStride, const GLuint* gsPermutations) {
     // Initialize geometry engine.
     addMaskedWrite(list, GPUREG_GEOSTAGE_CONFIG, 0x03, geometryShader ? 2 : 0);
     addMaskedWrite(list, GPUREG_GEOSTAGE_CONFIG2, 0x03, 0);
@@ -378,11 +377,34 @@ void GLASS_gpu_bindShaders(GLASSGPUCommandList* list, const ShaderInfo* vertexSh
         addWrite(list, GPUREG_SH_OUTATTR_CLOCK, mergedOutClock);
     }
 
-    // TODO: configure geostage.
-    addMaskedWrite(list, GPUREG_GEOSTAGE_CONFIG, 0x0A, 0);
-    addWrite(list, GPUREG_GSH_MISC0, 0);
-    addWrite(list, GPUREG_GSH_MISC1, 0);
-    addWrite(list, GPUREG_GSH_INPUTBUFFER_CONFIG, 0xA0000000);
+    // Configure geostage.
+    if (geometryShader) {
+        // Set input stride (use value if specified, otherwise use the number of outputs in the vertex shader).
+        const u32 stride = gsStride ? gsStride : vertexShader->outTotal;
+
+        // Set variable size processing.
+        addMaskedWrite(list, GPUREG_GEOSTAGE_CONFIG, 0xA, geometryShader->gsMode == GEOSHADERMODE_VARIABLE ? 0x80000000 : 0);
+
+        // Set processing mode.
+        u32 misc = geometryShader->gsMode;
+        if (misc == GEOSHADERMODE_FIXED)
+            misc |= 0x01000000 | (geometryShader->gsFixedVtxArrayStart << 16) | ((stride - 1) << 12) | ((geometryShader->gsSizeOfFixedVtxArray - 1) << 8);
+
+        addWrite(list, GPUREG_GSH_MISC0, misc);
+
+        // Set variable size mode parameters.
+        addWrite(list, GPUREG_GSH_MISC1, geometryShader->gsMode == GEOSHADERMODE_VARIABLE ? (geometryShader->gsSizeOfVariableVtxArray - 1) : 0);
+
+        // Set geoshader input and permutation.
+        addWrite(list, GPUREG_GSH_INPUTBUFFER_CONFIG, 0x08000000 | (geometryShader->gsMode != GEOSHADERMODE_POINT ? 0x100 : 0) | (stride - 1));
+        addIncrementalWrites(list, GPUREG_GSH_ATTRIBUTES_PERMUTATION_LOW, gsPermutations, 2);
+
+    } else {
+        addMaskedWrite(list, GPUREG_GEOSTAGE_CONFIG, 0x0A, 0);
+        addWrite(list, GPUREG_GSH_MISC0, 0);
+        addWrite(list, GPUREG_GSH_MISC1, 0);
+        addWrite(list, GPUREG_GSH_INPUTBUFFER_CONFIG, 0xA0000000);
+    }
 }
 
 static inline void uploadBoolUniformMask(GLASSGPUCommandList* list, const ShaderInfo* shader, u16 mask) {
@@ -1221,12 +1243,12 @@ void GLASS_gpu_setTextureUnits(GLASSGPUCommandList* list, const GLuint* units) {
         params[4] = mainTexAddr >> 3;
 
         if (hasCubeMap) {
-            const u32 mask = (mainTexAddr >> 3) & ~(0x3FFFFFu);
-
             for (size_t j = 1; j < GLASS_NUM_TEX_FACES; ++j) {
+                KYGX_ASSERT(ripValidateTextureFaceAddr(tex->faces[0], tex->faces[j]));
+
                 const u32 dataAddr = kygxGetPhysicalAddress(tex->faces[j]);
                 KYGX_ASSERT(dataAddr);
-                KYGX_ASSERT(((dataAddr >> 3) & ~(0x3FFFFFu)) == mask);
+            
                 params[4 + j] = (dataAddr >> 3) & 0x3FFFFFu;
             }
         }

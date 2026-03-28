@@ -53,7 +53,7 @@ typedef struct {
     GLASSScreen targetScreen;       ///< Draw target screen (default: GLASS_SCREEN_TOP).
     GLASSSide targetSide;           ///< Draw target side (default: GLASS_SIDE_LEFT).
     GLASSGPUCommandList GPUCmdList; ///< GPU command list (default: all NULL).
-    bool vsync;                     ///< Enable VSync (default: true). TODO: toggling currently unimplemented, always set.
+    bool vsync;                     ///< Enable VSync (default: true).
     bool horizontalFlip;            ///< Flip display buffer horizontally (default: false).
     bool flushAllLinearMem;         ///< Whether to flush all linear memory (default: true).
     GLASSDownscale downscale;       ///< Set downscale for anti-aliasing (default: GLASS_DOWNSCALE_NONE).
@@ -114,6 +114,9 @@ void glassSwapBuffers(void);
 // Swap buffers of the contexts. Can bind any of the two.
 void glassSwapContextBuffers(GLASSCtx top, GLASSCtx bottom);
 
+// Get the screen framebuffer targeted by a context.
+u8* glassGetScreenFramebuffer(GLASSCtx ctx, u16* width, u16* height, GLenum* format);
+
 // Get context version.
 GLASSVersion glassGetVersion(GLASSCtx ctx);
 
@@ -158,6 +161,9 @@ GLASSDownscale glassGetDownscale(GLASSCtx ctx);
 
 // Set downscale.
 void glassSetDownscale(GLASSCtx ctx, GLASSDownscale downscale);
+
+// Move Tex3DS texture data in the currently bound texture object.
+void glassMoveTex3DS(RIPTex3DS* tex);
 
 void* glassHeapAlloc(size_t size);
 void glassHeapFree(void* p);

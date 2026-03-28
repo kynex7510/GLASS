@@ -5,7 +5,6 @@
 - - Load subtextures (GL)
 - - Copy textures
 - Combiner buffers
-- Add support for geometry shaders
 - Support OpenGL 1.1
 - Add support for extensions (shadow, gas, blockmode32, etc).
 - Optimize the whole library

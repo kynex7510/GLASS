@@ -9,9 +9,12 @@
 
 #include "Base/Types.h"
 
+#include <math.h>
+
 #define GLASS_MIN(a, b) ((a) < (b) ? (a) : (b))
 #define GLASS_MAX(a, b) ((a) > (b) ? (a) : (b))
 #define GLASS_CLAMP(min, max, val) (GLASS_MAX((min), GLASS_MIN((max), (val))))
+#define GLASS_ROUND(x) roundf(x)
 
 u32 GLASS_math_f32tofixed13(float f);
 u32 GLASS_math_f32tof31(float f);

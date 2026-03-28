@@ -1,7 +1,7 @@
 #include <GLES/gl2.h>
 #include <kazmath/kazmath.h>
 
-#include "MultipleBuf_vshader_shbin.h"
+#include "GeoShader_shaders_shbin.h"
 
 typedef struct {
     float x, y, z;
@@ -11,57 +11,72 @@ typedef struct {
     float r, g, b, a;
 } Color;
 
-static const Position g_VertexList[3] = {
-    { 200.0f, 200.0f, 0.5f }, // Top
-    { 100.0f, 40.0f, 0.5f },  // Left
-    { 300.0f, 40.0f, 0.5f },  // Right
+typedef struct {
+    Position pos;
+    Color clr;
+} Vertex;
+
+static const Vertex g_VertexList[3] = {
+    {
+        { 200.0f, 200.0f, 0.5f }, // Top
+        { 1.0f, 0.0f, 0.0f, 1.0f }, // Red
+    },
+    {
+        { 100.0f, 40.0f, 0.5f }, // Left
+        { 0.0f, 1.0f, 0.0f, 1.0f }, // Green
+    },
+    {
+        { 300.0f, 40.0f, 0.5f },  // Right
+        { 0.0f, 0.0f, 1.0f, 1.0f }, // Blue
+    },
 };
 
-static const Color g_ColorList[3] = {
-    { 1.0f, 0.0f, 0.0f, 1.0f },
-    { 0.0f, 1.0f, 0.0f, 1.0f },
-    { 0.0f, 0.0f, 1.0f, 1.0f },
-};
+#define NUM_VERTICES sizeof(g_VertexList)/sizeof(Vertex)
 
 static GLint g_ProjLoc;
 static kmMat4 g_ProjMtx;
 
-static void sceneInit(u16 screenWidth, u16 screenHeight, GLuint* vbos) {
+static GLint sceneInit(u16 screenWidth, u16 screenHeight) {
     // Set default state.
     glViewport(0, 0, screenWidth, screenHeight);
     glClearColor(0.4f, 0.68f, 0.84f, 1.0f);
 
-    // Load the vertex shader, create a shader program and bind it.
+    // Load the shaders, create a shader program and bind them.
+    GLuint shads[2];
     GLuint prog = glCreateProgram();
-    GLuint shad = glCreateShader(GL_VERTEX_SHADER);
-    glShaderBinary(1, &shad, GL_SHADER_BINARY_PICA, MultipleBuf_vshader_shbin, MultipleBuf_vshader_shbin_size);
-    glAttachShader(prog, shad);
-    glDeleteShader(shad);
+
+    shads[0] = glCreateShader(GL_VERTEX_SHADER);
+    shads[1] = glCreateShader(GL_GEOMETRY_SHADER_PICA);
+
+    glShaderBinary(2, shads, GL_SHADER_BINARY_PICA, GeoShader_shaders_shbin, GeoShader_shaders_shbin_size);
+
+    for (size_t i = 0; i < sizeof(shads)/sizeof(GLuint); ++i) {
+        glAttachShader(prog, shads[i]);
+        glDeleteShader(shads[i]);
+    }
+
     glLinkProgram(prog);
     glUseProgram(prog);
     glDeleteProgram(prog);
 
+    // Set geometry shader stride.
+    glProgramGeometryStridePICA(prog, 6);
+
     // Get the location of the uniforms.
     g_ProjLoc = glGetUniformLocation(prog, "projection");
 
-    // Create the VBOs (vertex buffer objects).
-    glGenBuffers(2, vbos);
-
-    // Configure position attribute.
-    glBindBuffer(GL_ARRAY_BUFFER, vbos[0]);
+    // Create the VBO (vertex buffer object).
+    GLuint vbo;
+    glGenBuffers(1, &vbo);
+    glBindBuffer(GL_ARRAY_BUFFER, vbo);
     glBufferData(GL_ARRAY_BUFFER, sizeof(g_VertexList), g_VertexList, GL_STATIC_DRAW);
 
-    const GLint inpos = glGetAttribLocation(prog, "inpos");
-    glVertexAttribPointer(inpos, 3, GL_FLOAT, GL_FALSE, sizeof(Position), NULL);
-    glEnableVertexAttribArray(inpos);
+    // Configure attributes for use with the vertex shader.
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), NULL); // v0 = position
+    glEnableVertexAttribArray(0);
 
-    // Configure color attribute.
-    glBindBuffer(GL_ARRAY_BUFFER, vbos[1]);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(g_ColorList), g_ColorList, GL_STATIC_DRAW);
-
-    const GLint inclr = glGetAttribLocation(prog, "inclr");
-    glVertexAttribPointer(inclr, 4, GL_FLOAT, GL_FALSE, sizeof(Color), NULL);
-    glEnableVertexAttribArray(inclr);
+    glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, clr)); // v1 = color
+    glEnableVertexAttribArray(1);
 
     // Compute the projection matrix.
     kmMat4 mtx;
@@ -74,7 +89,7 @@ static void sceneRender(void) {
     glUniformMatrix4fv(g_ProjLoc, 1, GL_FALSE, g_ProjMtx.mat);
 
     // Draw the VBO.
-    glDrawArrays(GL_TRIANGLES, 0, 3);
+    glDrawArrays(GL_GEOMETRY_PRIMITIVE_PICA, 0, NUM_VERTICES);
 }
 
 int main() {
@@ -82,6 +97,7 @@ int main() {
     gfxInitDefault();
     kygxInit();
 
+    // Create context.
     GLASSCtx ctx = glassCreateDefaultContext(GLASS_VERSION_ES_2);
     glassBindContext(ctx);
 
@@ -97,12 +113,11 @@ int main() {
     glGenRenderbuffers(1, &rb);
     glBindFramebuffer(GL_FRAMEBUFFER, fb);
     glBindRenderbuffer(GL_RENDERBUFFER, rb);
-    glRenderbufferStorage(GL_RENDERBUFFER, GL_RGBA8_OES, screenWidth,screenHeight);
+    glRenderbufferStorage(GL_RENDERBUFFER, GL_RGBA8_OES, screenWidth, screenHeight);
     glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_RENDERBUFFER, rb);
 
     // Initialize the scene.
-    GLuint vbos[2];
-    sceneInit(screenWidth, screenHeight, vbos);
+    GLint vbo = sceneInit(screenWidth, screenHeight);
 
     // Main loop.
     while (aptMainLoop()) {
@@ -120,7 +135,7 @@ int main() {
     }
 
     // Deinitialize graphics.
-    glDeleteBuffers(2, vbos);
+    glDeleteBuffers(1, &vbo);
     glDeleteRenderbuffers(1, &rb);
     glDeleteFramebuffers(1, &fb);
 

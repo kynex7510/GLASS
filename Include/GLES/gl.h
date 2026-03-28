@@ -68,7 +68,6 @@ void glHint (GLenum target, GLenum mode);
 void glLoadIdentity (void);
 void glMatrixMode (GLenum mode);
 void glNormalPointer (GLenum type, GLsizei stride, const void* pointer);
-void glPixelStorei (GLenum pname, GLint param);
 void glPopMatrix (void);
 void glPushMatrix (void);
 void glSampleCoverage (GLfloat value, GLboolean invert);

@@ -26,7 +26,11 @@ static const Color g_ColorList[3] = {
 static GLint g_ProjLoc;
 static kmMat4 g_ProjMtx;
 
-static void sceneInit(GLuint* vbos) {
+static void sceneInit(u16 width, u16 height, GLuint* vbos) {
+    // Set default state.
+    glViewport(0, 0, width, height);
+    glClearColor(0.4f, 0.68f, 0.84f, 1.0f);
+
     // Load the vertex shader, create a shader program and bind it.
     GLuint prog = glCreateProgram();
     GLuint shad = glCreateShader(GL_VERTEX_SHADER);
@@ -83,6 +87,10 @@ int main() {
     glassBindContext(ctx);
 
     // Initialize the render target.
+    u16 screenWidth = 0;
+    u16 screenHeight = 0;
+    glassGetScreenFramebuffer(ctx, &screenWidth, &screenHeight, NULL);
+
     GLuint fb;
     GLuint tex;
 
@@ -95,13 +103,9 @@ int main() {
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 512, 256, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, tex, 0);
 
-    // Set default state.
-    glViewport(0, 0, 400, 240);
-    glClearColor(0.4f, 0.68f, 0.84f, 1.0f);
-
     // Initialize the scene.
     GLuint vbos[2];
-    sceneInit(vbos);
+    sceneInit(screenWidth, screenHeight, vbos);
 
     // Main loop.
     while (aptMainLoop()) {

@@ -5,7 +5,7 @@
 - Fragment pipeline is not programmable.
 - No default objects are provided (framebuffer, textures, shader program).
 - `glBind*` functions will not create buffers when passing arbitrary buffer values, instead `glGen*` must be used for buffer creation.
-- Unlike the OpenGL specs which limit each shader type to 1 entry, `glShaderBinary` supports as much shader entries as are contained in the shader binary, and are loaded in the order they've been linked.
+- Unlike the OpenGL specs which limit each shader type to 1 entry, `glShaderBinary` supports as much shader entries as contained in the shader binary, and are loaded in the order they've been linked.
 - `glPolygonOffset`: the `factor` argument has no effect.
 - `glDrawArrays`: the `mode` argument must be one of `GL_TRIANGLES`, `GL_TRIANGLE_STRIP`, `GL_TRIANGLE_FAN`, `GL_GEOMETRY_PRIMITIVE_PICA`.
 - If the number of components of the uniform variable as defined in the shader does not match the size specified in the name of the command used to load its value, and the uniform variable is not of type `bool`, no error will be generated; the other components of the specified uniform variable will remain unchanged.
@@ -13,6 +13,9 @@
 - `glTexParameter`: `GL_TEXTURE_MIN_LOD`, `GL_TEXTURE_MAX_LOD`, `GL_TEXTURE_LOD_BIAS` are all valid parameters.
 - `glTexParameter`: `GL_CLAMP_TO_BORDER` is a valid wrapping value.
 - `glBindAttribLocation`: always returns `GL_INVALID_OPERATION`.
+- `glEnable`, `glDisable`, `glIsEnabled` accept additional parameter names: `GL_SCISSOR_TEST_INVERTED_PICA`.
+- `glGet*` accepts additional parameter names: `GL_FRAMEBUFFER_BINDING_PICA`, `GL_SCISSOR_TEST_INVERTED_PICA`.
+- `glPixelStorei` doesn't support alignment by 8, and all other alignment values are effectively the same (width being >= 8 and po2 guarantees the alignment).
 - `glReadPixels`: negative `x` or `y` return `GL_INVALID_VALUE`.
 
 ## Attributes

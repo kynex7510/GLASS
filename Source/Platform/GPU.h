@@ -22,7 +22,7 @@ void GLASS_gpu_invalidateFramebuffer(GLASSGPUCommandList* list);
 void GLASS_gpu_setViewport(GLASSGPUCommandList* list, GLint x, GLint y, GLsizei width, GLsizei height);
 void GLASS_gpu_setScissorTest(GLASSGPUCommandList* list, GPUScissorMode mode, GLint x, GLint y, GLsizei width, GLsizei height);
 
-void GLASS_gpu_bindShaders(GLASSGPUCommandList* list, const ShaderInfo* vertexShader, const ShaderInfo* geometryShader);
+void GLASS_gpu_bindShaders(GLASSGPUCommandList* list, const ShaderInfo* vertexShader, const ShaderInfo* geometryShader, GLuint gsStride, const GLuint* gsPermutations);
 void GLASS_gpu_uploadConstUniforms(GLASSGPUCommandList* list, const ShaderInfo* shader);
 void GLASS_gpu_uploadUniforms(GLASSGPUCommandList* list, ShaderInfo* shader);
 

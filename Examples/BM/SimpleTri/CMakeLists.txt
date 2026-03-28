@@ -7,4 +7,4 @@ add_executable(SimpleTri Main.c)
 target_link_libraries(SimpleTri PRIVATE GLASSv2 shaders)
 bm_target_linker_file(SimpleTri ${CTR_BM_TOOLCHAIN_ROOT}/Linker/Default11.ld)
 
-add_firm_binary(SimpleTri SimpleTri_bin)
+add_firm_binary(SimpleTri_bin SimpleTri)

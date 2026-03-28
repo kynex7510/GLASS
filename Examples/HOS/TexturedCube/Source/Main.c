@@ -2,7 +2,7 @@
 #include <kazmath/kazmath.h>
 
 #include "stb_image.h"
-#include "TexturedCubeRaw_vshader_shbin.h"
+#include "TexturedCube_vshader_shbin.h"
 
 typedef struct {
     float position[3];
@@ -90,11 +90,16 @@ static const Vertex g_VertexList[] = {
 
 #define NUM_VERTICES (sizeof(g_VertexList)/sizeof(Vertex))
 
-static void sceneInit(GLuint* vbo, GLuint* tex) {
+static void sceneInit(u16 screenWidth, u16 screenHeight, GLuint* vbo, GLuint* tex) {
+    // Set default state.
+    glViewport(0, 0, screenWidth, screenHeight);
+    glClearColor(0.4f, 0.68f, 0.84f, 1.0f);
+    glEnable(GL_CULL_FACE);
+    
     // Load the vertex shader, create a shader program and bind it.
     GLuint prog = glCreateProgram();
     GLuint shad = glCreateShader(GL_VERTEX_SHADER);
-    glShaderBinary(1, &shad, GL_SHADER_BINARY_PICA, TexturedCubeRaw_vshader_shbin, TexturedCubeRaw_vshader_shbin_size);
+    glShaderBinary(1, &shad, GL_SHADER_BINARY_PICA, TexturedCube_vshader_shbin, TexturedCube_vshader_shbin_size);
     glAttachShader(prog, shad);
     glDeleteShader(shad);
     glLinkProgram(prog);
@@ -210,6 +215,10 @@ int main() {
     glassBindContext(ctx);
 
     // Initialize the render target.
+    u16 screenWidth = 0;
+    u16 screenHeight = 0;
+    glassGetScreenFramebuffer(ctx, &screenWidth, &screenHeight, NULL);
+
     GLuint fb;
     GLuint rb;
 
@@ -217,18 +226,13 @@ int main() {
     glGenRenderbuffers(1, &rb);
     glBindFramebuffer(GL_FRAMEBUFFER, fb);
     glBindRenderbuffer(GL_RENDERBUFFER, rb);
-    glRenderbufferStorage(GL_RENDERBUFFER, GL_RGBA8_OES, 400, 240);
+    glRenderbufferStorage(GL_RENDERBUFFER, GL_RGBA8_OES, screenWidth, screenHeight);
     glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_RENDERBUFFER, rb);
-
-    // Set default state.
-    glViewport(0, 0, 400, 240);
-    glClearColor(0.4f, 0.68f, 0.84f, 1.0f);
-    glEnable(GL_CULL_FACE);
 
     // Initialize the scene.
     GLuint vbo;
     GLuint tex;
-    sceneInit(&vbo, &tex);
+    sceneInit(screenWidth, screenHeight, &vbo, &tex);
 
     // Main loop.
     float angleX = 0.0f, angleY = 0.0f;

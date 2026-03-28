@@ -5,3 +5,4 @@ add_executable(Lenny Main.c Lenny.c)
 target_link_libraries(Lenny PRIVATE GLASSv2 kazmath Lenny-shaders)
 
 ctr_create_3dsx(Lenny)
+install(FILES ${CMAKE_CURRENT_BINARY_DIR}/Lenny.3dsx TYPE BIN)

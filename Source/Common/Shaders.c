@@ -70,7 +70,10 @@ typedef struct{
 
 typedef struct {
     bool isGeometry;                  // This DVLE is for a geometry shader.
-    bool mergeOutmaps;                // Merge shader outmaps (geometry only).
+    bool gsMergeOutmaps;              // Merge shader outmaps (geometry only).
+    u8 gsFixedVtxArrayStart;          // Index of first vertex array register for fixed mode (geometry only).
+    u8 gsSizeOfFixedVtxArray;         // Size of vertex array for fixed mode (geometry only).
+    u8 gsSizeOfVariableVtxArray;      // Size of vertex array for variable mode (geometry only).
     u32 entrypoint;                   // Code entrypoint.
     GPUGeoShaderMode gsMode;          // Geometry shader mode.
     DVLEConstEntry* constUniforms;    // Constant uniform table.
@@ -245,22 +248,22 @@ static inline size_t lenActiveAttribs(const ProgramInfo* info) {
     return lenOfActiveAttribs;
 }
 
-static size_t lookupShader(const GLuint* shaders, size_t maxShaders, size_t index, bool isGeometry) {
+static bool lookupShader(const GLuint* shaders, size_t maxShaders, size_t index, bool isGeometry, size_t* out) {
     KYGX_ASSERT(shaders);
+    KYGX_ASSERT(out);
 
-    for (size_t i = (index + 1); i < maxShaders; ++i) {
+    for (size_t i = index; i < maxShaders; ++i) {
         GLuint name = shaders[i];
-
-        // Force failure if one of the shaders is invalid.
-        if (!GLASS_OBJ_IS_SHADER(name))
-            break;
+        KYGX_ASSERT(GLASS_OBJ_IS_SHADER(name));
 
         const ShaderInfo* shader = (const ShaderInfo*)name;
-        if (((shader->flags & GLASS_SHADER_FLAG_GEOMETRY) == GLASS_SHADER_FLAG_GEOMETRY) == isGeometry)
-            return i;
+        if (((shader->flags & GLASS_SHADER_FLAG_GEOMETRY) == GLASS_SHADER_FLAG_GEOMETRY) == isGeometry) {
+            *out = i;
+            return true;
+        }
     }
 
-    return index;
+    return false;
 }
 
 static DVLB* parseDVLB(const u8* data, size_t size) {
@@ -344,17 +347,23 @@ static void getDVLEInfo(const u8* data, size_t size, DVLEInfo* out) {
 
     // Get info.
     u8 flags = 0;
-    u8 mergeOutmaps = 0;
+    u8 gsMergeOutmaps = 0;
     u8 gsMode = 0;
+    u8 gsFixedVtxArrayStart = 0;
+    u8 gsSizeOfVariableVtxArray = 0;
+    u8 gsSizeOfFixedVtxArray = 0;
     u32 offsetToConstTable = 0;
     u32 offsetToOutTable = 0;
     u32 offsetToUniformTable = 0;
     u32 offsetToSymbolTable = 0;
 
     memcpy(&flags, data + 0x06, sizeof(u8));
-    memcpy(&mergeOutmaps, data + 0x07, sizeof(u8));
+    memcpy(&gsMergeOutmaps, data + 0x07, sizeof(u8));
     memcpy(&out->entrypoint, data + 0x08, sizeof(u32));
     memcpy(&gsMode, data + 0x14, sizeof(u8));
+    memcpy(&gsFixedVtxArrayStart, data + 0x15, sizeof(u8));
+    memcpy(&gsSizeOfVariableVtxArray, data + 0x16, sizeof(u8));
+    memcpy(&gsSizeOfFixedVtxArray, data + 0x17, sizeof(u8));
 
     memcpy(&out->numOfConstUniforms, data + 0x1C, sizeof(u32));
     if (out->numOfConstUniforms) {
@@ -397,14 +406,14 @@ static void getDVLEInfo(const u8* data, size_t size, DVLEInfo* out) {
     }
 
     // Handle merge outmaps.
-    if (mergeOutmaps & 1) {
+    if (gsMergeOutmaps & 1) {
         KYGX_ASSERT(out->isGeometry);
-        out->mergeOutmaps = true;
+        out->gsMergeOutmaps = true;
     } else {
-        out->mergeOutmaps = false;
+        out->gsMergeOutmaps = false;
     }
 
-    // Handle geometry mode.
+    // Handle geometry only params.
     if (out->isGeometry) {
         switch (gsMode) {
             case 0x00:
@@ -419,6 +428,15 @@ static void getDVLEInfo(const u8* data, size_t size, DVLEInfo* out) {
             default:
                 KYGX_UNREACHABLE("Unknown DVLE geometry shader mode!");
         }
+
+        out->gsFixedVtxArrayStart = gsFixedVtxArrayStart;
+        out->gsSizeOfFixedVtxArray = gsSizeOfFixedVtxArray;
+        out->gsSizeOfVariableVtxArray = gsSizeOfVariableVtxArray;
+    } else {
+        out->gsMode = GEOSHADERMODE_POINT;
+        out->gsFixedVtxArrayStart = 0;
+        out->gsSizeOfFixedVtxArray = 0;
+        out->gsSizeOfVariableVtxArray = 0;
     }
 
     // Set table pointers.
@@ -750,6 +768,9 @@ GLuint glCreateProgram(void) {
         info->linkedVertex = GLASS_INVALID_OBJECT;
         info->attachedGeometry = GLASS_INVALID_OBJECT;
         info->linkedGeometry = GLASS_INVALID_OBJECT;
+        info->gsStride = 0;
+        info->gsPermutations[0] = 0x76543210;
+        info->gsPermutations[1] = 0xFEDCBA98;
         info->flags = 0;
         return name;
     }
@@ -1013,8 +1034,8 @@ void glShaderBinary(GLsizei n, const GLuint* shaders, GLenum binaryformat, const
 
     const u8* data = (u8*)binary;
     const size_t size = length;
-    size_t lastVertexIdx = (size_t)-1;
-    size_t lastGeometryIdx = (size_t)-1;
+    size_t lastVertexIdx = 0;
+    size_t lastGeometryIdx = 0;
     DVLB* dvlb = NULL;
     SharedShaderData* sharedData = NULL;
 
@@ -1028,15 +1049,22 @@ void glShaderBinary(GLsizei n, const GLuint* shaders, GLenum binaryformat, const
         return;
     }
 
-  // Do nothing if no shaders.
-    if (!n)
-        goto glShaderBinary_skip;
+    for (size_t i = 0; i < n; ++i) {
+        if (!GLASS_OBJ_IS_SHADER(shaders[i])) {
+            GLASS_context_setError(GL_INVALID_VALUE);
+            return;
+        }
+    }
 
-  // Parse DVLB.
+    // Do nothing if no shaders.
+    if (!n)
+        return;
+
+    // Parse DVLB.
     dvlb = parseDVLB(data, size);
     if (!dvlb) {
         GLASS_context_setError(GL_OUT_OF_MEMORY);
-        goto glShaderBinary_skip;
+        return;
     }
 
     // Parse DVLP.
@@ -1044,7 +1072,7 @@ void glShaderBinary(GLsizei n, const GLuint* shaders, GLenum binaryformat, const
     sharedData = parseDVLP(data + dvlbSize, size - dvlbSize);
     if (!sharedData) {
         GLASS_context_setError(GL_OUT_OF_MEMORY);
-        goto glShaderBinary_skip;
+        goto glShaderBinary_freeRes;
     }
 
     // Handle DVLEs.
@@ -1052,19 +1080,19 @@ void glShaderBinary(GLsizei n, const GLuint* shaders, GLenum binaryformat, const
         const u8* pointerToDVLE = (u8*)dvlb->DVLETable[i];
         const size_t maxSize = size - (size_t)(pointerToDVLE - data);
 
-        // Lookup shader.
+        // Extract info about this DVLE.
         DVLEInfo info;
         getDVLEInfo(pointerToDVLE, maxSize, &info);
-        const size_t index = lookupShader(shaders, n, (info.isGeometry ? lastGeometryIdx : lastVertexIdx), info.isGeometry);
 
-        if (index == (info.isGeometry ? lastGeometryIdx : lastVertexIdx)) {
-            GLASS_context_setError(GL_INVALID_OPERATION);
-            goto glShaderBinary_skip;
-        }
+        // Lookup shader object, if we don't have a matching one go to the next DVLE.
+        size_t index = 0;
+        if (!lookupShader(shaders, n, (info.isGeometry ? lastGeometryIdx : lastVertexIdx), info.isGeometry, &index))
+            continue;
 
-        // Build shader.
+        // Setup shader.
         ShaderInfo* shader = (ShaderInfo*)shaders[index];
-        if (info.mergeOutmaps) {
+        if (info.gsMergeOutmaps) {
+            KYGX_ASSERT(info.isGeometry);
             shader->flags |= GLASS_SHADER_FLAG_MERGE_OUTMAPS;
         } else {
             shader->flags &= ~GLASS_SHADER_FLAG_MERGE_OUTMAPS;
@@ -1072,8 +1100,17 @@ void glShaderBinary(GLsizei n, const GLuint* shaders, GLenum binaryformat, const
 
         shader->codeEntrypoint = info.entrypoint;
 
-        if (info.isGeometry)
+        if (info.isGeometry) {
             shader->gsMode = info.gsMode;
+            shader->gsFixedVtxArrayStart = info.gsFixedVtxArrayStart;
+            shader->gsSizeOfFixedVtxArray = info.gsSizeOfFixedVtxArray;
+            shader->gsSizeOfVariableVtxArray = info.gsSizeOfVariableVtxArray;
+        } else {
+            shader->gsMode = GEOSHADERMODE_POINT;
+            shader->gsFixedVtxArrayStart = 0;
+            shader->gsSizeOfFixedVtxArray = 0;
+            shader->gsSizeOfVariableVtxArray = 0;
+        }
 
         generateOutmaps(&info, shader);
 
@@ -1085,7 +1122,7 @@ void glShaderBinary(GLsizei n, const GLuint* shaders, GLenum binaryformat, const
         shader->symbolTable = (char*)glassHeapAlloc(info.sizeOfSymbolTable);
         if (!shader->symbolTable) {
             GLASS_context_setError(GL_OUT_OF_MEMORY);
-            goto glShaderBinary_skip;
+            goto glShaderBinary_freeRes;
         }
 
         memcpy(shader->symbolTable, info.symbolTable, info.sizeOfSymbolTable);
@@ -1094,7 +1131,7 @@ void glShaderBinary(GLsizei n, const GLuint* shaders, GLenum binaryformat, const
         // Load uniforms, can only fail for memory issues.
         if (!loadUniforms(&info, shader)) {
             GLASS_context_setError(GL_OUT_OF_MEMORY);
-            goto glShaderBinary_skip;
+            goto glShaderBinary_freeRes;
         }
 
         // Set shared data.
@@ -1104,15 +1141,15 @@ void glShaderBinary(GLsizei n, const GLuint* shaders, GLenum binaryformat, const
         shader->sharedData = sharedData;
         ++sharedData->refc;
 
-        // Increment index.
+        // Update index.
         if (info.isGeometry) {
-            lastGeometryIdx = index;
+            lastGeometryIdx = index + 1;
         } else {
-            lastVertexIdx = index;
+            lastVertexIdx = index + 1;
         }
     }
 
-glShaderBinary_skip:
+glShaderBinary_freeRes:
     // Free resources.
     if (sharedData && !sharedData->refc)
         glassHeapFree(sharedData);
@@ -1146,6 +1183,47 @@ void glUseProgram(GLuint program) {
         // Set program.
         ctx->currentProgram = program;
         ctx->flags |= GLASS_CONTEXT_FLAG_PROGRAM;
+    }
+}
+
+void glProgramGeometryStridePICA(GLuint program, GLuint stride) {
+    if (!GLASS_OBJ_IS_PROGRAM(program)) {
+        GLASS_context_setError(GL_INVALID_OPERATION);
+        return;
+    }
+
+    // Update program.
+    ProgramInfo* pinfo = (ProgramInfo*)program;
+    pinfo->gsStride = stride;
+
+    // Signal change.
+    if (GLASS_OBJ_IS_SHADER(pinfo->linkedGeometry)) {
+        pinfo->flags |= GLASS_PROGRAM_FLAG_UPDATE_GEOMETRY;
+
+        CtxCommon* ctx = GLASS_context_getBound();
+        if (ctx->currentProgram == program)
+            ctx->flags |= GLASS_CONTEXT_FLAG_PROGRAM;
+    }
+}
+
+void glProgramGeometryPermutationsPICA(GLuint program, const GLuint* permutations) {
+    if (!GLASS_OBJ_IS_PROGRAM(program)) {
+        GLASS_context_setError(GL_INVALID_OPERATION);
+        return;
+    }
+
+    // Update program.
+    ProgramInfo* pinfo = (ProgramInfo*)program;
+    pinfo->gsPermutations[0] = permutations[0];
+    pinfo->gsPermutations[1] = permutations[1];
+
+    // Signal change.
+    if (GLASS_OBJ_IS_SHADER(pinfo->linkedGeometry)) {
+        pinfo->flags |= GLASS_PROGRAM_FLAG_UPDATE_GEOMETRY;
+
+        CtxCommon* ctx = GLASS_context_getBound();
+        if (ctx->currentProgram == program)
+            ctx->flags |= GLASS_CONTEXT_FLAG_PROGRAM;
     }
 }
 

@@ -7,6 +7,7 @@
 #ifndef _GLASS_BASE_TYPES_H
 #define _GLASS_BASE_TYPES_H
 
+#include <KYGX/Sync.h>
 #include <GLASS.h>
 
 #include "Platform/GPUDefs.h"
@@ -29,6 +30,8 @@
 #define GLASS_MAX_TEX_SIZE 1024
 #define GLASS_NUM_TEX_LEVELS 8
 #define GLASS_NUM_TEX_FACES 6
+#define GLASS_MAX_VIEWPORT_WIDTH 1016
+#define GLASS_MAX_VIEWPORT_HEIGHT 1023
 
 #define GLASS_UNI_BOOL 0x00
 #define GLASS_UNI_INT 0x01
@@ -84,12 +87,11 @@
 
 #define GLASS_OBJ(name) u32 _glObjectType
 
-KYGX_INLINE bool GLASS_checkObjectType(GLuint obj, uint32_t type) {
-    if (obj != GLASS_INVALID_OBJECT)
-        return *(uint32_t*)obj == type;
-
-    return false;
-}
+typedef struct {
+    KYGXMtx mtx;
+    KYGXCV cv;
+    bool triggered;
+} VSyncBarrier;
 
 typedef struct {
     u32 glObjectType; // GL object type.
@@ -127,6 +129,8 @@ typedef struct {
     GLuint linkedVertex;     // Linked vertex shader.
     GLuint attachedGeometry; // Attached geometry shader.
     GLuint linkedGeometry;   // Linked geometry shader.
+    u32 gsStride;            // Geometry input stride.
+    u32 gsPermutations[2];   // Geometry permutations.
     u32 flags;               // Program flags.
 } ProgramInfo;
 
@@ -166,6 +170,9 @@ typedef struct {
     SharedShaderData* sharedData;       // Shared shader data.
     size_t codeEntrypoint;              // Code entrypoint.
     GPUGeoShaderMode gsMode;            // Mode for geometry shader.
+    u8 gsFixedVtxArrayStart;            // Index of first vertex array register for fixed mode (geometry only).
+    u8 gsSizeOfFixedVtxArray;           // Size of vertex array for fixed mode (geometry only).
+    u8 gsSizeOfVariableVtxArray;        // Size of vertex array for variable mode (geometry only).
     u16 outMask;                        // Used output registers mask.
     u16 outTotal;                       // Total number of output registers.
     u32 outSems[7];                     // Output register semantics.
@@ -232,5 +239,57 @@ typedef struct {
 } CombinerInfo;
 
 GLuint GLASS_createObject(u32 type);
+
+static inline bool GLASS_checkObjectType(GLuint obj, uint32_t type) {
+    if (obj != GLASS_INVALID_OBJECT)
+        return *(uint32_t*)obj == type;
+
+    return false;
+}
+
+static inline void GLASS_vsyncBarrier_init(VSyncBarrier* b) {
+    KYGX_ASSERT(b);
+
+    kygxMtxInit(&b->mtx);
+    kygxCVInit(&b->cv);
+    b->triggered = false;
+}
+
+static inline void GLASS_vsyncBarrier_destroy(VSyncBarrier* b) {
+    KYGX_ASSERT(b);
+
+    kygxCVDestroy(&b->cv);
+    kygxMtxDestroy(&b->mtx);
+}
+
+static inline void GLASS_vsyncBarrier_wait(VSyncBarrier* b) {
+    KYGX_ASSERT(b);
+
+    kygxMtxAcquire(&b->mtx);
+
+    while (!b->triggered)
+        kygxCVWait(&b->cv, &b->mtx);
+
+    b->triggered = false;
+    kygxMtxRelease(&b->mtx);
+}
+
+static inline void GLASS_vsyncBarrier_signal(VSyncBarrier* b) {
+    KYGX_ASSERT(b);
+
+    kygxMtxAcquire(&b->mtx);
+    b->triggered = true;
+    kygxMtxRelease(&b->mtx);
+
+    kygxCVBroadcast(&b->cv);
+}
+
+static inline void GLASS_vsyncBarrier_clear(VSyncBarrier* b) {
+    KYGX_ASSERT(b);
+
+    kygxMtxAcquire(&b->mtx);
+    b->triggered = false;
+    kygxMtxRelease(&b->mtx);
+}
 
 #endif /* _GLASS_BASE_TYPES_H */

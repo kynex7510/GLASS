@@ -15,10 +15,10 @@ endif()
 option(GLASS_COMPILE_EXAMPLES "Enable examples compilation" OFF)
 
 # Setup dependencies.
-CPMAddPackage("gh:kynex7510/KYGX#73dee98")
+CPMAddPackage("gh:kynex7510/KYGX#11adef4")
 
 CPMAddPackage(
-    URI "gh:kynex7510/RIP#b20906c"
+    URI "gh:kynex7510/RIP#fa10b8a"
     OPTIONS "RIP_BACKEND kygx"
 )
 
@@ -36,6 +36,7 @@ set(GLASS_SOURCES
     Source/Common/Combiners.c
     Source/Common/Effects.c
     Source/Common/Framebuffer.c
+    Source/Common/Get.c
     Source/Common/Rendering.c
     Source/Common/Shaders.c
     Source/Common/State.c
