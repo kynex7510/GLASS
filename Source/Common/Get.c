@@ -6,6 +6,7 @@
 
 #include "Base/Context.h"
 #include "Base/Math.h"
+#include "Base/TexManager.h"
 
 #define TYPE_BOOL 0
 #define TYPE_FLOAT 1
@@ -27,11 +28,17 @@ static inline GLint getFBColorSize(CtxCommon* ctx, GLenum color) {
     if (!fbInfo)
         return 0;
 
-    const RenderbufferInfo* cbInfo = (const RenderbufferInfo*)fbInfo->colorBuffer;
-    if (!cbInfo)
-        return 0;
+    GLenum format = 0;
+    if (GLASS_OBJ_IS_RENDERBUFFER(fbInfo->colorBuffer)) {
+        const RenderbufferInfo* cbInfo = (const RenderbufferInfo*)fbInfo->colorBuffer;
+        format = cbInfo->format;
+    } else if (GLASS_OBJ_IS_TEXTURE(fbInfo->colorBuffer)) {
+        RenderbufferInfo cb;
+        GLASS_tex_getAsRenderbuffer((const TextureInfo*)fbInfo->colorBuffer, fbInfo->texFace, &cb);
+        format = cb.format;
+    }
 
-    switch (cbInfo->format) {
+    switch (format) {
         case GL_RGBA8_OES:
             return 8;
         case GL_RGB5_A1:

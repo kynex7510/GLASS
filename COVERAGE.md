@@ -75,6 +75,7 @@
 | glGetFloatv   | Yes        |
 | glGetIntegerv | Yes        |
 | glGetString   | Yes        |
+| glPixelStorei | Yes        |
 
 ### Texture
 

@@ -112,6 +112,7 @@ void GLASS_read_colorBuffer(const FramebufferInfo* fb, GLint x, GLint y, size_t 
     const size_t dstOffsetY = y0 - y; // -y if y < 0 else 0
     u8* dst = &out[((width * dstOffsetY) + dstOffsetX) * dstPixelSize];
 
+    // TODO: this might give incorrect results when coords are negative.
     for (size_t r = 0; r < clippedHeight; ++r) {
         for (size_t c = 0; c < clippedWidth; ++c) {
             memcpy(&dst[(((r + dstOffsetY) * width) + c + dstOffsetX) * dstPixelSize], &src[((c * cbWidth) + r) * dstPixelSize], dstPixelSize);
