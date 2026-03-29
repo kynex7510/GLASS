@@ -313,7 +313,7 @@ void glReadPixels(GLint x, GLint y, GLsizei width, GLsizei height, GLenum format
         return;
     }
 
-    if (x < 0 || y < 0 || width < 0 || height < 0) {
+    if (width < 0 || height < 0) {
         GLASS_context_setError(GL_INVALID_VALUE);
         return;
     }
@@ -329,7 +329,7 @@ void glReadPixels(GLint x, GLint y, GLsizei width, GLsizei height, GLenum format
     }
 
     // We could support one more pair.
-    if (type != GL_RGBA || format != GL_UNSIGNED_BYTE) {
+    if (format != GL_RGBA || type != GL_UNSIGNED_BYTE) {
         GLASS_context_setError(GL_INVALID_OPERATION);
         return;
     }

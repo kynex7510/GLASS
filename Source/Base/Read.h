@@ -9,6 +9,6 @@
 
 #include "Base/Context.h"
 
-void GLASS_read_colorBuffer(const FramebufferInfo* fb, u16 x, u16 y, u16 width, u16 height, RIPPixelFormat pixelFormat, u8* out);
+void GLASS_read_colorBuffer(const FramebufferInfo* fb, GLint x, GLint y, size_t width, size_t height, RIPPixelFormat pixelFormat, u8* out);
 
 #endif /* _GLASS_READ_H */

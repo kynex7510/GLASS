@@ -4,32 +4,31 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-#include <KYGX/Wrappers/TextureCopy.h>
 #include <KYGX/Utility.h>
 #include <RIP/Convert.h>
 #include <RIP/Pixels.h>
+#include <RIP/Tiling.h>
 
 #include "Base/Math.h"
 #include "Base/Read.h"
 #include "Base/TexManager.h"
 
-static inline u8 tcPixelSize(GLenum format) {
+static inline size_t getPixelSize(GLenum format) {
     switch (format) {
         case GL_RGBA8_OES:
-            return KYGX_TEXTURECOPY_PIXEL_SIZE_RGBA8;
+            return 32;
         case GL_RGB5_A1:
-            return KYGX_TEXTURECOPY_PIXEL_SIZE_RGB5A1;
         case GL_RGB565:
-            return KYGX_TEXTURECOPY_PIXEL_SIZE_RGB565;
         case GL_RGBA4:
-            return KYGX_TEXTURECOPY_PIXEL_SIZE_RGBA4;
+            return 16;
         default:
             KYGX_UNREACHABLE("Invalid parameter!");
-            return 0;
     }
+
+    return 0;
 }
 
-static inline RIPPixelFormat getRIPPixelFormat(GLenum format) {
+static inline RIPPixelFormat getPixelFormat(GLenum format) {
     switch (format) {
         case GL_RGBA8_OES:
             return RIP_PIXELFORMAT_RGBA8;
@@ -41,15 +40,16 @@ static inline RIPPixelFormat getRIPPixelFormat(GLenum format) {
             return RIP_PIXELFORMAT_RGBA4;
         default:
             KYGX_UNREACHABLE("Invalid parameter!");
-            return 0;
     }
+
+    return 0;
 }
 
-void GLASS_read_colorBuffer(const FramebufferInfo* fb, u16 x, u16 y, u16 width, u16 height, RIPPixelFormat pixelFormat, u8* out) {
+void GLASS_read_colorBuffer(const FramebufferInfo* fb, GLint x, GLint y, size_t width, size_t height, RIPPixelFormat pixelFormat, u8* out) {
     KYGX_ASSERT(fb);
     KYGX_ASSERT(out);
 
-    // Get color buffer.
+    // Get color buffer. Width and height are swapped to account for the rotated screens.
     u8* cbAddr = NULL;
     u16 cbWidth = 0;
     u16 cbHeight = 0;
@@ -58,75 +58,65 @@ void GLASS_read_colorBuffer(const FramebufferInfo* fb, u16 x, u16 y, u16 width, 
     if (GLASS_OBJ_IS_RENDERBUFFER(fb->colorBuffer)) {
         RenderbufferInfo* cb = (RenderbufferInfo*)fb->colorBuffer;
         cbAddr = cb->address;
-        cbWidth = cb->width;
-        cbHeight = cb->height;
+        cbWidth = cb->height;
+        cbHeight = cb->width;
         cbFormat = cb->format;
     } else if (GLASS_OBJ_IS_TEXTURE(fb->colorBuffer)) {
         RenderbufferInfo cb;
         TextureInfo* tex = (TextureInfo*)fb->colorBuffer;
         GLASS_tex_getAsRenderbuffer(tex, fb->texFace, &cb);
         cbAddr = cb.address;
-        cbWidth = cb.width;
-        cbHeight = cb.height;
+        cbWidth = cb.height;
+        cbHeight = cb.width;
         cbFormat = cb.format;
     } else {
         KYGX_UNREACHABLE("Invalid color buffer!");
     }
 
-    // Setup surfaces and rects.
-    const u16 alignedX = kygxAlignDown(x, 8);
-    const u16 alignedY = kygxAlignDown(y, 8);
-    const u16 offsetX = x - alignedX;
-    const u16 offsetY = y - alignedY;
-    const u16 alignedW = kygxAlignUp(width + offsetX, 8);
-    const u16 alignedH = kygxAlignUp(height + offsetY, 8);
+    // Prepare coordinates.
+    const u16 x0 = GLASS_MAX(0, x);
+    const u16 y0 = GLASS_MAX(0, y);
+    const s16 x1 = GLASS_MIN(cbHeight, x + width);
+    const s16 y1 = GLASS_MIN(cbWidth, y + height);
 
-    KYGXTextureCopySurface srcSurface;
-    srcSurface.addr = cbAddr;
-    srcSurface.width = cbWidth;
-    srcSurface.height = cbHeight;
-    srcSurface.pixelSize = tcPixelSize(cbFormat);
-    srcSurface.rotated = true;
+    if (x0 >= x1 || y0 >= y1)
+        return;
 
+    const size_t clippedWidth = x1 - x0;
+    const size_t clippedHeight = y1 - y0;
+
+    // Read color buffer.
+    const size_t srcPixelSize = getPixelSize(cbFormat);
     const size_t dstPixelSize = ripGetPixelFormatBPP(pixelFormat) >> 3;
-    void* rawData = glassLinearAlloc(alignedW * alignedH * GLASS_MAX(dstPixelSize, srcSurface.pixelSize));
-    KYGX_ASSERT(rawData);
+    void* tmpBuffer = glassLinearAlloc(cbWidth * cbHeight * GLASS_MAX(srcPixelSize, dstPixelSize));
+    KYGX_ASSERT(tmpBuffer);
 
-    KYGXTextureCopySurface dstSurface;
-    dstSurface.addr = rawData;
-    dstSurface.width = alignedW;
-    dstSurface.height = alignedH;
-    dstSurface.pixelSize = srcSurface.pixelSize;
-    dstSurface.rotated = true;
+    const RIPPixelFormat cbPixelFormat = getPixelFormat(cbFormat);
+    KYGX_ASSERT(ripTilingCanUseHW(cbWidth, cbHeight, cbPixelFormat));
 
-    KYGXTextureCopyRect srcRect;
-    srcRect.x = alignedX;
-    srcRect.y = alignedY;
-    srcRect.width = dstSurface.width;
-    srcRect.height = dstSurface.height;
+    bool ret = ripUntile(cbAddr, tmpBuffer, cbWidth, cbHeight, cbPixelFormat);
+    KYGX_ASSERT(ret);
 
-    KYGXTextureCopyRect dstRect;
-    dstRect.x = 0;
-    dstRect.y = 0;
-    dstRect.width = dstSurface.width;
-    dstRect.height = dstSurface.height;
-
-    // Copy raw rect.
-    kygxSyncRectCopy(&srcSurface, &srcRect, &dstSurface, &dstRect);
-
-    // Convert it from native.
-    ripConvertInPlaceFromNative(dstSurface.addr, dstSurface.width, dstSurface.height, getRIPPixelFormat(cbFormat), true);
+    ret = ripSwapPixelBytes(tmpBuffer, tmpBuffer, cbWidth, cbHeight, cbPixelFormat, false);
+    KYGX_ASSERT(ret);
 
     // Do pixel conversion.
-    ripConvertPixels(dstSurface.addr, dstSurface.addr, dstSurface.width, dstSurface.height, getRIPPixelFormat(cbFormat), pixelFormat);
+    ripConvertPixels(tmpBuffer, tmpBuffer, cbWidth, cbHeight, cbPixelFormat, pixelFormat);
 
     // Read lines.
-    const size_t rowSize = width * dstPixelSize;
-    const u8* src = (const u8*)dstSurface.addr;
-    for (size_t i = 0; i < height; ++i) {
-        const u8* row = &src[((i + offsetY) * rowSize) + (offsetX * dstPixelSize)];
-        memcpy(&out[i * rowSize], row, rowSize);
+    // Skip x > 0 lines, y > 0 pixels.
+    const u8* src = &((const u8*)tmpBuffer)[((cbWidth * x0) + y0) * dstPixelSize];
+
+    // Adjust the output buffer in case we read gibberish (coords < 0).
+    const size_t dstOffsetX = x0 - x; // -x if x < 0 else 0 
+    const size_t dstOffsetY = y0 - y; // -y if y < 0 else 0
+    u8* dst = &out[((width * dstOffsetY) + dstOffsetX) * dstPixelSize];
+
+    for (size_t r = 0; r < clippedHeight; ++r) {
+        for (size_t c = 0; c < clippedWidth; ++c) {
+            memcpy(&dst[(((r + dstOffsetY) * width) + c + dstOffsetX) * dstPixelSize], &src[((c * cbWidth) + r) * dstPixelSize], dstPixelSize);
+        }
     }
 
-    glassLinearFree(dstSurface.addr);
+    glassLinearFree(tmpBuffer);
 }
