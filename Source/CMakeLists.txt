@@ -11,6 +11,7 @@ set(GLASS_SOURCES
     ${PROJECT_SOURCE_DIR}/Source/Common/Buffers.c
     ${PROJECT_SOURCE_DIR}/Source/Common/Combiners.c
     ${PROJECT_SOURCE_DIR}/Source/Common/Effects.c
+    ${PROJECT_SOURCE_DIR}/Source/Common/Fog.c
     ${PROJECT_SOURCE_DIR}/Source/Common/Framebuffer.c
     ${PROJECT_SOURCE_DIR}/Source/Common/Get.c
     ${PROJECT_SOURCE_DIR}/Source/Common/Rendering.c
