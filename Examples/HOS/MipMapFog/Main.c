@@ -1,8 +1,8 @@
 #include <GLES/gl2.h>
 #include <kazmath/kazmath.h>
 
-#include "stb_image.h"
-#include "TexturedCube_vshader_shbin.h"
+#include "MipMapFog_vshader_shbin.h"
+#include "MipMapFog_kitten_t3x.h"
 
 typedef struct {
     float position[3];
@@ -18,13 +18,6 @@ static GLint g_LightClrLoc;
 static GLint g_MaterialLoc;
 
 static kmMat4 g_Projection;
-
-static kmMat4 g_Material = {{
-    0.2f, 0.2f, 0.2f, 0.0f, // Ambient
-    0.4f, 0.4f, 0.4f, 0.0f, // Diffuse
-    0.8f, 0.8f, 0.8f, 0.0f, // Specular
-    0.0f, 0.0f, 0.0f, 1.0f, // Emission
-}};
 
 static const Vertex g_VertexList[] = {
     // First face (PZ)
@@ -94,12 +87,12 @@ static void sceneInit(u16 screenWidth, u16 screenHeight, GLuint* vbo, GLuint* te
     // Set default state.
     glViewport(0, 0, screenWidth, screenHeight);
     glClearColor(0.4f, 0.68f, 0.84f, 1.0f);
-    glEnable(GL_CULL_FACE);
+    //glEnable(GL_CULL_FACE);
     
     // Load the vertex shader, create a shader program and bind it.
     GLuint prog = glCreateProgram();
     GLuint shad = glCreateShader(GL_VERTEX_SHADER);
-    glShaderBinary(1, &shad, GL_SHADER_BINARY_PICA, TexturedCube_vshader_shbin, TexturedCube_vshader_shbin_size);
+    glShaderBinary(1, &shad, GL_SHADER_BINARY_PICA, MipMapFog_vshader_shbin, MipMapFog_vshader_shbin_size);
     glAttachShader(prog, shad);
     glDeleteShader(shad);
     glLinkProgram(prog);
@@ -134,7 +127,7 @@ static void sceneInit(u16 screenWidth, u16 screenHeight, GLuint* vbo, GLuint* te
 
     // Compute the projection matrix.
     kmMat4 tmp;
-    kmMat4PerspTilt(&tmp, kmDegreesToRadians(80.0f), 400.0f/240.0f, 0.01f, 1000.0f, false);
+    kmMat4PerspTilt(&tmp, kmDegreesToRadians(80.0f), 400.0f/240.0f, 0.01f, 20.0f, false);
     kmMat4Transpose(&g_Projection, &tmp);
 
     // Create texture.
@@ -142,36 +135,48 @@ static void sceneInit(u16 screenWidth, u16 screenHeight, GLuint* vbo, GLuint* te
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, *tex);
 
+    /*
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    */
 
-    // Allocate texture data in VRAM.
     glTexVRAMPICA(GL_TRUE);
 
-    // Load texture.
-    stbi_set_flip_vertically_on_load(true);
+    RIPTex3DS texData;
+    ripLoadTex3DS(kitten_t3x, kitten_t3x_size, &texData);
+    glassMoveTex3DS(&texData);
+    ripDestroyTex3DS(&texData);
 
-    int width;
-    int height;
-    int channels;
-    char path[80];
-    for (size_t level = 0; level <= 6; ++level) {
-        sprintf(path, "romfs:/Boykisser%u.png", level);
-        stbi_uc* buffer = stbi_load(path, &width, &height, &channels, 3);
-        glTexImage2D(GL_TEXTURE_2D, level, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, buffer);
-        stbi_image_free(buffer);
-    }
+    // Load the texture and bind it to the first texture unit
+    Tex3DS_TextureImport(kitten_t3x, kitten_t3x_size, &logo_tex, NULL, false);
+    C3D_TexSetFilter(&logo_tex, GPU_LINEAR, GPU_NEAREST);
+    C3D_TexSetFilterMipmap(&logo_tex, GPU_LINEAR);
+    C3D_TexBind(0, &logo_tex);
 
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LOD, 6);
-
-    // Configure the first combiner stage: modulate texture color and vertex color.
+     // Configure the first combiner stage: modulate texture color and vertex color.
     glCombinerStagePICA(0);
     glCombinerSrcPICA(GL_SRC0_RGB, GL_TEXTURE0);
     glCombinerSrcPICA(GL_SRC0_ALPHA, GL_TEXTURE0);
     glCombinerFuncPICA(GL_COMBINE_RGB, GL_MODULATE);
     glCombinerFuncPICA(GL_COMBINE_ALPHA, GL_MODULATE);
+
+    // Configure fog.
+    glEnable(GL_FOG);
+
+    GLfloat fogLut[128];
+    glassMakeFogLut(GL_EXP, (const GLfloat*)g_Projection.mat, 0, 0, 0.05f, 0.01f, 20.0f, &fogLut);
+    glFogPICA(GL_FOG_LUT_PICA, fogLut);
+
+    const GLfloat fogColor[] = {
+        0.407f,
+        0.70f,
+        0.847f,
+        0.0f,
+    };
+
+    glFogPICA(GL_FOG_COLOR, fogColor);
 }
 
 static void sceneRender(float angleX, float angleY) {
@@ -181,7 +186,7 @@ static void sceneRender(float angleX, float angleY) {
     kmMat4 modelView;
 
     kmMat4Identity(&tmp);
-    kmMat4Translation(&tmp2, 0.0f, 0.0f, -2.0f + 0.5f * sinf(angleX));
+    kmMat4Translation(&tmp2, 0.0f, 0.0f, -5.0f + 4.0f * sinf(angleX));
     kmMat4Multiply(&modelView, &tmp, &tmp2);
 
     memcpy(&tmp, &modelView, sizeof(kmMat4));
@@ -205,8 +210,6 @@ static void sceneRender(float angleX, float angleY) {
 }
 
 int main() {
-    romfsInit();
-
     // Initialize graphics.
     gfxInitDefault();
     kygxInit();
@@ -265,6 +268,5 @@ int main() {
 
     kygxExit();
     gfxExit();
-    romfsExit();
     return 0;
 }

@@ -162,8 +162,11 @@ GLASSDownscale glassGetDownscale(GLASSCtx ctx);
 // Set downscale.
 void glassSetDownscale(GLASSCtx ctx, GLASSDownscale downscale);
 
-// Move Tex3DS texture data in the currently bound texture object.
+// Move Tex3DS texture data in the currently bound texture object. UB if no bound context.
 void glassMoveTex3DS(RIPTex3DS* tex);
+
+// Make fog LUT.
+GLenum glassMakeFogLut(GLenum mode, const GLfloat* projMtx, GLfloat start, GLfloat end, GLfloat density, GLfloat near, GLfloat far, GLfloat* out);
 
 void* glassHeapAlloc(size_t size);
 void glassHeapFree(void* p);

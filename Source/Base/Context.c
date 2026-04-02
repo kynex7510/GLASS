@@ -161,6 +161,7 @@ void GLASS_context_initCommon(CtxCommon* ctx, const GLASSCtxParams* ctxParams) {
 
     // Combiners.
     ctx->combinerStage = 0;
+
     for (size_t i = 0; i < GLASS_NUM_COMBINER_STAGES; ++i) {
         CombinerInfo* combiner = &ctx->combiners[i];
         combiner->rgbSrc[0] = !i ? GL_PRIMARY_COLOR : GL_PREVIOUS;
@@ -183,6 +184,14 @@ void GLASS_context_initCommon(CtxCommon* ctx, const GLASSCtxParams* ctxParams) {
     }
 
     ctx->flags |= GLASS_CONTEXT_FLAG_COMBINERS;
+
+    // Fog.
+    ctx->fogMode = FOGMODE_DISABLED;
+    ctx->fogColor = 0;
+    ctx->fogZFlip = false;
+
+    for (size_t i = 0; i < GLASS_FOG_LUT_SIZE; ++i)
+        ctx->fogLut[i] = 1.0f;
 }
 
 void GLASS_context_cleanupCommon(CtxCommon* ctx) {
@@ -428,6 +437,12 @@ void GLASS_context_flush(CtxCommon* ctx, bool send) {
     if (ctx->flags & GLASS_CONTEXT_FLAG_COMBINERS) {
         GLASS_gpu_setCombiners(&ctx->params.GPUCmdList, ctx->combiners);
         ctx->flags &= ~GLASS_CONTEXT_FLAG_COMBINERS;
+    }
+
+    // Handle fog.
+    if ((ctx->flags & GLASS_CONTEXT_FLAG_FOG_LUT) && (ctx->fogMode == FOGMODE_FOG)) {
+        GLASS_gpu_setFogLut(&ctx->params.GPUCmdList, ctx->fogLut);
+        ctx->flags &= ~GLASS_CONTEXT_FLAG_FOG_LUT;
     }
 
     // Handle send.

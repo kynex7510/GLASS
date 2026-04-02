@@ -33,6 +33,17 @@ static void GLASS_setCapability(GLenum cap, bool enabled) {
             ctx->depthTest = enabled;
             ctx->flags |= GLASS_CONTEXT_FLAG_COLOR_DEPTH;
             break;
+        case GL_FOG:
+            if (ctx->fogMode == (enabled ? FOGMODE_DISABLED : FOGMODE_FOG)) {
+                ctx->fogMode = enabled ? FOGMODE_FOG : FOGMODE_DISABLED;
+                ctx->flags |= GLASS_CONTEXT_FLAG_COMBINER_BUFFERS;
+                ctx->flags |= GLASS_CONTEXT_FLAG_FOG_LUT;
+            }
+            break;
+        case GL_FOG_Z_FLIP_PICA:
+            ctx->fogZFlip = enabled;
+            ctx->flags |= GLASS_CONTEXT_FLAG_COMBINER_BUFFERS;
+            break;
         case GL_POLYGON_OFFSET_FILL:
             ctx->polygonOffset = enabled;
             ctx->flags |= GLASS_CONTEXT_FLAG_DEPTHMAP;
@@ -72,6 +83,10 @@ GLboolean glIsEnabled(GLenum cap) {
             return ctx->cullFace ? GL_TRUE : GL_FALSE;
         case GL_DEPTH_TEST:
             return ctx->depthTest ? GL_TRUE : GL_FALSE;
+        case GL_FOG:
+            return ctx->fogMode == FOGMODE_FOG ? GL_TRUE : GL_FALSE;
+        case GL_FOG_Z_FLIP_PICA:
+            return ctx->fogZFlip ? GL_TRUE : GL_FALSE;
         case GL_POLYGON_OFFSET_FILL:
             return ctx->polygonOffset ? GL_TRUE : GL_FALSE;
         case GL_SCISSOR_TEST:

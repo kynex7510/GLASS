@@ -55,6 +55,10 @@ void glClearEarlyDepthPICA(GLclampf depth);
 void glEarlyDepthFuncPICA(GLenum func);
 void glFragOpPICA(GLenum mode);
 
+/* Fog (extensions) */
+
+void glFogPICA(GLenum pname, const GLfloat* params);
+
 /* Rendering */
 
 void glClear(GLbitfield mask);

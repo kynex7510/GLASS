@@ -254,4 +254,10 @@ typedef enum {
     OUTPUTREGTYPE_DUMMY = 0x09,
 } GPUOutputRegType;
 
+typedef enum {
+    FOGMODE_DISABLED = 0x00,
+    FOGMODE_FOG = 0x05,
+    FOGMODE_GAS = 0x07,
+} GPUFogMode;
+
 #endif /* _GLASS_PLATFORM_GPUDEFS_H */
