@@ -80,7 +80,7 @@ void glDeleteTextures(GLsizei n, const GLuint* textures) {
 
         // Delete texture.
         for (size_t j = 0; j < GLASS_NUM_TEX_FACES; ++j) {
-            u8* p = tex->faces[i];
+            u8* p = tex->faces[j];
             tex->vram ? glassVRAMFree(p) : glassLinearFree(p);
         }
 
