@@ -16,7 +16,7 @@ void glFogPICA(GLenum pname, const GLfloat* params) {
             ctx->fogColor |= (u32)(0xFF * GLASS_CLAMP(0.0f, 1.0f, params[1])) << 8;
             ctx->fogColor |= (u32)(0xFF * GLASS_CLAMP(0.0f, 1.0f, params[2])) << 16;
             ctx->fogColor |= (u32)(0xFF * GLASS_CLAMP(0.0f, 1.0f, params[3])) << 24;
-            ctx->flags |= GLASS_CONTEXT_FLAG_COMBINER_BUFFERS;
+            ctx->flags |= GLASS_CONTEXT_FLAG_COMBINER_BUFFER;
             break;
         case GL_FOG_LUT_PICA:
             memcpy(ctx->fogLut, params, sizeof(ctx->fogLut));

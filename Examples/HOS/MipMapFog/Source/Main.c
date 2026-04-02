@@ -19,6 +19,13 @@ static GLint g_MaterialLoc;
 
 static kmMat4 g_Projection;
 
+static kmMat4 g_Material = {{
+    0.2f, 0.2f, 0.2f, 0.0f, // Ambient
+    0.4f, 0.4f, 0.4f, 0.0f, // Diffuse
+    0.8f, 0.8f, 0.8f, 0.0f, // Specular
+    0.0f, 0.0f, 0.0f, 1.0f, // Emission
+}};
+
 static const Vertex g_VertexList[] = {
     // First face (PZ)
     // First triangle
@@ -140,22 +147,19 @@ static void sceneInit(u16 screenWidth, u16 screenHeight, GLuint* vbo, GLuint* te
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+    C3D_TexSetFilter(&logo_tex, GPU_LINEAR, GPU_NEAREST);
+    C3D_TexSetFilterMipmap(&logo_tex, GPU_LINEAR);
     */
 
     glTexVRAMPICA(GL_TRUE);
 
     RIPTex3DS texData;
-    ripLoadTex3DS(kitten_t3x, kitten_t3x_size, &texData);
+    ripLoadTex3DS(MipMapFog_kitten_t3x, MipMapFog_kitten_t3x_size, &texData);
     glassMoveTex3DS(&texData);
     ripDestroyTex3DS(&texData);
 
-    // Load the texture and bind it to the first texture unit
-    Tex3DS_TextureImport(kitten_t3x, kitten_t3x_size, &logo_tex, NULL, false);
-    C3D_TexSetFilter(&logo_tex, GPU_LINEAR, GPU_NEAREST);
-    C3D_TexSetFilterMipmap(&logo_tex, GPU_LINEAR);
-    C3D_TexBind(0, &logo_tex);
-
-     // Configure the first combiner stage: modulate texture color and vertex color.
+    // Configure the first combiner stage: modulate texture color and vertex color.
     glCombinerStagePICA(0);
     glCombinerSrcPICA(GL_SRC0_RGB, GL_TEXTURE0);
     glCombinerSrcPICA(GL_SRC0_ALPHA, GL_TEXTURE0);
@@ -166,7 +170,7 @@ static void sceneInit(u16 screenWidth, u16 screenHeight, GLuint* vbo, GLuint* te
     glEnable(GL_FOG);
 
     GLfloat fogLut[128];
-    glassMakeFogLut(GL_EXP, (const GLfloat*)g_Projection.mat, 0, 0, 0.05f, 0.01f, 20.0f, &fogLut);
+    glassMakeFogLut(GL_EXP, (const GLfloat*)g_Projection.mat, 0, 0, 0.05f, 0.01f, 20.0f, fogLut);
     glFogPICA(GL_FOG_LUT_PICA, fogLut);
 
     const GLfloat fogColor[] = {

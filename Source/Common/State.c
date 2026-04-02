@@ -36,13 +36,13 @@ static void GLASS_setCapability(GLenum cap, bool enabled) {
         case GL_FOG:
             if (ctx->fogMode == (enabled ? FOGMODE_DISABLED : FOGMODE_FOG)) {
                 ctx->fogMode = enabled ? FOGMODE_FOG : FOGMODE_DISABLED;
-                ctx->flags |= GLASS_CONTEXT_FLAG_COMBINER_BUFFERS;
+                ctx->flags |= GLASS_CONTEXT_FLAG_COMBINER_BUFFER;
                 ctx->flags |= GLASS_CONTEXT_FLAG_FOG_LUT;
             }
             break;
         case GL_FOG_Z_FLIP_PICA:
             ctx->fogZFlip = enabled;
-            ctx->flags |= GLASS_CONTEXT_FLAG_COMBINER_BUFFERS;
+            ctx->flags |= GLASS_CONTEXT_FLAG_COMBINER_BUFFER;
             break;
         case GL_POLYGON_OFFSET_FILL:
             ctx->polygonOffset = enabled;

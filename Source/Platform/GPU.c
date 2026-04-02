@@ -1298,3 +1298,25 @@ void GLASS_gpu_setFogLut(GLASSGPUCommandList* list, const GLfloat* lut) {
     addWrite(list, GPUREG_FOG_LUT_INDEX, 0);
     addWrites(list, GPUREG_FOG_LUT_DATA0, cvt, GLASS_FOG_LUT_SIZE);
 }
+
+void GLASS_gpu_setCombinerBuffer(GLASSGPUCommandList* list, u32 color, GPUFogMode fogMode, u32 fogColor, bool fogZFlip) {
+    KYGX_ASSERT(list);
+
+    u32 update = 0;
+
+    if (fogMode == FOGMODE_FOG) {
+        update |= 0x05;
+    } else if (fogMode == FOGMODE_GAS) {
+        update |= 0x07;
+    }
+
+    // TODO: shading density source.
+    // TODO: buffer inputs.
+
+    if (fogZFlip)
+        update |= 0x10000;
+
+    addMaskedWrite(list, GPUREG_TEXENV_UPDATE_BUFFER, 0x7, update);
+	addWrite(list, GPUREG_TEXENV_BUFFER_COLOR, color);
+	addWrite(list, GPUREG_FOG_COLOR, fogColor);
+}
