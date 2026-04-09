@@ -1285,7 +1285,7 @@ static inline void convertFogLut(const GLfloat* in, u32* out) {
             }
         }
 
-        out[i] = val | (delta & 0x1FFF);
+        out[i] = (val << 13) | (delta & 0x1FFF);
     }
 }
 

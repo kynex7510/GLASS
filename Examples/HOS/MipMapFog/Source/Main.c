@@ -94,7 +94,7 @@ static void sceneInit(u16 screenWidth, u16 screenHeight, GLuint* vbo, GLuint* te
     // Set default state.
     glViewport(0, 0, screenWidth, screenHeight);
     glClearColor(0.4f, 0.68f, 0.84f, 1.0f);
-    //glEnable(GL_CULL_FACE);
+    glEnable(GL_CULL_FACE);
     
     // Load the vertex shader, create a shader program and bind it.
     GLuint prog = glCreateProgram();
@@ -142,20 +142,16 @@ static void sceneInit(u16 screenWidth, u16 screenHeight, GLuint* vbo, GLuint* te
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, *tex);
 
-    /*
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST_MIPMAP_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-
-    C3D_TexSetFilter(&logo_tex, GPU_LINEAR, GPU_NEAREST);
-    C3D_TexSetFilterMipmap(&logo_tex, GPU_LINEAR);
-    */
-
     glTexVRAMPICA(GL_TRUE);
 
-    RIPTex3DS texData;
-    ripLoadTex3DS(MipMapFog_kitten_t3x, MipMapFog_kitten_t3x_size, &texData);
+    // Load texture as tex3ds.
+    RIPTex3DS texData = {};
+    if (!ripLoadTex3DS(MipMapFog_kitten_t3x, MipMapFog_kitten_t3x_size, &texData)) {
+        KYGX_UNREACHABLE("Could not load texture!");
+    }
+
     glassMoveTex3DS(&texData);
     ripDestroyTex3DS(&texData);
 
@@ -169,17 +165,18 @@ static void sceneInit(u16 screenWidth, u16 screenHeight, GLuint* vbo, GLuint* te
     // Configure fog.
     glEnable(GL_FOG);
 
+    kmMat4 invProj;
+    kmMat4Inverse(&invProj, &g_Projection);
+
     GLfloat fogLut[128];
-    glassMakeFogLut(GL_EXP, (const GLfloat*)g_Projection.mat, 0, 0, 0.05f, 0.01f, 20.0f, fogLut);
+    GLenum error = glassMakeFogLut(GL_EXP, (const GLfloat*)invProj.mat, 0, 0, 0.05f, 0.01f, 20.0f, fogLut);
+    if (error != GL_NO_ERROR) {
+        KYGX_UNREACHABLE("Fog LUT creation failed!");
+    }
+
     glFogPICA(GL_FOG_LUT_PICA, fogLut);
 
-    const GLfloat fogColor[] = {
-        0.407f,
-        0.70f,
-        0.847f,
-        0.0f,
-    };
-
+    const GLfloat fogColor[4] = { 0.407f, 0.70f, 0.847f, 0.0f };
     glFogPICA(GL_FOG_COLOR, fogColor);
 }
 
