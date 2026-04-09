@@ -16,14 +16,16 @@
 
 ### Combiners (extensions)
 
-| Name                | Available? |
-| ------------------- | ---------- |
-| glCombinerColorPICA | Yes        |
-| glCombinerFuncPICA  | Yes        |
-| glCombinerOpPICA    | Yes        |
-| glCombinerScalePICA | Yes        |
-| glCombinerSrcPICA   | Yes        |
-| glCombinerStagePICA | Yes        |
+| Name                      |
+| ------------------------- |
+| glCombinerBufferColorPICA |
+| glCombinerBufferInputPICA |
+| glCombinerColorPICA       |
+| glCombinerFuncPICA        |
+| glCombinerOpPICA          |
+| glCombinerScalePICA       |
+| glCombinerSrcPICA         |
+| glCombinerStagePICA       |
 
 ### Effects
 
@@ -103,9 +105,9 @@
 
 ### Texture (extensions)
 
-| Name          | Available? |
-| ------------- | ---------- |
-| glTexVRAMPICA | Yes        |
+| Name          |
+| ------------- |
+| glTexVRAMPICA |
 
 ## GLES 2
 

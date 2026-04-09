@@ -59,7 +59,7 @@ void glFragOpPICA(GLenum mode);
 
 /* Fog (extensions) */
 
-void glFogPICA(GLenum pname, const GLfloat* params);
+// void glFogPICA(GLenum pname, const GLfloat* params);
 
 /* Rendering */
 

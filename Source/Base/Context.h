@@ -117,10 +117,19 @@ typedef struct {
     // Combiners
     GLint combinerStage;                               // Current combiner stage.
     CombinerInfo combiners[GLASS_NUM_COMBINER_STAGES]; // Combiners.
+    u32 combinerBufferColor;                           // Combiner buffer color.
+    u8 combinerBufferInputs;                           // Combiner buffer inputs.
+
+    // Fog
+    GPUFogMode fogMode;                 // Fog mode.
+    u32 fogColor;                       // Fog color.
+    GLfloat fogLut[GLASS_FOG_LUT_SIZE]; // Fog LUT.
+    bool fogZFlip;                      // Fog Z flip.
 } CtxCommon;
 */
 
 typedef struct {
+    GLfloat fogLut[GLASS_FOG_LUT_SIZE];
     u32 flags;
     GLenum lastError;
     GLuint arrayBuffer;
@@ -151,6 +160,8 @@ typedef struct {
     GLenum frontFaceMode;
     GLenum alphaFunc;
     u32 blendColor;
+    u32 combinerBufferColor;
+    u32 fogColor; 
     GLenum blendEqRGB;
     GLenum blendEqAlpha;
     GLenum blendSrcRGB;
@@ -169,6 +180,7 @@ typedef struct {
     AttributeInfo attribs[GLASS_NUM_ATTRIB_REGS];
     GLclampf clearDepth;
     GPUScissorMode scissorMode;
+    GPUFogMode fogMode;
     GLclampf depthNear;
     GLclampf depthFar;
     GLfloat polygonFactor;
@@ -178,6 +190,7 @@ typedef struct {
     u8 clearStencil;
     u8 packAlignment;
     u8 unpackAlignment;
+    u8 combinerBufferInputs;
     bool block32;
     bool writeRed;
     bool writeGreen;
@@ -191,6 +204,7 @@ typedef struct {
     bool cullFace;
     bool alphaTest;
     bool blendMode;
+    bool fogZFlip;
 } CtxCommon;
 
 void GLASS_context_initCommon(CtxCommon* ctx, const GLASSCtxParams* ctxParams);
