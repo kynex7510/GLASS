@@ -74,7 +74,7 @@ static inline bool isCombinerFunc(GLenum func) {
 
 static inline bool isCombinerScale(GLfloat scale) { return (scale == 1.0f || scale == 2.0f || scale == 4.0f); }
 
-void glCombinerStagePICA(GLint index) {
+void glCombinerStagePICA(GLuint index) {
     if ((index < 0) || (index >= GLASS_NUM_COMBINER_STAGES)) {
         GLASS_context_setError(GL_INVALID_VALUE);
         return;
@@ -244,4 +244,60 @@ void glCombinerScalePICA(GLenum pname, GLfloat scale) {
         *combinerScale = scale;
         ctx->flags |= GLASS_CONTEXT_FLAG_COMBINERS;
     }
+}
+
+void glCombinerBufferColorPICA(GLclampf red, GLclampf green, GLclampf blue, GLclampf alpha) {
+    CtxCommon* ctx = GLASS_context_getBound();
+
+    u32 color = (u32)(0xFF * GLASS_CLAMP(0.0f, 1.0f, red));
+    color |= (u32)(0xFF * GLASS_CLAMP(0.0f, 1.0f, green)) << 8;
+    color |= (u32)(0xFF * GLASS_CLAMP(0.0f, 1.0f, blue)) << 16;
+    color |= (u32)(0xFF * GLASS_CLAMP(0.0f, 1.0f, alpha)) << 24;
+
+    if (ctx->combinerBufferColor != color) {
+        ctx->combinerBufferColor = color;
+        ctx->flags |= GLASS_CONTEXT_FLAG_COMBINER_BUFFER;
+    }
+}
+
+void glCombinerBufferInputPICA(GLuint index, GLenum pname, GLenum mode) {
+    // First stage has the color, last stage is useless.
+    if (index <= 0 || index >= (GLASS_NUM_COMBINER_STAGES - 1)) {
+        GLASS_context_setError(GL_INVALID_VALUE);
+        return;
+    }
+
+    if (mode != GL_PREVIOUS && mode != GL_PREVIOUS_BUFFER_PICA) {
+        GLASS_context_setError(GL_INVALID_ENUM);
+        return;
+    }
+
+    size_t offset = 0;
+    
+    switch (pname) {
+        case GL_RGB:
+            offset = index - 1;
+            break;
+        case GL_ALPHA:
+            offset = 4 + index - 1;
+            break;
+        default:
+            GLASS_context_setError(GL_INVALID_ENUM);
+            return;
+    }
+
+    CtxCommon* ctx = GLASS_context_getBound();
+
+    switch (mode) {
+        case GL_PREVIOUS:
+            ctx->combinerBufferInputs |= (1u << offset);
+            break;
+        case GL_PREVIOUS_BUFFER_PICA:
+            ctx->combinerBufferInputs &= ~(1u << offset);
+            break;
+        default:
+            GLASS_context_setError(GL_INVALID_ENUM);
+    }
+
+    ctx->flags |= GLASS_CONTEXT_FLAG_COMBINER_BUFFER;
 }

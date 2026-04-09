@@ -37,9 +37,11 @@ When specifying LOD values, they will be clamped in the range `[0, 15]`. When sp
 
 ## Combiners
 
-Fragment pipeline can be controlled through combiners. There are 6 combiner stages: each one of them provides 2 sets of sources, one for color and one for alpha. Each of the two has 3 inputs, and an operation can be applied on each input. Finally, the inputs are combined, and the result can be used in next stages.
+Fragment pipeline can be controlled through combiners. There are 6 combiner stages: each one of them has 2 sources, for both color and alpha. Each of the two has 3 inputs, and an operation can be applied on them. Finally, the outputs are combined, and the result can be used in next stages.
 
-By default, all stages are set as passthrough, and all sources are the vertex color.
+It is possible to control the buffer associated with combiners by setting an initial color through `glCombinerBufferColorPICA`, and by keeping it for all stages or optionally replacing it through `glCombinerBufferInputPICA`.
+
+By default all stages are set as passthrough, all sources are the vertex color, and the combiner buffer color is white.
 
 ## Memory allocation
 

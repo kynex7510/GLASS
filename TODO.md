@@ -4,7 +4,6 @@
 - - Load subtextures (tex3ds)
 - - Load subtextures (GL)
 - - Copy textures
-- Combiner buffers
 - Support OpenGL 1.1
 - Add support for extensions (shadow, gas, blockmode32, etc).
 - Optimize the whole library

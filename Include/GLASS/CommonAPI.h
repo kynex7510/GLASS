@@ -19,12 +19,14 @@ GLboolean glIsBuffer(GLuint buffer);
 
 /* Combiners (extensions) */
 
+void glCombinerBufferColorPICA(GLclampf red, GLclampf green, GLclampf blue, GLclampf alpha);
+void glCombinerBufferInputPICA(GLint index, GLenum pname, GLenum mode);
 void glCombinerColorPICA(GLclampf red, GLclampf green, GLclampf blue, GLclampf alpha);
 void glCombinerFuncPICA(GLenum pname, GLenum func);
 void glCombinerOpPICA(GLenum pname, GLenum op);
 void glCombinerScalePICA(GLenum pname, GLfloat scale);
 void glCombinerSrcPICA(GLenum pname, GLenum src);
-void glCombinerStagePICA(GLint index);
+void glCombinerStagePICA(GLuint index);
 
 /* Effects */
 

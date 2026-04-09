@@ -1299,10 +1299,10 @@ void GLASS_gpu_setFogLut(GLASSGPUCommandList* list, const GLfloat* lut) {
     addWrites(list, GPUREG_FOG_LUT_DATA0, cvt, GLASS_FOG_LUT_SIZE);
 }
 
-void GLASS_gpu_setCombinerBuffer(GLASSGPUCommandList* list, u32 color, GPUFogMode fogMode, u32 fogColor, bool fogZFlip) {
+void GLASS_gpu_setCombinerBuffer(GLASSGPUCommandList* list, u8 inputs, u32 color, GPUFogMode fogMode, u32 fogColor, bool fogZFlip) {
     KYGX_ASSERT(list);
 
-    u32 update = 0;
+    u32 update = inputs << 8;
 
     if (fogMode == FOGMODE_FOG) {
         update |= 0x05;
@@ -1311,7 +1311,6 @@ void GLASS_gpu_setCombinerBuffer(GLASSGPUCommandList* list, u32 color, GPUFogMod
     }
 
     // TODO: shading density source.
-    // TODO: buffer inputs.
 
     if (fogZFlip)
         update |= 0x10000;

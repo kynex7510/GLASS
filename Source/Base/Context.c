@@ -162,6 +162,7 @@ void GLASS_context_initCommon(CtxCommon* ctx, const GLASSCtxParams* ctxParams) {
     // Combiners.
     ctx->combinerStage = 0;
     ctx->combinerBufferColor = 0xFFFFFFFF;
+    ctx->combinerBufferInputs = 0;
 
     for (size_t i = 0; i < GLASS_NUM_COMBINER_STAGES; ++i) {
         CombinerInfo* combiner = &ctx->combiners[i];
@@ -442,7 +443,7 @@ void GLASS_context_flush(CtxCommon* ctx, bool send) {
 
     // Handle combiner buffer.
     if (ctx->flags & GLASS_CONTEXT_FLAG_COMBINER_BUFFER) {
-        GLASS_gpu_setCombinerBuffer(&ctx->params.GPUCmdList, ctx->combinerBufferColor, ctx->fogMode, ctx->fogColor, ctx->fogZFlip);
+        GLASS_gpu_setCombinerBuffer(&ctx->params.GPUCmdList, ctx->combinerBufferInputs, ctx->combinerBufferColor, ctx->fogMode, ctx->fogColor, ctx->fogZFlip);
         ctx->flags &= ~GLASS_CONTEXT_FLAG_COMBINER_BUFFER;
     }
 
