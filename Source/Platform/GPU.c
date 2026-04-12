@@ -1227,7 +1227,7 @@ void GLASS_gpu_setTextureUnits(GLASSGPUCommandList* list, const GLuint* units) {
         const GPUTexWrap wrapT = unwrapTexWrap(tex->wrapT);
 
         params[2] = (minFilter << 2) | (magFilter << 1) | (mipFilter << 24) | (wrapS << 12) | (wrapT << 8);
-        
+
         if (tex->format == TEXFORMAT_ETC1)
             params[2] |= (1u << 5);
 

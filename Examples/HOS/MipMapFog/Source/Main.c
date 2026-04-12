@@ -142,6 +142,8 @@ static void sceneInit(u16 screenWidth, u16 screenHeight, GLuint* vbo, GLuint* te
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, *tex);
 
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST_MIPMAP_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     glTexVRAMPICA(GL_TRUE);
@@ -176,7 +178,7 @@ static void sceneInit(u16 screenWidth, u16 screenHeight, GLuint* vbo, GLuint* te
 
     glFogPICA(GL_FOG_LUT_PICA, fogLut);
 
-    const GLfloat fogColor[4] = { 0.407f, 0.70f, 0.847f, 0.0f };
+    const GLfloat fogColor[4] = { 0.4f, 0.68f, 0.84f, 0.0f };
     glFogPICA(GL_FOG_COLOR, fogColor);
 }
 

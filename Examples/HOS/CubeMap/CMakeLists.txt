@@ -1,7 +1,9 @@
 ctr_add_shader_library(CubeMap_vshader Source/Skybox.v.pica)
 dkp_add_embedded_binary_library(CubeMap-shaders CubeMap_vshader)
 
-ctr_add_graphics_target(CubeMap_skybox CUBEMAP INPUTS Gfx/Skybox.png)
+ctr_add_graphics_target(CubeMap_skybox CUBEMAP
+    INPUTS Gfx/Skybox.png
+    OPTIONS -f etc1 -z auto)
 dkp_add_embedded_binary_library(CubeMap-gfx CubeMap_skybox)
 
 add_executable(CubeMap Source/Main.c)

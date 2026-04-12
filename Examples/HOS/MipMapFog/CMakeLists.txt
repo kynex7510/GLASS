@@ -1,7 +1,9 @@
 ctr_add_shader_library(MipMapFog_vshader Source/VShader.v.pica)
 dkp_add_embedded_binary_library(MipMapFog-shaders MipMapFog_vshader)
 
-ctr_add_graphics_target(MipMapFog_kitten IMAGE INPUTS Gfx/Kitten.png)
+ctr_add_graphics_target(MipMapFog_kitten IMAGE
+    INPUTS Gfx/Kitten.png
+    OPTIONS -f etc1 -z auto -m cubic)
 dkp_add_embedded_binary_library(MipMapFog-gfx MipMapFog_kitten)
 
 add_executable(MipMapFog Source/Main.c)
