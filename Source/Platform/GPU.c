@@ -1261,27 +1261,28 @@ void GLASS_gpu_setTextureUnits(GLASSGPUCommandList* list, const GLuint* units) {
     addMaskedWrite(list, GPUREG_TEXUNIT_CONFIG, 0x4, (1u << 16)); // Clear cache.
 }
 
-static inline void convertFogLut(const GLfloat* in, u32* out) {
-    for (size_t i = 0; i < GLASS_FOG_LUT_SIZE; ++i) {
+static inline void convertFogLut(const GLASSFogLUT* lut, u32* out) {
+    KYGX_ASSERT(lut);
+    KYGX_ASSERT(out);
+
+    for (size_t i = 0; i < (GLASS_FOG_LUT_SIZE - 1); ++i) {
         u32 val = 0;
         s32 delta = 0;
 
-		if (in[i] > 0.0f) {
-            val = in[i] * 0x7FF;
+		if (lut->data[i] > 0.0f) {
+            val = lut->data[i] * 0x7FF;
             if (val > 0x7FF)
                 val = 0x7FF;
 		}
         
-        if (i != (GLASS_FOG_LUT_SIZE - 1)) {
-            const GLfloat diff = in[i + 1] - in[i];
-            if (diff != 0.0f) {
-                delta = diff * 0x7FF;
+        const GLfloat diff = lut->data[i + 1] - lut->data[i];
+        if (diff != 0.0f) {
+            delta = diff * 0x800;
 
-                if (delta < -0x1000) {
-                    delta = -0x1000;
-                } else if (delta > 0xFFF) {
-                    delta = 0xFFF;
-                }
+            if (delta < -0x1000) {
+                delta = -0x1000;
+            } else if (delta > 0xFFF) {
+                delta = 0xFFF;
             }
         }
 
@@ -1289,14 +1290,15 @@ static inline void convertFogLut(const GLfloat* in, u32* out) {
     }
 }
 
-void GLASS_gpu_setFogLut(GLASSGPUCommandList* list, const GLfloat* lut) {
+void GLASS_gpu_setFogLut(GLASSGPUCommandList* list, const GLASSFogLUT* lut) {
+    KYGX_ASSERT(list);
     KYGX_ASSERT(lut);
 
-    u32 cvt[GLASS_FOG_LUT_SIZE];
+    u32 cvt[GLASS_FOG_LUT_SIZE - 1];
     convertFogLut(lut, cvt);
 
     addWrite(list, GPUREG_FOG_LUT_INDEX, 0);
-    addWrites(list, GPUREG_FOG_LUT_DATA0, cvt, GLASS_FOG_LUT_SIZE);
+    addWrites(list, GPUREG_FOG_LUT_DATA0, cvt, GLASS_FOG_LUT_SIZE - 1);
 }
 
 void GLASS_gpu_setCombinerBuffer(GLASSGPUCommandList* list, u8 inputs, u32 color, GPUFogMode fogMode, u32 fogColor, bool fogZFlip) {

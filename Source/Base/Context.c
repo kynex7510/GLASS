@@ -193,7 +193,7 @@ void GLASS_context_initCommon(CtxCommon* ctx, const GLASSCtxParams* ctxParams) {
     ctx->fogZFlip = false;
 
     for (size_t i = 0; i < GLASS_FOG_LUT_SIZE; ++i)
-        ctx->fogLut[i] = 1.0f;
+        ctx->fogLut.data[i] = 1.0f;
 }
 
 void GLASS_context_cleanupCommon(CtxCommon* ctx) {
@@ -449,7 +449,7 @@ void GLASS_context_flush(CtxCommon* ctx, bool send) {
 
     // Handle fog LUT.
     if ((ctx->flags & GLASS_CONTEXT_FLAG_FOG_LUT) && (ctx->fogMode == FOGMODE_FOG)) {
-        GLASS_gpu_setFogLut(&ctx->params.GPUCmdList, ctx->fogLut);
+        GLASS_gpu_setFogLut(&ctx->params.GPUCmdList, &ctx->fogLut);
         ctx->flags &= ~GLASS_CONTEXT_FLAG_FOG_LUT;
     }
 

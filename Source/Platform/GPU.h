@@ -51,6 +51,6 @@ void GLASS_gpu_drawElements(GLASSGPUCommandList* list, GLenum mode, GLsizei coun
 void GLASS_gpu_setTextureUnits(GLASSGPUCommandList* list, const GLuint* units);
 
 void GLASS_gpu_setCombinerBuffer(GLASSGPUCommandList* list, u8 inputs, u32 color, GPUFogMode fogMode, u32 fogColor, bool fogZFlip);
-void GLASS_gpu_setFogLut(GLASSGPUCommandList* list, const GLfloat* lut);
+void GLASS_gpu_setFogLut(GLASSGPUCommandList* list, const GLASSFogLUT* lut);
 
 #endif /* _GLASS_PLATFORM_GPU_H */

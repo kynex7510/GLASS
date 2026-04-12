@@ -19,7 +19,7 @@ void glFogPICA(GLenum pname, const GLfloat* params) {
             ctx->flags |= GLASS_CONTEXT_FLAG_COMBINER_BUFFER;
             break;
         case GL_FOG_LUT_PICA:
-            memcpy(ctx->fogLut, params, sizeof(ctx->fogLut));
+            memcpy(ctx->fogLut.data, params, sizeof(ctx->fogLut));
             ctx->flags |= GLASS_CONTEXT_FLAG_FOG_LUT;
             break;
         default:

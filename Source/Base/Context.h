@@ -121,15 +121,15 @@ typedef struct {
     u8 combinerBufferInputs;                           // Combiner buffer inputs.
 
     // Fog
-    GPUFogMode fogMode;                 // Fog mode.
-    u32 fogColor;                       // Fog color.
-    GLfloat fogLut[GLASS_FOG_LUT_SIZE]; // Fog LUT.
-    bool fogZFlip;                      // Fog Z flip.
+    GPUFogMode fogMode; // Fog mode.
+    u32 fogColor;       // Fog color.
+    GLASSFogLut fogLut; // Fog LUT.
+    bool fogZFlip;      // Fog Z flip.
 } CtxCommon;
 */
 
 typedef struct {
-    GLfloat fogLut[GLASS_FOG_LUT_SIZE];
+    GLASSFogLUT fogLut;
     u32 flags;
     GLenum lastError;
     GLuint arrayBuffer;

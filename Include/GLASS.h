@@ -12,6 +12,9 @@
 
 #include <GLASS/Defs.h>
 
+/// @brief Fog LUT size.
+#define GLASS_FOG_LUT_SIZE 129
+
 /// @brief GLASS context.
 typedef struct GLASSCtxImpl* GLASSCtx;
 
@@ -58,6 +61,11 @@ typedef struct {
     bool flushAllLinearMem;         ///< Whether to flush all linear memory (default: true).
     GLASSDownscale downscale;       ///< Set downscale for anti-aliasing (default: GLASS_DOWNSCALE_NONE).
 } GLASSCtxParams;
+
+/// @brief Fog LUT.
+typedef struct {
+    GLfloat data[GLASS_FOG_LUT_SIZE];
+} GLASSFogLUT;
 
 #ifdef __cplusplus
 extern "C" {
