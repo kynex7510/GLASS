@@ -210,10 +210,10 @@ void glDepthMask(GLboolean flag) {
     ctx->flags |= GLASS_CONTEXT_FLAG_COLOR_DEPTH;
 }
 
-void glDepthRangef(GLclampf nearVal, GLclampf farVal) {
+void glDepthRangef(GLclampf minDepth, GLclampf maxDepth) {
     CtxCommon* ctx = GLASS_context_getBound();
-    ctx->depthNear = GLASS_CLAMP(0.0f, 1.0f, nearVal);
-    ctx->depthFar = GLASS_CLAMP(0.0f, 1.0f, farVal);
+    ctx->minDepth = GLASS_CLAMP(0.0f, 1.0f, minDepth);
+    ctx->maxDepth = GLASS_CLAMP(0.0f, 1.0f, maxDepth);
     ctx->flags |= GLASS_CONTEXT_FLAG_DEPTHMAP;
 }
 

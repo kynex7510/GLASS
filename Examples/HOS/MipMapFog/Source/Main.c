@@ -91,9 +91,11 @@ static const Vertex g_VertexList[] = {
 #define NUM_VERTICES (sizeof(g_VertexList)/sizeof(Vertex))
 
 static void sceneInit(u16 screenWidth, u16 screenHeight, GLuint* vbo, GLuint* tex) {
+    const GLfloat clearColor[4] = { 0.4f, 0.68f, 0.84f, 1.0f };
+
     // Set default state.
     glViewport(0, 0, screenWidth, screenHeight);
-    glClearColor(0.4f, 0.68f, 0.84f, 1.0f);
+    glClearColor(clearColor[0], clearColor[1], clearColor[2], clearColor[3]);
     glEnable(GL_CULL_FACE);
     
     // Load the vertex shader, create a shader program and bind it.

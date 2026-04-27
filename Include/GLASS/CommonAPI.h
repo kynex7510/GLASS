@@ -40,7 +40,7 @@ void glColorMask(GLboolean red, GLboolean green, GLboolean blue, GLboolean alpha
 void glCullFace(GLenum mode);
 void glDepthFunc(GLenum func);
 void glDepthMask(GLboolean flag);
-void glDepthRangef(GLclampf nearVal, GLclampf farVal);
+void glDepthRangef(GLclampf minDepth, GLclampf maxDepth);
 void glFrontFace(GLenum mode);
 void glLogicOp(GLenum opcode);
 void glPolygonOffset(GLfloat factor, GLfloat units);

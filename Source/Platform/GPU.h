@@ -32,7 +32,7 @@ void GLASS_gpu_setCombiners(GLASSGPUCommandList* list, const CombinerInfo* combi
 
 void GLASS_gpu_setFragOp(GLASSGPUCommandList* list, GLenum mode, bool blendMode);
 void GLASS_gpu_setColorDepthMask(GLASSGPUCommandList* list, bool writeRed, bool writeGreen, bool writeBlue, bool writeAlpha, bool writeDepth, bool depthTest, GLenum depthFunc);
-void GLASS_gpu_setDepthMap(GLASSGPUCommandList* list, bool enabled, GLclampf nearVal, GLclampf farVal, GLfloat units, GLenum depthFormat);
+void GLASS_gpu_setZDepthMap(GLASSGPUCommandList* list, GLclampf minDepth, GLclampf maxDepth, bool polygonOffset, GLenum format, GLfloat units);
 void GLASS_gpu_setEarlyDepthTest(GLASSGPUCommandList* list, bool enabled);
 void GLASS_gpu_setEarlyDepthFunc(GLASSGPUCommandList* list, GPUEarlyDepthFunc func);
 void GLASS_gpu_setEarlyDepthClear(GLASSGPUCommandList* list, GLclampf value);

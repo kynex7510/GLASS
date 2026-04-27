@@ -68,11 +68,11 @@ typedef struct {
     GLenum depthFunc; // Depth test function.
 
     // Depth Map
-    GLclampf depthNear;    // Depth map near val.
-    GLclampf depthFar;     // Depth map far val.
-    bool polygonOffset;    // Depth map offset enabled.
-    GLfloat polygonFactor; // Depth map factor (unused).
-    GLfloat polygonUnits;  // Depth map offset units.
+    GLclampf minDepth;     // Min depth value.
+    GLclampf maxDepth;     // Max depth value.
+    bool polygonOffset;    // Polygon offset enabled.
+    GLfloat polygonFactor; // Depth offset factor (unused).
+    GLfloat polygonUnits;  // Depth offset units.
 
     // Early Depth
     bool earlyDepthTest;      // Early depth test enabled.
@@ -181,8 +181,8 @@ typedef struct {
     GLclampf clearDepth;
     GPUScissorMode scissorMode;
     GPUFogMode fogMode;
-    GLclampf depthNear;
-    GLclampf depthFar;
+    GLclampf minDepth;
+    GLclampf maxDepth;
     GLfloat polygonFactor;
     GLfloat polygonUnits;
     GLclampf clearEarlyDepth;

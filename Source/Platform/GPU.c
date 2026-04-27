@@ -867,29 +867,33 @@ void GLASS_gpu_setColorDepthMask(GLASSGPUCommandList* list, bool writeRed, bool 
     addMaskedWrite(list, GPUREG_DEPTH_COLOR_MASK, 0x03, value);
 }
 
-static inline float getDepthMapOffset(GLenum format, GLfloat units) {
+static inline float getDepthMapOffset(GLenum format, GLfloat scale, GLfloat units) {
+    GLfloat factor = 0.0f;
+
     switch (format) {
         case GL_DEPTH_COMPONENT16:
-            return units / 65535.0f;
+            factor = 65535.0f;
+            break;
         case GL_DEPTH_COMPONENT24_OES:
         case GL_DEPTH24_STENCIL8_OES:
-            return units / 16777215.0f;
+            factor = 16777215.0f;
+            break;
         default:
             KYGX_UNREACHABLE("Invalid parameter!");
     }
 
-    return 0.0f;
+    return (scale * 128.0f * units) / factor;
 }
 
-void GLASS_gpu_setDepthMap(GLASSGPUCommandList* list, bool enabled, GLclampf nearVal, GLclampf farVal, GLfloat units, GLenum format) {
-    KYGX_ASSERT(nearVal >= 0.0f && nearVal <= 1.0f);
-    KYGX_ASSERT(farVal >= 0.0f && farVal <= 1.0f);
+void GLASS_gpu_setZDepthMap(GLASSGPUCommandList* list, GLclampf minDepth, GLclampf maxDepth, bool polygonOffset, GLenum format, GLfloat units) {
+    KYGX_ASSERT(minDepth >= 0.0f && minDepth <= 1.0f);
+    KYGX_ASSERT(maxDepth >= 0.0f && maxDepth <= 1.0f);
 
-    const float offset = getDepthMapOffset(format, units);
-    
-    addMaskedWrite(list, GPUREG_DEPTHMAP_ENABLE, 0x01, enabled ? 1 : 0);
-    addWrite(list, GPUREG_DEPTHMAP_SCALE, GLASS_math_f32tof24(nearVal - farVal));
-    addWrite(list, GPUREG_DEPTHMAP_OFFSET, GLASS_math_f32tof24(nearVal + offset));
+    const GLfloat offset = polygonOffset ? getDepthMapOffset(format, 1.0, units) : 0.0f;
+
+    addMaskedWrite(list, GPUREG_DEPTHMAP_ENABLE, 0x01, 1);
+    addWrite(list, GPUREG_DEPTHMAP_SCALE, GLASS_math_f32tof24(maxDepth - minDepth));
+    addWrite(list, GPUREG_DEPTHMAP_OFFSET, GLASS_math_f32tof24(maxDepth + offset));
 }
 
 void GLASS_gpu_setEarlyDepthTest(GLASSGPUCommandList* list, bool enabled) {
@@ -1266,16 +1270,19 @@ static inline void convertFogLut(const GLASSFogLUT* lut, u32* out) {
     KYGX_ASSERT(out);
 
     for (size_t i = 0; i < (GLASS_FOG_LUT_SIZE - 1); ++i) {
+        const GLclampf current = GLASS_CLAMP(0.0f, 1.0f, lut->data[i]);
+        const GLclampf next = GLASS_CLAMP(0.0f, 1.0f, lut->data[i + 1]);
+        const GLfloat diff = next - current;
+
         u32 val = 0;
         s32 delta = 0;
 
-		if (lut->data[i] > 0.0f) {
-            val = lut->data[i] * 0x7FF;
-            if (val > 0x7FF)
+		if (current > 0.0f) {
+            val = current * 0x800;
+            if (val >= 0x800)
                 val = 0x7FF;
 		}
-        
-        const GLfloat diff = lut->data[i + 1] - lut->data[i];
+       
         if (diff != 0.0f) {
             delta = diff * 0x800;
 

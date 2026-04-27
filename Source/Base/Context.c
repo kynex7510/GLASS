@@ -104,8 +104,8 @@ void GLASS_context_initCommon(CtxCommon* ctx, const GLASSCtxParams* ctxParams) {
     ctx->flags |= GLASS_CONTEXT_FLAG_COLOR_DEPTH;
 
     // Depth Map.
-    ctx->depthNear = 0.0f;
-    ctx->depthFar = 1.0f;
+    ctx->minDepth = 0.0f;
+    ctx->maxDepth = 1.0f;
     ctx->polygonOffset = false;
     ctx->polygonFactor = 0.0f;
     ctx->polygonUnits = 0.0f;
@@ -384,7 +384,7 @@ void GLASS_context_flush(CtxCommon* ctx, bool send) {
             }
         }
 
-        GLASS_gpu_setDepthMap(&ctx->params.GPUCmdList, ctx->polygonOffset, ctx->depthNear, ctx->depthFar, ctx->polygonUnits, depthFormat);
+        GLASS_gpu_setZDepthMap(&ctx->params.GPUCmdList, ctx->minDepth, ctx->maxDepth, ctx->polygonOffset, depthFormat, ctx->polygonUnits);
         ctx->flags &= ~GLASS_CONTEXT_FLAG_DEPTHMAP;
     }
 
