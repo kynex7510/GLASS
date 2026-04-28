@@ -1,6 +1,6 @@
 # Fog
 
-Unlike OpenGL ES 1.1, fog is not limited to linear, exp, exp2 modes. The PICA200 allows one to setup a lookup table for fog factors (denoted by $f$), which are indexed by depth values in window coordinates. There are 128 LUT entries which encode values + difference with the next element, thus depth space is divided into 129 chunks (i/128 from 0 to 128, inclusive).
+Unlike OpenGL ES 1.1, fog is not limited to linear, exp, exp2 modes. The PICA200 allows one to setup a lookup table for fog factors (denoted by $f$), which are indexed by depth values in window coordinates. There are 128 LUT entries which encode values + difference with the next element, thus depth space is divided into 129 chunks ($\frac{i}{128}$ from 0 to 128, inclusive).
 
 This also implies that the fog implementation deviates from the standard, where fog factors depend instead on $Z_{eye}$. Thus, mapping standard fog effects requires delving in a bit of math.
 
@@ -87,7 +87,7 @@ Z_{eye} = \frac{\frac{n * f}{n - f}}{Z_{ndc} + \frac{n}{n - f}}
 $$
 
 $$
-\rightarrow $Z_{eye} = \frac{\frac{n * f}{n - f}}{\frac{Z_{ndc}(n - f) + n}{n - f}}
+\rightarrow Z_{eye} = \frac{\frac{n * f}{n - f}}{\frac{Z_{ndc}(n - f) + n}{n - f}}
 $$
 
 $$
