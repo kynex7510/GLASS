@@ -192,8 +192,8 @@ void GLASS_context_initCommon(CtxCommon* ctx, const GLASSCtxParams* ctxParams) {
     ctx->fogColor = 0;
     ctx->fogZFlip = false;
 
-    for (size_t i = 0; i < GLASS_FOG_LUT_SIZE; ++i)
-        ctx->fogLut.data[i] = 1.0f;
+    for (size_t i = 0; i < GLASS_NUM_FOG_LUT_VALUES; ++i)
+        ctx->fogLut.values[i] = 1.0f;
 }
 
 void GLASS_context_cleanupCommon(CtxCommon* ctx) {
@@ -371,22 +371,29 @@ void GLASS_context_flush(CtxCommon* ctx, bool send) {
         ctx->flags &= ~GLASS_CONTEXT_FLAG_COLOR_DEPTH;
     }
 
-    // Handle depth map.
+    // Handle Z depth map.
     if (ctx->flags & GLASS_CONTEXT_FLAG_DEPTHMAP) {
         GLenum depthFormat = GL_DEPTH_COMPONENT16;
-        const size_t fbIndex = GLASS_context_getFBIndex(ctx);
+         GLfloat units = 0.0f;
 
-        if (ctx->framebuffer[fbIndex] != GLASS_INVALID_OBJECT) {
-            const FramebufferInfo* fb = (FramebufferInfo*)ctx->framebuffer[fbIndex];
-            if (fb->depthBuffer != GLASS_INVALID_OBJECT) {
-                const RenderbufferInfo* db = (RenderbufferInfo*)fb->depthBuffer;
-                depthFormat = db->format;
+        if (ctx->polygonOffset) {
+            const size_t fbIndex = GLASS_context_getFBIndex(ctx);
+
+            if (ctx->framebuffer[fbIndex] != GLASS_INVALID_OBJECT) {
+                const FramebufferInfo* fb = (FramebufferInfo*)ctx->framebuffer[fbIndex];
+                if (fb->depthBuffer != GLASS_INVALID_OBJECT) {
+                    const RenderbufferInfo* db = (RenderbufferInfo*)fb->depthBuffer;
+                    depthFormat = db->format;
+                    units = ctx->polygonUnits;
+                }
             }
         }
 
-        GLASS_gpu_setZDepthMap(&ctx->params.GPUCmdList, ctx->minDepth, ctx->maxDepth, ctx->polygonOffset, depthFormat, ctx->polygonUnits);
+        GLASS_gpu_setZDepthMap(&ctx->params.GPUCmdList, ctx->minDepth, ctx->maxDepth, depthFormat, units);
         ctx->flags &= ~GLASS_CONTEXT_FLAG_DEPTHMAP;
     }
+
+    // TODO: W depth map.
 
     // Handle early depth.
     if (ctx->flags & GLASS_CONTEXT_FLAG_EARLY_DEPTH) {

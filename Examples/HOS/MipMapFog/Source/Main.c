@@ -90,6 +90,27 @@ static const Vertex g_VertexList[] = {
 
 #define NUM_VERTICES (sizeof(g_VertexList)/sizeof(Vertex))
 
+static inline GLfloat calculateZEye(size_t index, GLfloat minDepth, GLfloat maxDepth, GLfloat* projMtx) {
+    KYGX_ASSERT(minDepth >= 0.0f && minDepth <= 1.0f);
+    KYGX_ASSERT(maxDepth >= 0.0f && maxDepth <= 1.0f);
+    KYGX_ASSERT(projMtx);
+
+    // Get Z_ndc from depth. See setZDepthMap for more info.
+    // - Z_ndc = (depth - max)/(max - min)
+    const GLfloat depth = index / 128.0f;
+    KYGX_ASSERT(depth <= 1.0f);
+
+    GLfloat zNdc = -1.0f;
+    if (minDepth != maxDepth)
+        zNdc = (depth - maxDepth) / (maxDepth - minDepth);
+
+    // Get Z_eye from Z_ndc.
+    // - Z_ndc = Z_c/W_c = ((A * Z_e) + B)/-Z_e
+    // - Z_e = -B/(Z_ndc + A)
+    // We assume A = (2, 2), B = (2, 3) (column major order).
+    return -projMtx[14] / (zNdc + projMtx[10]);
+}
+
 static void sceneInit(u16 screenWidth, u16 screenHeight, GLuint* vbo, GLuint* tex) {
     const GLfloat clearColor[4] = { 0.4f, 0.68f, 0.84f, 1.0f };
 
@@ -166,22 +187,27 @@ static void sceneInit(u16 screenWidth, u16 screenHeight, GLuint* vbo, GLuint* te
     glCombinerFuncPICA(GL_COMBINE_RGB, GL_MODULATE);
     glCombinerFuncPICA(GL_COMBINE_ALPHA, GL_MODULATE);
 
-    // Configure fog.
+    // Configure fog. See docs for more info.
     glEnable(GL_FOG);
 
-    kmMat4 invProj;
-    kmMat4Inverse(&invProj, &g_Projection);
+    GLASSFogLUT fogLut;
 
-    GLfloat fogLut[128];
-    GLenum error = glassMakeFogLut(GL_EXP, (const GLfloat*)invProj.mat, 0, 0, 0.05f, 0.01f, 20.0f, fogLut);
-    if (error != GL_NO_ERROR) {
-        KYGX_UNREACHABLE("Fog LUT creation failed!");
+    const GLfloat density = 0.05f;
+    const GLfloat gradient = 1.5f;
+
+    GLfloat depthRange[2];
+    glGetFloatv(GL_DEPTH_RANGE, depthRange);
+
+    for (size_t i = 0; i < GLASS_NUM_FOG_LUT_VALUES; ++i) {
+        // We use a right hand projection, and thus Z_e must be negated.
+        const GLfloat zEye = -calculateZEye(i, depthRange[0], depthRange[1], tmp.mat);
+
+        // Apply exp fog: e^-(density * z)^gradient.
+        fogLut.values[i] = expf(-powf(density * zEye, gradient));
     }
 
-    glFogPICA(GL_FOG_LUT_PICA, fogLut);
-
-    const GLfloat fogColor[4] = { 0.4f, 0.68f, 0.84f, 0.0f };
-    glFogPICA(GL_FOG_COLOR, fogColor);
+    glFogPICA(GL_FOG_LUT_PICA, fogLut.values);
+    glFogPICA(GL_FOG_COLOR, clearColor);
 }
 
 static void sceneRender(float angleX, float angleY) {

@@ -12,8 +12,8 @@
 
 #include <GLASS/Defs.h>
 
-/// @brief Fog LUT size.
-#define GLASS_FOG_LUT_SIZE 129
+/// @brief Number of fog LUT values.
+#define GLASS_NUM_FOG_LUT_VALUES 129
 
 /// @brief GLASS context.
 typedef struct GLASSCtxImpl* GLASSCtx;
@@ -64,7 +64,7 @@ typedef struct {
 
 /// @brief Fog LUT.
 typedef struct {
-    GLfloat data[GLASS_FOG_LUT_SIZE];
+    GLfloat values[GLASS_NUM_FOG_LUT_VALUES];
 } GLASSFogLUT;
 
 #ifdef __cplusplus

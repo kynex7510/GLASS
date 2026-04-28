@@ -867,31 +867,32 @@ void GLASS_gpu_setColorDepthMask(GLASSGPUCommandList* list, bool writeRed, bool 
     addMaskedWrite(list, GPUREG_DEPTH_COLOR_MASK, 0x03, value);
 }
 
-static inline float getDepthMapOffset(GLenum format, GLfloat scale, GLfloat units) {
-    GLfloat factor = 0.0f;
+void GLASS_gpu_setZDepthMap(GLASSGPUCommandList* list, GLclampf minDepth, GLclampf maxDepth, GLenum format, GLfloat units) {
+    KYGX_ASSERT(minDepth >= 0.0f && minDepth <= 1.0f);
+    KYGX_ASSERT(maxDepth >= 0.0f && maxDepth <= 1.0f);
+
+    GLfloat r = 0.0f;
 
     switch (format) {
         case GL_DEPTH_COMPONENT16:
-            factor = 65535.0f;
+            r = 1 / 65535.0f;
             break;
         case GL_DEPTH_COMPONENT24_OES:
         case GL_DEPTH24_STENCIL8_OES:
-            factor = 16777215.0f;
+            r = 1 / 16777215.0f;
             break;
         default:
             KYGX_UNREACHABLE("Invalid parameter!");
     }
 
-    return (scale * 128.0f * units) / factor;
-}
-
-void GLASS_gpu_setZDepthMap(GLASSGPUCommandList* list, GLclampf minDepth, GLclampf maxDepth, bool polygonOffset, GLenum format, GLfloat units) {
-    KYGX_ASSERT(minDepth >= 0.0f && minDepth <= 1.0f);
-    KYGX_ASSERT(maxDepth >= 0.0f && maxDepth <= 1.0f);
-
-    const GLfloat offset = polygonOffset ? getDepthMapOffset(format, 1.0, units) : 0.0f;
+    const GLfloat offset = r * units;
 
     addMaskedWrite(list, GPUREG_DEPTHMAP_ENABLE, 0x01, 1);
+
+    // Map [-1, 0] -> [0, 1].
+    // - depth = A * Z_ndc + B
+    // - max = A(0) + B = B => B = max
+    // - min = A(-1) + B = B - A = max - A => A = max - min
     addWrite(list, GPUREG_DEPTHMAP_SCALE, GLASS_math_f32tof24(maxDepth - minDepth));
     addWrite(list, GPUREG_DEPTHMAP_OFFSET, GLASS_math_f32tof24(maxDepth + offset));
 }
@@ -1269,9 +1270,9 @@ static inline void convertFogLut(const GLASSFogLUT* lut, u32* out) {
     KYGX_ASSERT(lut);
     KYGX_ASSERT(out);
 
-    for (size_t i = 0; i < (GLASS_FOG_LUT_SIZE - 1); ++i) {
-        const GLclampf current = GLASS_CLAMP(0.0f, 1.0f, lut->data[i]);
-        const GLclampf next = GLASS_CLAMP(0.0f, 1.0f, lut->data[i + 1]);
+    for (size_t i = 0; i < GLASS_NUM_FOG_LUT_ENTRIES; ++i) {
+        const GLclampf current = GLASS_CLAMP(0.0f, 1.0f, lut->values[i]);
+        const GLclampf next = GLASS_CLAMP(0.0f, 1.0f, lut->values[i + 1]);
         const GLfloat diff = next - current;
 
         u32 val = 0;
@@ -1301,11 +1302,11 @@ void GLASS_gpu_setFogLut(GLASSGPUCommandList* list, const GLASSFogLUT* lut) {
     KYGX_ASSERT(list);
     KYGX_ASSERT(lut);
 
-    u32 cvt[GLASS_FOG_LUT_SIZE - 1];
+    u32 cvt[GLASS_NUM_FOG_LUT_ENTRIES];
     convertFogLut(lut, cvt);
 
     addWrite(list, GPUREG_FOG_LUT_INDEX, 0);
-    addWrites(list, GPUREG_FOG_LUT_DATA0, cvt, GLASS_FOG_LUT_SIZE - 1);
+    addWrites(list, GPUREG_FOG_LUT_DATA0, cvt, sizeof(cvt) / sizeof(u32));
 }
 
 void GLASS_gpu_setCombinerBuffer(GLASSGPUCommandList* list, u8 inputs, u32 color, GPUFogMode fogMode, u32 fogColor, bool fogZFlip) {

@@ -33,6 +33,9 @@
 #define GLASS_MAX_VIEWPORT_WIDTH 1016
 #define GLASS_MAX_VIEWPORT_HEIGHT 1023
 
+// Last value is encoded as a difference.
+#define GLASS_NUM_FOG_LUT_ENTRIES (GLASS_NUM_FOG_LUT_VALUES - 1)
+
 #define GLASS_UNI_BOOL 0x00
 #define GLASS_UNI_INT 0x01
 #define GLASS_UNI_FLOAT 0x02

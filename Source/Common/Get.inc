@@ -184,8 +184,8 @@ ON_GET(GL_DEPTH_RANGE):
     SET_NUM_PARAMS(2)
     ENABLE_NORMALIZATION()
 
-    SET_FLOAT_PARAM(0, ctx->depthNear)
-    SET_FLOAT_PARAM(1, ctx->depthFar)
+    SET_FLOAT_PARAM(0, ctx->minDepth)
+    SET_FLOAT_PARAM(1, ctx->maxDepth)
 END_CASE
 
 ON_GET(GL_DEPTH_TEST):
