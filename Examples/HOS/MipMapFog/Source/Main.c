@@ -1,0 +1,303 @@
+#include <GLES/gl2.h>
+#include <kazmath/kazmath.h>
+
+#include "MipMapFog_vshader_shbin.h"
+#include "MipMapFog_kitten_t3x.h"
+
+typedef struct {
+    float position[3];
+    float texcoord[2];
+    float normal[3];
+} Vertex;
+
+static GLint g_ProjLoc;
+static GLint g_ModelViewLoc;
+static GLint g_LightVecLoc;
+static GLint g_LightHalfVecLoc;
+static GLint g_LightClrLoc;
+static GLint g_MaterialLoc;
+
+static kmMat4 g_Projection;
+
+static kmMat4 g_Material = {{
+    0.2f, 0.2f, 0.2f, 0.0f, // Ambient
+    0.4f, 0.4f, 0.4f, 0.0f, // Diffuse
+    0.8f, 0.8f, 0.8f, 0.0f, // Specular
+    0.0f, 0.0f, 0.0f, 1.0f, // Emission
+}};
+
+static const Vertex g_VertexList[] = {
+    // First face (PZ)
+    // First triangle
+    { {-0.5f, -0.5f, +0.5f}, {0.0f, 0.0f}, {0.0f, 0.0f, +1.0f} },
+    { {+0.5f, -0.5f, +0.5f}, {1.0f, 0.0f}, {0.0f, 0.0f, +1.0f} },
+    { {+0.5f, +0.5f, +0.5f}, {1.0f, 1.0f}, {0.0f, 0.0f, +1.0f} },
+    // Second triangle
+    { {+0.5f, +0.5f, +0.5f}, {1.0f, 1.0f}, {0.0f, 0.0f, +1.0f} },
+    { {-0.5f, +0.5f, +0.5f}, {0.0f, 1.0f}, {0.0f, 0.0f, +1.0f} },
+    { {-0.5f, -0.5f, +0.5f}, {0.0f, 0.0f}, {0.0f, 0.0f, +1.0f} },
+
+    // Second face (MZ)
+    // First triangle
+    { {-0.5f, -0.5f, -0.5f}, {0.0f, 0.0f}, {0.0f, 0.0f, -1.0f} },
+    { {-0.5f, +0.5f, -0.5f}, {1.0f, 0.0f}, {0.0f, 0.0f, -1.0f} },
+    { {+0.5f, +0.5f, -0.5f}, {1.0f, 1.0f}, {0.0f, 0.0f, -1.0f} },
+    // Second triangle
+    { {+0.5f, +0.5f, -0.5f}, {1.0f, 1.0f}, {0.0f, 0.0f, -1.0f} },
+    { {+0.5f, -0.5f, -0.5f}, {0.0f, 1.0f}, {0.0f, 0.0f, -1.0f} },
+    { {-0.5f, -0.5f, -0.5f}, {0.0f, 0.0f}, {0.0f, 0.0f, -1.0f} },
+
+    // Third face (PX)
+    // First triangle
+    { {+0.5f, -0.5f, -0.5f}, {0.0f, 0.0f}, {+1.0f, 0.0f, 0.0f} },
+    { {+0.5f, +0.5f, -0.5f}, {1.0f, 0.0f}, {+1.0f, 0.0f, 0.0f} },
+    { {+0.5f, +0.5f, +0.5f}, {1.0f, 1.0f}, {+1.0f, 0.0f, 0.0f} },
+    // Second triangle
+    { {+0.5f, +0.5f, +0.5f}, {1.0f, 1.0f}, {+1.0f, 0.0f, 0.0f} },
+    { {+0.5f, -0.5f, +0.5f}, {0.0f, 1.0f}, {+1.0f, 0.0f, 0.0f} },
+    { {+0.5f, -0.5f, -0.5f}, {0.0f, 0.0f}, {+1.0f, 0.0f, 0.0f} },
+
+    // Fourth face (MX)
+    // First triangle
+    { {-0.5f, -0.5f, -0.5f}, {0.0f, 0.0f}, {-1.0f, 0.0f, 0.0f} },
+    { {-0.5f, -0.5f, +0.5f}, {1.0f, 0.0f}, {-1.0f, 0.0f, 0.0f} },
+    { {-0.5f, +0.5f, +0.5f}, {1.0f, 1.0f}, {-1.0f, 0.0f, 0.0f} },
+    // Second triangle
+    { {-0.5f, +0.5f, +0.5f}, {1.0f, 1.0f}, {-1.0f, 0.0f, 0.0f} },
+    { {-0.5f, +0.5f, -0.5f}, {0.0f, 1.0f}, {-1.0f, 0.0f, 0.0f} },
+    { {-0.5f, -0.5f, -0.5f}, {0.0f, 0.0f}, {-1.0f, 0.0f, 0.0f} },
+
+    // Fifth face (PY)
+    // First triangle
+    { {-0.5f, +0.5f, -0.5f}, {0.0f, 0.0f}, {0.0f, +1.0f, 0.0f} },
+    { {-0.5f, +0.5f, +0.5f}, {1.0f, 0.0f}, {0.0f, +1.0f, 0.0f} },
+    { {+0.5f, +0.5f, +0.5f}, {1.0f, 1.0f}, {0.0f, +1.0f, 0.0f} },
+    // Second triangle
+    { {+0.5f, +0.5f, +0.5f}, {1.0f, 1.0f}, {0.0f, +1.0f, 0.0f} },
+    { {+0.5f, +0.5f, -0.5f}, {0.0f, 1.0f}, {0.0f, +1.0f, 0.0f} },
+    { {-0.5f, +0.5f, -0.5f}, {0.0f, 0.0f}, {0.0f, +1.0f, 0.0f} },
+
+    // Sixth face (MY)
+    // First triangle
+    { {-0.5f, -0.5f, -0.5f}, {0.0f, 0.0f}, {0.0f, -1.0f, 0.0f} },
+    { {+0.5f, -0.5f, -0.5f}, {1.0f, 0.0f}, {0.0f, -1.0f, 0.0f} },
+    { {+0.5f, -0.5f, +0.5f}, {1.0f, 1.0f}, {0.0f, -1.0f, 0.0f} },
+    // Second triangle
+    { {+0.5f, -0.5f, +0.5f}, {1.0f, 1.0f}, {0.0f, -1.0f, 0.0f} },
+    { {-0.5f, -0.5f, +0.5f}, {0.0f, 1.0f}, {0.0f, -1.0f, 0.0f} },
+    { {-0.5f, -0.5f, -0.5f}, {0.0f, 0.0f}, {0.0f, -1.0f, 0.0f} },
+};
+
+#define NUM_VERTICES (sizeof(g_VertexList)/sizeof(Vertex))
+
+static inline GLfloat calculateZEye(size_t index, GLfloat minDepth, GLfloat maxDepth, GLfloat* projMtx) {
+    KYGX_ASSERT(minDepth >= 0.0f && minDepth <= 1.0f);
+    KYGX_ASSERT(maxDepth >= 0.0f && maxDepth <= 1.0f);
+    KYGX_ASSERT(projMtx);
+
+    // Get Z_ndc from depth. See setZDepthMap for more info.
+    // - Z_ndc = (depth - max)/(max - min)
+    const GLfloat depth = index / 128.0f;
+    KYGX_ASSERT(depth <= 1.0f);
+
+    GLfloat zNdc = -1.0f;
+    if (minDepth != maxDepth)
+        zNdc = (depth - maxDepth) / (maxDepth - minDepth);
+
+    // Get Z_eye from Z_ndc.
+    // - Z_ndc = Z_c/W_c = ((A * Z_e) + B)/-Z_e
+    // - Z_e = -B/(Z_ndc + A)
+    // We assume A = (2, 2), B = (2, 3) (column major order).
+    return -projMtx[14] / (zNdc + projMtx[10]);
+}
+
+static void sceneInit(u16 screenWidth, u16 screenHeight, GLuint* vbo, GLuint* tex) {
+    const GLfloat clearColor[4] = { 0.4f, 0.68f, 0.84f, 1.0f };
+
+    // Set default state.
+    glViewport(0, 0, screenWidth, screenHeight);
+    glClearColor(clearColor[0], clearColor[1], clearColor[2], clearColor[3]);
+    glEnable(GL_CULL_FACE);
+    
+    // Load the vertex shader, create a shader program and bind it.
+    GLuint prog = glCreateProgram();
+    GLuint shad = glCreateShader(GL_VERTEX_SHADER);
+    glShaderBinary(1, &shad, GL_SHADER_BINARY_PICA, MipMapFog_vshader_shbin, MipMapFog_vshader_shbin_size);
+    glAttachShader(prog, shad);
+    glDeleteShader(shad);
+    glLinkProgram(prog);
+    glUseProgram(prog);
+    glDeleteProgram(prog);
+
+    // Get the location of the uniforms.
+    g_ProjLoc = glGetUniformLocation(prog, "projection");
+    g_ModelViewLoc = glGetUniformLocation(prog, "modelView");
+    g_LightVecLoc = glGetUniformLocation(prog, "lightVec");
+    g_LightHalfVecLoc = glGetUniformLocation(prog, "lightHalfVec");
+    g_LightClrLoc = glGetUniformLocation(prog, "lightClr");
+    g_MaterialLoc = glGetUniformLocation(prog, "material");
+
+    // Create the VBO (vertex buffer object).
+    glGenBuffers(1, vbo);
+    glBindBuffer(GL_ARRAY_BUFFER, *vbo);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(g_VertexList), g_VertexList, GL_STATIC_DRAW);
+
+    // Configure attributes for use with the vertex shader.
+    const GLint inpos = glGetAttribLocation(prog, "inpos");
+    glVertexAttribPointer(inpos, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)(offsetof(Vertex, position)));
+    glEnableVertexAttribArray(inpos);
+
+    const GLint intex = glGetAttribLocation(prog, "intex");
+    glVertexAttribPointer(intex, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)(offsetof(Vertex, texcoord)));
+    glEnableVertexAttribArray(intex);
+
+    const GLint innrm = glGetAttribLocation(prog, "innrm");
+    glVertexAttribPointer(innrm, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)(offsetof(Vertex, normal)));
+    glEnableVertexAttribArray(innrm);
+
+    // Compute the projection matrix.
+    kmMat4 tmp;
+    kmMat4PerspTilt(&tmp, kmDegreesToRadians(80.0f), 400.0f/240.0f, 0.01f, 20.0f, false);
+    kmMat4Transpose(&g_Projection, &tmp);
+
+    // Create texture.
+    glGenTextures(1, tex);
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, *tex);
+
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST_MIPMAP_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexVRAMPICA(GL_TRUE);
+
+    // Load texture as tex3ds.
+    RIPTex3DS texData = {};
+    if (!ripLoadTex3DS(MipMapFog_kitten_t3x, MipMapFog_kitten_t3x_size, &texData)) {
+        KYGX_UNREACHABLE("Could not load texture!");
+    }
+
+    glassMoveTex3DS(&texData);
+    ripDestroyTex3DS(&texData);
+
+    // Configure the first combiner stage: modulate texture color and vertex color.
+    glCombinerStagePICA(0);
+    glCombinerSrcPICA(GL_SRC0_RGB, GL_TEXTURE0);
+    glCombinerSrcPICA(GL_SRC0_ALPHA, GL_TEXTURE0);
+    glCombinerFuncPICA(GL_COMBINE_RGB, GL_MODULATE);
+    glCombinerFuncPICA(GL_COMBINE_ALPHA, GL_MODULATE);
+
+    // Configure fog. See docs for more info.
+    glEnable(GL_FOG);
+
+    GLASSFogLUT fogLut;
+
+    const GLfloat density = 0.05f;
+    const GLfloat gradient = 1.5f;
+
+    GLfloat depthRange[2];
+    glGetFloatv(GL_DEPTH_RANGE, depthRange);
+
+    for (size_t i = 0; i < GLASS_NUM_FOG_LUT_VALUES; ++i) {
+        // We use a right hand projection, and thus Z_e must be negated.
+        const GLfloat zEye = -calculateZEye(i, depthRange[0], depthRange[1], tmp.mat);
+
+        // Apply exp fog: e^-(density * z)^gradient.
+        fogLut.values[i] = expf(-powf(density * zEye, gradient));
+    }
+
+    glFogPICA(GL_FOG_LUT_PICA, fogLut.values);
+    glFogPICA(GL_FOG_COLOR, clearColor);
+}
+
+static void sceneRender(float angleX, float angleY) {
+    // Compute the model-view matrix.
+    kmMat4 tmp;
+    kmMat4 tmp2;
+    kmMat4 modelView;
+
+    kmMat4Identity(&tmp);
+    kmMat4Translation(&tmp2, 0.0f, 0.0f, -5.0f + 4.0f * sinf(angleX));
+    kmMat4Multiply(&modelView, &tmp, &tmp2);
+
+    memcpy(&tmp, &modelView, sizeof(kmMat4));
+    kmMat4RotationX(&tmp2, angleX);
+    kmMat4Multiply(&modelView, &tmp, &tmp2);
+
+    kmMat4RotationY(&tmp2, angleY);
+    kmMat4Multiply(&tmp, &modelView, &tmp2);
+    kmMat4Transpose(&modelView, &tmp);
+
+    // Update the uniforms.
+    glUniformMatrix4fv(g_ProjLoc, 1, GL_FALSE, g_Projection.mat);
+    glUniformMatrix4fv(g_ModelViewLoc, 1, GL_FALSE, modelView.mat);
+    glUniformMatrix4fv(g_MaterialLoc, 1, GL_FALSE, g_Material.mat);
+    glUniform4f(g_LightVecLoc, 0.0f, 0.0f, -1.0f, 0.0f);
+    glUniform4f(g_LightHalfVecLoc, 0.0f, 0.0f, -1.0f, 0.0f);
+    glUniform4f(g_LightClrLoc, 1.0f, 1.0f, 1.0f, 1.0f);
+
+    // Draw the VBO.
+    glDrawArrays(GL_TRIANGLES, 0, NUM_VERTICES);
+}
+
+int main() {
+    // Initialize graphics.
+    gfxInitDefault();
+    kygxInit();
+
+    GLASSCtx ctx = glassCreateDefaultContext(GLASS_VERSION_ES_2);
+    glassBindContext(ctx);
+
+    // Initialize the render target.
+    u16 screenWidth = 0;
+    u16 screenHeight = 0;
+    glassGetScreenFramebuffer(ctx, &screenWidth, &screenHeight, NULL);
+
+    GLuint fb;
+    GLuint rb;
+
+    glGenFramebuffers(1, &fb);
+    glGenRenderbuffers(1, &rb);
+    glBindFramebuffer(GL_FRAMEBUFFER, fb);
+    glBindRenderbuffer(GL_RENDERBUFFER, rb);
+    glRenderbufferStorage(GL_RENDERBUFFER, GL_RGBA8_OES, screenWidth, screenHeight);
+    glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_RENDERBUFFER, rb);
+
+    // Initialize the scene.
+    GLuint vbo;
+    GLuint tex;
+    sceneInit(screenWidth, screenHeight, &vbo, &tex);
+
+    // Main loop.
+    float angleX = 0.0f, angleY = 0.0f;
+
+    while (aptMainLoop()) {
+        hidScanInput();
+
+        // Respond to user input.
+        u32 kDown = hidKeysDown();
+        if (kDown & KEY_START)
+            break; // break in order to return to hbmenu.
+
+        // Rotate the cube each frame.
+        angleX += kmPI / 180;
+        angleY += kmPI / 360;
+
+        // Render the scene.
+        glClear(GL_COLOR_BUFFER_BIT);
+        sceneRender(angleX, angleY);
+        glassSwapBuffers();
+    }
+
+    // Deinitialize graphics.
+    glDeleteTextures(1, &tex);
+    glDeleteBuffers(1, &vbo);
+    glDeleteRenderbuffers(1, &rb);
+    glDeleteFramebuffers(1, &fb);
+
+    glassDestroyContext(ctx);
+
+    kygxExit();
+    gfxExit();
+    return 0;
+}
